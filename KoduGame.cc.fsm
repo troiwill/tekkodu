@@ -1,0 +1,515 @@
+// Tekkotsu Library
+#include "Behaviors/StateMachine.h"
+
+// C++ Library
+#include <cctype>
+#include <iostream>
+#include <queue>
+#include <vector>
+
+// ========= Kodu Library ========= //
+// General Functions
+#include "Kodu/General/GeneralFncs.h"
+#include "Kodu/General/GeneralMacros.h"
+
+// Kodu Parsing
+#include "Kodu/Parsing/ParsedPage.h"
+#include "Kodu/Parsing/Parser.h"
+
+// Kodu Behaviors
+#include "Kodu/Behaviors/KoduActionMotion.h"
+#include "Kodu/Behaviors/KoduActionPageSwitch.h"
+#include "Kodu/Behaviors/KoduActionSay.h"
+#include "Kodu/Behaviors/KoduConditionAlways.h"
+#include "Kodu/Behaviors/KoduConditionSee.h"
+
+#include "Kodu/Keepers/ScoreKeeper.h"
+#include "Kodu/Keepers/ObjectKeeper.h"
+#include "Kodu/KoduPage.h"
+#include "Kodu/KoduRule.h"
+
+$nodeclass KoduGame : VisualRoutinesStateNode {
+	
+	$provide std::vector<Kodu::KoduPage*> pages;
+	$provide unsigned int cycleCount;
+	$provide unsigned int currPageIndex;
+	
+	$provide Kodu::MotionCommand motionCmd;
+	$provide bool robotIsMoving;
+
+	$provide unsigned int newReqdPage;
+
+	$provide std::queue<std::string> playQueue;
+
+	$provide std::string stringToSpeak;
+
+	$provide std::queue<Kodu::KoduActionScore*> scoreQueue;
+
+	$provide MotionActuator* motionActRef;
+	$provide PageSwitchActuator* pageSwitchActRef;
+	$provide PlayActuator* playActRef;
+	$provide SayActuator* sayActRef;
+	$provide ScoreActuator* scoreActRef;
+	
+	$nodeclass InitializeGame : StateNode : doStart {
+		$reference KoduGame::cycleCount;
+		$reference KoduGame::currPageIndex;
+		
+		$reference KoduGame::robotIsMoving;
+		$reference KoduGame::newReqdPage;
+		$reference KoduGame::stringToSpeak;
+		std::cout << "Initializing Kodu Game.\n";
+		// initialize the color container
+		Kodu::ColorTypes::initialize();
+
+		// initialize the scoring letter container
+		Kodu::KoduScoringLetter::initialize();
+
+		// initialize the scores
+		Kodu::ScoreKeeper::initialize();
+		
+		cycleCount = 0;
+		currPageIndex = 0;
+		
+		newReqdPage = 0;
+		stringToSpeak.clear();
+		robotIsMoving = false;
+
+		std::cout << "Initialization complete.\n";
+		postStateCompletion();
+	}
+	
+	//! Kodu Code Parser
+	$nodeclass KoduParser : StateNode : doStart {
+		$reference KoduGame::pages;
+		std::vector<std::string> koduStrings;
+		std::vector<Kodu::ParsedPage*> tempPages;
+		
+		// reads the code from a file
+		if (Kodu::TokenParser::readText(koduStrings) == false) {
+			postStateFailure();
+			std::cerr << "File reading failed.\n";
+			return;
+		}
+		
+		// parses the code
+		if (Kodu::TokenParser::parseTokens(koduStrings, tempPages) == false) {
+			postStateFailure();
+			std::cerr << "Code parsing failed.\n";
+			return;
+		}
+
+		// create the Kodu pages, rules, conditions, and actions
+		if (Kodu::KodeCreator::createKode(tempPages, pages) == false) {
+			postStateFailure();
+			std::cerr << "Kode creation failed.\n";
+			return;
+		}
+
+		for (size_t i = 0; i < pages.size(); i++) {
+			for (size_t j = 0; j < pages[i]->getRuleCount(); j++) {
+				Kodu::KoduConditionSee* cond = NULL;
+				if ((cond = dynamic_cast<Kodu::KoduConditionSee*>(pages[i]->getRuleInPos(j)->condition)) != NULL) {
+					pages[i]->addObjectDescriptor(cond->getObjectColor());
+				}
+			}
+		}
+		// TODO (27/JUL/13) find out why this is causing a segmentation fault
+		//if (!tempPages.empty())
+		//	GeneralFncs::destroyAllPtrsInVector(tempPages);
+		std::cout << "Parsing complete.\n";
+
+		postStateCompletion();
+	}
+
+	//$nodeclass VisualScan : StateNode {
+
+	$nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
+		$reference KoduGame::pages;
+		$reference KoduGame::currPageIndex;
+		std::vector<std::string> objectDescrips = pages[currPageIndex]->getObjectDescriptors();
+		const std::size_t kSize = objectDescrips.size();
+		for (std::size_t index = 0; index < kSize; index++) {
+			mapreq.addObjectColor(cylinderDataType, objectDescrips[index]);
+		}
+	}
+
+	//$nodeclass PointHead(float x, float y, float z) : HeadPointerNode : doStart {
+
+	//}
+
+	
+	//! Kodu Interpreter
+	$nodeclass KoduInterpreter : StateNode : doStart {
+		$reference KoduGame::currPageIndex;
+		$reference KoduGame::cycleCount;
+		$reference KoduGame::newReqdPage;
+		$reference KoduGame::pages;
+		$reference KoduGame::stringToSpeak;
+		$reference KoduGame::playQueue;
+		$reference KoduGame::scoreQueue;
+		$reference KoduGame::robotIsMoving;
+		$reference KoduGame::motionCmd;
+
+		Kodu::KoduPage* cPage;
+		Kodu::KoduRule* cRule;
+		std::cout << "========== GAME CYCLE #" << cycleCount++
+				  << ", PAGE #" << currPageIndex + 1 << "==========\n";
+		if ((cPage = pages[currPageIndex]) == NULL) {
+			std::cerr << "!!! A NULL page was found. Tried accessing Page[" << currPageIndex << "]\n";
+			postStateFailure();
+			return;
+		}
+
+		const int numbOfRules = cPage->getRuleCount();
+		if (numbOfRules == 0) {
+			std::cerr << "Reached an empty page.\n";
+			postStateFailure();
+			return;
+		}
+
+		for (int i = 0; i < numbOfRules; i++) {
+			// checks if the rule returned is NULL. 
+			if ((cRule = cPage->getRuleInPos(i)) == NULL) {
+				std::cerr << "!!! A NULL rule was found. Tried accessing Page[" << currPageIndex
+					      << "], Rule[" << i << "]\n";
+				postStateFailure();
+				return;
+			}
+
+			// get the condition and action types
+			std::string conditionType = cRule->condition->getBehaviorType();
+			std::string actionType = cRule->action->getBehaviorType();
+			
+			// TODO (05/July/2013) Add handle (ptr) for move request so it can be canceled here
+			if (cRule->condition->evaluate()) {
+				// resets the action has already ran flag
+				if (cRule->condEvalResult == false) {
+					unsigned int cRuleNumber = cRule->getRuleNumber();
+					int cRuleIndex = i;
+					Kodu::KoduRule* rule = NULL;
+					for (int j = cRuleIndex + 1; j < numbOfRules; j++) {
+						rule = cPage->getRuleInPos(j);
+						if (rule->getParentNumber() == cRuleNumber) {
+							rule->action->actionHasAlreadyRan = false;
+						} else {
+							break;
+						}
+					}
+					rule = NULL;
+				}
+				// states rule evaluated true (no matter if action executed or not)
+				cRule->condEvalResult = true;
+				// check if this rule has a parent rule and if it's condition evaluated true
+				if (cRule->isIndented() && cPage->getRule(cRule->getParentNumber())->condEvalResult == false)
+				{
+					continue;
+				}
+				// check if the action can run
+				if (!cRule->action->actionHasRan()) { 
+					// check the action types that do not have queues first
+					// Kodu Action Do Nothing
+					if (actionType == "KoduActionDoNothing") {
+						std::cout << "Do nothing...\n";
+					}
+
+					// Kodu Action Motion
+					else if (actionType == "KoduActionMotion") {
+						Kodu::MotionCommand cmd = dynamic_cast<Kodu::KoduActionMotion*>(cRule->action)->getMotionCommand();
+						if (!robotIsMoving && !motionCmd.isValid() && cmd.isValid()) {
+							motionCmd = cmd;
+							std::cout << "Added a motion command...\n";
+						}
+					}
+
+					// Kodu Action Page Switch
+					else if (actionType == "KoduActionPageSwitch") {
+						 if (newReqdPage == 0) {
+							newReqdPage = dynamic_cast<Kodu::KoduActionPageSwitch*>(cRule->action)->getPageNumber();
+							std::cout << "Switching to another page!\n";
+							break;
+						}
+					}
+
+					// Kodu Action Play
+					else if (actionType == "KoduActionPlay") {
+						std::string soundFile = dynamic_cast<Kodu::KoduActionPlay*>(cRule->action)->getSoundFile();
+						playQueue.push(soundFile);
+						std::cout << "Added the sound file \"" << soundFile << "\".\n";
+					}
+
+					// Kodu Action Say
+					else if (actionType == "KoduActionSay") {
+						if (stringToSpeak.empty()) {
+							stringToSpeak = dynamic_cast<Kodu::KoduActionSay*>(cRule->action)->getSpeechText();
+							std::cout << "Added literal string: \"" << stringToSpeak << "\".\n";
+						}
+					}
+
+					// Kodu Action Score
+					else if (actionType == "KoduActionScore") {
+						scoreQueue.push(dynamic_cast<Kodu::KoduActionScore*>(cRule->action));
+						std::cout << "Added a score action type.\n";
+					}
+
+					// something wrong has happened, but should never happen
+					else {
+						std::cerr << "Unrecognizable action: \"" << actionType << "\".\n";
+					}
+				}
+			} else {
+				cRule->condEvalResult = false; // states rule evaluated false
+				if (cRule->condition->getBehaviorType() != "KoduConditionTimer") {
+					cRule->action->actionHasAlreadyRan = false;
+				}
+			}
+			// invalidate object
+			Kodu::ObjectKeeper::isValid = false;
+		}
+		cPage = NULL;
+		cRule = NULL;
+		postStateCompletion();
+	} // end of Kodu Interpreter
+	
+	//! Kodu Action Runner
+	$nodeclass KoduActionRunner : StateNode : doStart {
+		//$reference KoduGame::robotIsMoving;
+		$reference KoduGame::motionCmd;
+		$reference KoduGame::newReqdPage;
+		$reference KoduGame::playQueue;
+		$reference KoduGame::scoreQueue;
+		$reference KoduGame::motionActRef;
+		$reference KoduGame::pageSwitchActRef;
+		$reference KoduGame::playActRef;
+		$reference KoduGame::sayActRef;
+		$reference KoduGame::stringToSpeak;
+		$reference KoduGame::scoreActRef;
+		
+		if (motionCmd.isValid())
+			motionActRef->start();
+
+		if (newReqdPage > 0)
+			pageSwitchActRef->start();
+
+		if (!playQueue.empty())
+			playActRef->start();
+		
+		if (!stringToSpeak.empty())
+			sayActRef->start();
+			
+		if (!scoreQueue.empty())
+			scoreActRef->start();
+	}
+
+	$nodeclass TerminateGame : StateNode : doStart {
+		$reference KoduGame::stringToSpeak;
+		$reference KoduGame::playQueue;
+		$reference KoduGame::pages;
+		$reference KoduGame::scoreQueue;
+		
+		$reference KoduGame::motionActRef;
+		$reference KoduGame::pageSwitchActRef;
+		$reference KoduGame::playActRef;
+		$reference KoduGame::sayActRef;
+		$reference KoduGame::scoreActRef;
+		
+		std::cout << "Clearing speech variable...\n";
+		stringToSpeak.clear();
+		while (!playQueue.empty())
+			playQueue.pop();
+
+		while (!scoreQueue.empty())
+			scoreQueue.pop();
+
+		std::cout << "Deleting actuator instances...\n";
+		if (motionActRef != NULL)
+			delete motionActRef;
+		if (pageSwitchActRef != NULL)
+			delete pageSwitchActRef;
+		if (playActRef != NULL)
+			delete playActRef;
+		if (sayActRef != NULL)
+			delete sayActRef;
+		if (scoreActRef != NULL)
+			delete scoreActRef;
+
+		std::cout << "Clearing pages...\n";
+		GeneralFncs::destroyAllPtrsInVector(pages);
+
+		std::cout << "Terminating execution Kodu Game.\n";
+	}
+
+// ================================ Actuators ========================================= //
+
+// Motion 
+
+	$nodeclass MotionActuator : PilotNode : doStart {
+		$reference KoduGame::motionCmd;
+		$reference KoduGame::robotIsMoving;
+		PilotRequest pReq(PilotTypes::noRequest);
+		if (motionCmd.targetObjectIsValid()) {
+			pReq.requestType = PilotTypes::goToShape;
+			pReq.targetShape = motionCmd.getTargetObject();
+			pReq.baseOffset = fmat::pack(350,0,0);
+		} else {
+			pReq.requestType = PilotTypes::walk;
+			pReq.da = AngSignPi(motionCmd.getTurningAngle());
+			pReq.dx = motionCmd.getDistanceToTravel();
+		}
+		pReq.forwardSpeed = motionCmd.getForwardSpeed();
+		pReq.turnSpeed = motionCmd.getTurnSpeed();
+		pReq.collisionAction = collisionIgnore;
+		pilotreq = pReq;
+		motionCmd.invalidate();
+		robotIsMoving = true;
+	}
+
+	$nodeclass CompleteMotionActuator : StateNode : doStart {
+		$reference KoduGame::robotIsMoving;
+		robotIsMoving = false;
+		postStateCompletion();
+	}
+
+// end of Motion
+
+// Page Switch 
+
+	$nodeclass PageSwitchActuator : StateNode : doStart {
+		$reference KoduGame::currPageIndex;
+		$reference KoduGame::newReqdPage;
+		$reference KoduGame::pages;
+		
+		int newPageIndex = newReqdPage - 1;
+		if (pages[newPageIndex] == NULL) {
+			std::cerr << "!!! A NULL page (index #" << newPageIndex << ") was requested.\n"
+					  << "Ignoring action.\n";
+			postStateFailure();
+		} else {
+			std::cout << "Switching to page " << newReqdPage << " (index #" << newPageIndex << ")\n";
+			Kodu::KoduPage* nextPage = pages[newPageIndex];
+			const int kRuleCount = nextPage->getRuleCount();
+			for (int i = 0; i < kRuleCount; i++) {
+				nextPage->getRuleInPos(i)->reinitializePrimitives();
+			}
+			currPageIndex = newPageIndex;
+			nextPage = NULL;
+		}
+		newReqdPage = 0;
+		std::cout << "Page switch actuator finished.\n";
+		postStateCompletion();
+	}
+
+// end of Page Switch Actuator
+
+// Play Actuator
+
+	$nodeclass PlayActuator : StateNode : doStart {
+		$reference KoduGame::playQueue;
+		if (playQueue.empty()) {
+			std::cout << "Play actuator finished.\n";
+			postStateCompletion();
+			return;
+		}
+		std::string wavfile = playQueue.front();
+		playQueue.pop();
+		postStateSignal<std::string>(wavfile);
+	}
+	
+// end of Play Actuator
+
+// Say Actuator
+
+	$nodeclass SayActuator : StateNode : doStart {
+		$reference KoduGame::stringToSpeak;
+		postStateSignal<std::string>(stringToSpeak);
+	}
+
+	$nodeclass CompleteSayActuator : StateNode : doStart {
+		$reference KoduGame::stringToSpeak;
+		stringToSpeak.clear();
+		std::cout << "Say actuator finished.\n";
+		postStateCompletion();
+	}
+
+// end of Speech Actuator
+
+// Score Actuator
+
+	$nodeclass ScoreActuator : StateNode : doStart {
+		$reference KoduGame::scoreQueue;
+		while (!scoreQueue.empty()) {
+			scoreQueue.front()->changeScore();
+			scoreQueue.pop();
+		}
+		std::cout << "All score slots released.\n";
+		postStateCompletion();
+	}
+
+// end of Score Actuator
+
+// ==================================================================================== //
+	
+	virtual void setup() {
+		$statemachine {
+			startGame:	InitializeGame
+
+			parser:		KoduParser
+			interp:		KoduInterpreter
+			runner:		KoduActionRunner
+
+			endState:	StateNode
+			endGame:	TerminateGame
+
+			//leftUp:		PointHead()
+			
+			startGame =C=> parser
+
+			parser =C=> SnapImage =C=> interp
+			parser =F=> endState
+		
+			interp =C=> runner
+			interp =F=> endState
+
+			runner =T(150)=> interp
+			
+			// motion actuator
+			motionAct:	MotionActuator
+			compMotionAct: CompleteMotionActuator
+
+			motionAct =PILOT=> compMotionAct =C=> endState
+
+			// speech actuator
+			sayAct:		SayActuator
+			compSayAct:	CompleteSayActuator
+			
+			sayAct =S<std::string>=> SpeechNode =C=> compSayAct =C=> endState
+			
+			// sound actuator
+			playAct:	PlayActuator
+			
+			playAct =S<std::string>=> SoundNode =T(50)=> playAct
+			playAct =C=> endState
+			
+			// score actuator
+			scoreAct:	ScoreActuator
+			scoreAct =C=> endState
+
+			// page switch actuator
+			pageSwitchAct: PageSwitchActuator
+			pageSwitchAct =C=> endState
+			pageSwitchAct =F=> endGame
+		}
+	
+		// actuator references
+		sayActRef = sayAct;
+		playActRef = playAct;
+		scoreActRef = scoreAct;
+		pageSwitchActRef = pageSwitchAct;
+		motionActRef = motionAct;
+	}
+	
+private:
+	DISALLOW_COPY_ASSIGN(KoduGame);
+}
+
+REGISTER_BEHAVIOR(KoduGame);
