@@ -14,8 +14,8 @@ namespace Kodu {
 	//! Kodu Page
 	class KoduPage {
 	private:
-		unsigned int pageNumber;			//!< Page number
-		std::vector<KoduRule*> rules;		//!< Collection of rules for a page
+		unsigned int pageNumber;				//!< Page number
+		std::vector<KoduRule*> rules;			//!< Collection of rules for a page
 		std::vector<std::string> objectColors;
 		
 	public:

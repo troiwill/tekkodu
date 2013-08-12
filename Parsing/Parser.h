@@ -25,6 +25,8 @@
 #include "Kodu/Behaviors/KoduConditionSee.h"
 #include "Kodu/Behaviors/KoduConditionScored.h"
 #include "Kodu/Behaviors/KoduConditionTimer.h"
+
+#include "Kodu/Behaviors/PerceptionSearch.h"
 // Designators
 #include "Kodu/Designator/ColorTypes.h"
 #include "Kodu/Designator/KoduInequalityOperator.h"

@@ -62,9 +62,9 @@ namespace Kodu {
 				else if (keyword == "close_by" || keyword == "far_away") {
 					// ASSERTION: The front/back region was not specified
 					PARSER_ASSERT((spatialSearch == KoduConditionSee::SRD_UNRESTRICTED),
-						errorMessage << "A front/back regional specifier was already specified.\n"
+						errorMessage << "A close_by/far_away radius specifier was already specified.\n"
 						<<  "Second instance found: " << keyword);
-					if (keyword == "to_left")
+					if (keyword == "close_by")
 						spatialSearch = KoduConditionSee::SRD_CLOSE_BY;
 					else
 						spatialSearch = KoduConditionSee::SRD_FAR_AWAY;

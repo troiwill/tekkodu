@@ -51,6 +51,7 @@ namespace GeneralFncs {
 			subVec.push_back(vec[pos]);
 		return subVec;
 	}
+	
 	/*
 	// TODO (24/JUL/13) will both of these do the same thing? (with or without the pointer)
 	//! Returns a subset of a vector from the start position up to, but not including, the end position

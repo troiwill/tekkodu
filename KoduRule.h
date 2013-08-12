@@ -9,11 +9,11 @@ namespace Kodu {
 	//! Kodu Rule
 	class KoduRule {
 	public:
-		unsigned int ruleNumber;		//!< Rule number
-		unsigned int parent;			//!< Parent rule (assigned during program parsing)
-		KoduCondition* condition;		//!< Condition to evaluate
-		KoduAction* action;				//!< Action to execute
-		bool condEvalResult;			//!< Evaluation result for a condition (true|false)
+		unsigned int ruleNumber;			//!< Rule number
+		unsigned int parent;				//!< Parent rule (assigned during program parsing)
+		KoduCondition* condition;			//!< Condition to evaluate
+		KoduAction* action;					//!< Action to execute
+		bool condEvalResult;				//!< Evaluation result for a condition (true|false)
 		
 		//! Constructor
 		KoduRule(unsigned int kRuleNumber, unsigned int kParent)
@@ -40,12 +40,12 @@ namespace Kodu {
 			return parent;
 		}
 
-		//! Checks if a rule has a parent (if it is indented)
+		//! Returns whether or not a rule is indented
 		bool isIndented() const {
 			return (getParentNumber() > 0);
 		}
 
-		//! Reinitializes particular variables in the condition and action of a rule
+		//! Reinitializes a rule's primitives
 		void reinitializePrimitives() {
 			condEvalResult = false;
 			condition->reinitialize();
