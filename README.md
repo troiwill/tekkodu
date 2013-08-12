@@ -20,23 +20,23 @@ Download the Tekkodu project code by [clicking me](https://github.com/troiwillia
 ### III.	Compile the Tekkodu source code with Tekkotsu
 Move the project's zip file into the ~/project folder and execute the following commands in Terminal:
 
-$ cd ~/project
-$ unzip tekkodu-master.zip
-$ mv tekkodu-master/*.cc.fsm .
-$ mv tekkodu-master/my.kode .
-$ mv tekkodu-master Kodu
-$ make
+	$ cd ~/project
+	$ unzip tekkodu-master.zip
+	$ mv tekkodu-master/*.cc.fsm .
+	$ mv tekkodu-master/my.kode .
+	$ mv tekkodu-master Kodu
+	$ make
 
 ### IV.		Run Tekkotsu
 If you do have a physical Tekkotsu-compatible robot, or prefer to run Tekkotsu on in a virtual environment, do the following:
 1) Open three Terminal tabs (two more if you already one Terminal window open from running the previous commands)
 2) In tab #1, run:
 
-$ ControllerGUI localhost
+	$ ControllerGUI localhost
 
 3) In tab #2, run:
 
-$ Mirage tictactoe.mirage
+	$ Mirage tictactoe.mirage
 
 4) Click and hold the box to the right of the "Full Screen" option, and select "No"
 5) Click and hold the box to the right of the "Video Mode" option, and select "640 x 480"
@@ -44,11 +44,11 @@ $ Mirage tictactoe.mirage
 
 7) In tab #3, run:
 
-$ ControllerGUI localhost
+	$ ControllerGUI localhost
 
 8) In tab #1, run:
 
-$ ./tekkotsu-CALLIOPE2SP -c mirage.plist
+	$ ./tekkotsu-CALLIOPE2SP -c mirage.plist
 
 Voila, you're now running Tekkotsu in Mirage!
 
