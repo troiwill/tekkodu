@@ -1,42 +1,21 @@
 #ifndef KODU_CONDITION_SEE_H_
 #define KODU_CONDITION_SEE_H_
 
-// C++ Library
-#include <iostream>
-
-// Kodu Library
+// Tekkodu Library
 #include "Kodu/Behaviors/KoduCondition.h"
+#include "Kodu/Behaviors/PerceptionSearch.h"
 #include "Kodu/Keepers/ObjectKeeper.h"
 
 // Tekkotsu Library
-#include "DualCoding/DualCoding.h"
+#include "DualCoding/CylinderData.h"
+#include "DualCoding/ShapeCylinder.h"
+#include "DualCoding/ShapeFuns.h"
 #include "DualCoding/ShapeRoot.h"
-#include "DualCoding/BaseData.h"
+
+// C++ Library
+#include <iostream>
 
 namespace Kodu {
-
-	enum SearchRegion_t {
-		SRG_UNRESTRICTED	= 0,
-		SRG_BEHIND			= 1L << 1,
-		SRG_IN_FRONT		= 1L << 2,
-		SRG_TO_LEFT			= 1L << 3,
-		SRG_TO_RIGHT		= 1L << 4
-	};
-	
-	inline
-	SearchRegion_t operator|(SearchRegion_t rs1, SearchRegion_t rs2) {
-		return SearchRegion_t(static_cast<int>(rs1) | static_cast<int>(rs2));
-	}
-
-	inline
-	SearchRegion_t operator|=(SearchRegion_t rs1, SearchRegion_t rs2) {
-		return (rs1 = rs1 | rs2);
-	}
-
-	inline
-	SearchRegion_t operator&(SearchRegion_t rs1, SearchRegion_t rs2) {
-		return SearchRegion_t(static_cast<int>(rs1) & static_cast<int>(rs2));
-	}
 
 	class KoduConditionSee : public KoduCondition {
 	public:
