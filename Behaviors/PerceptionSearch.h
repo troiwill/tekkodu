@@ -2,6 +2,8 @@
 #define PERCEPTION_SEARCH_H_
 
 // Tekkotsu Library
+#include "DualCoding/AgentData.h"
+#include "DualCoding/ShapeAgent.h"
 #include "DualCoding/ShapeFuns.h"
 #include "DualCoding/ShapeRoot.h"
 
@@ -40,7 +42,7 @@ namespace Kodu {
 	public:															\
 		Is##Dir##Me(const DualCoding::ShapeRoot& kThisShape)		\
 		  : DualCoding::UnaryShapeRootPred(),						\
-		    thisShapeLocation(kThisShape.getData().getCentroid())	\
+		    thisAgent(kThisShape)							\
 		{ }															\
 																	\
 		~Is##Dir##Me() { }											\
@@ -48,7 +50,7 @@ namespace Kodu {
 		bool operator()(const DualCoding::ShapeRoot&) const;		\
 																	\
 	private:														\
-		DualCoding::Point thisShapeLocation;						\
+		DualCoding::ShapeRoot thisAgent;							\
 	};
 
 	PERCEPTION_SEARCH(LeftOf);
