@@ -7,7 +7,7 @@
 
 namespace Kodu {
     
-    bool IsLeftOfMe::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
         if (shapePoint.refFrameType == DualCoding::allocentric
             && thisShapeLocation.refFrameType == DualCoding::allocentric)
@@ -22,7 +22,7 @@ namespace Kodu {
         return (dtheta > 0.0f ? true : false);
     }
 
-    bool IsRightOfMe::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsRightOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
         if (shapePoint.refFrameType == DualCoding::allocentric
             && thisShapeLocation.refFrameType == DualCoding::allocentric)
@@ -34,7 +34,7 @@ namespace Kodu {
         return (!(IsLeftOfMe()(kShape)));
     }
 
-    bool IsInFrontMe::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsInFrontAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
         if (shapePoint.refFrameType == DualCoding::allocentric
             && thisShapeLocation.refFrameType == DualCoding::allocentric)
@@ -50,7 +50,7 @@ namespace Kodu {
         return (dtheta > 0.0f ? true : false);
     }
 
-    bool IsBehindMe::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsBehindAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
         if (shapePoint.refFrameType == DualCoding::allocentric
             && thisShapeLocation.refFrameType == DualCoding::allocentric)
@@ -62,7 +62,7 @@ namespace Kodu {
         return (!(IsInFrontMe()(kShape)));
     }
 
-    bool IsCloseByMe::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsCloseByAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
         if (shapePoint.refFrameType == DualCoding::allocentric
             && thisShapeLocation.refFrameType == DualCoding::allocentric)
@@ -75,7 +75,7 @@ namespace Kodu {
         //return ((kShape.getData().getCentroid().xyDistanceFrom(thisShapeLocation)) < 700);
     }
 
-    bool IsFarAwayFromMe::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsFarAwayFromAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
         if (shapePoint.refFrameType == DualCoding::allocentric
             && thisShapeLocation.refFrameType == DualCoding::allocentric)

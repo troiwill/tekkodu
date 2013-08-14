@@ -36,13 +36,13 @@ namespace Kodu {
     // Find a permanent solution to removing elements that do not satisfy the predicate.
     // Unary- and binary-predicate function classes are deprecated in C++11
     // Concerns the following lines...
-    // Assumes the "Me" shape is always valid
+    // Assumes the "Agent" data is always valid
 #define PERCEPTION_SEARCH(Dir)                                                  \
-    class Is##Dir##Me : public DualCoding::UnaryShapeRootPred {                 \
+    class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
     public:                                                                     \
-        Is##Dir##Me() : DualCoding::UnaryShapeRootPred() { }                    \
+        Is##Dir##Agent() : DualCoding::UnaryShapeRootPred() { }                 \
                                                                                 \
-        ~Is##Dir##Me() { }                                                      \
+        ~Is##Dir##Agent() { }                                                   \
                                                                                 \
         bool operator()(const DualCoding::ShapeRoot&) const;                    \
     };

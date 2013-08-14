@@ -36,19 +36,19 @@ namespace Kodu {
 			// test if the search area should be limited to the left or right sides
 			if (searchRegion & SRG_TO_LEFT) {
 				std::cout << "Checking map for objects to the left of me\n";
-				objects = DualCoding::subset(objects, IsLeftOfMe());//(agent));
+				objects = DualCoding::subset(objects, IsLeftOfAgent());
 			} else if (searchRegion & SRG_TO_RIGHT) {
 				std::cout << "Checking map for objects to the right of me\n";
-				objects = DualCoding::subset(objects, IsRightOfMe());//(agent));
+				objects = DualCoding::subset(objects, IsRightOfAgent());
 			}
 
 			// test if the search area should be limited to the front or back
 			if (searchRegion & SRG_IN_FRONT) {
 				std::cout << "Checking map for objects in front me\n";
-				objects = DualCoding::subset(objects, IsInFrontMe());// (agent));
+				objects = DualCoding::subset(objects, IsInFrontAgent());
 			} else if (searchRegion & SRG_BEHIND) {
 				std::cout << "Checking map for objects behind me\n";
-				objects = DualCoding::subset(objects, IsBehindMe());//(agent));
+				objects = DualCoding::subset(objects, IsBehindAgent());
 			}
 		}
 
@@ -56,10 +56,10 @@ namespace Kodu {
 		if (searchRadius != SRD_UNRESTRICTED && objects.size() > 0) {
 			if (searchRadius == SRD_CLOSE_BY) {
 				std::cout << "Checking map for objects close by me\n";
-				objects = DualCoding::subset(objects, IsCloseByMe());//(agent));
+				objects = DualCoding::subset(objects, IsCloseByAgent());
 			} else {
 				std::cout << "Checking map for objects far away from me\n";
-				objects = DualCoding::subset(objects, IsFarAwayFromMe());//(agent));
+				objects = DualCoding::subset(objects, IsFarAwayFromAgent());
 			}
 		}
 
