@@ -1,90 +1,40 @@
 // Tekkodu Library
 #include "PerceptionSearch.h"
 
-// Tekkotsu Library
-#include "DualCoding/VRmixin.h"
-#include "DualCoding/ShapeTypes.h"
-
 namespace Kodu {
     
     bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
-        /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
-        if (shapePoint.refFrameType == DualCoding::allocentric
-            && thisShapeLocation.refFrameType == DualCoding::allocentric)
-        {
-            return shapePoint.coordY() > thisShapeLocation.coordY();
-        }
-        return false;*/
-        //return (kShape.getData().getCentroid().isLeftOf(thisShapeLocation));
-        DualCoding::Shape<DualCoding::AgentData> agentData = DualCoding::VRmixin::theAgent.getData();
-        float bearing2ThisShape = (kShape.getData().getCentroid() - agentData.getCentroid()).atanYX();
-        AngSignPi dtheta = bearing2ThisShape - agentData.getOrientation();
-        return (dtheta > 0.0f ? true : false);
+        // get the bearing from the agent to the shape and return the result
+        return (calcBearingToShape(kShape) > 0.0f ? true : false);
     }
 
     bool IsRightOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
-        /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
-        if (shapePoint.refFrameType == DualCoding::allocentric
-            && thisShapeLocation.refFrameType == DualCoding::allocentric)
-        {
-            return shapePoint.coordY() < thisShapeLocation.coordY();
-        }*/
-        //return false;
-        //return (kShape.getData().getCentroid().isRightOf(thisShapeLocation));
+        // is right of agent is simply the opposite of what is left of agent would return
         return (!(IsLeftOfMe()(kShape)));
     }
 
     bool IsInFrontAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
-        /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
-        if (shapePoint.refFrameType == DualCoding::allocentric
-            && thisShapeLocation.refFrameType == DualCoding::allocentric)
-        {
-            return shapePoint.coordX() > thisShapeLocation.coordX();
-        }*/
-        //return false;
-        //return (kShape.getData().getCentroid().isAbove(thisShapeLocation));
-        DualCoding::AgentData agentData = DualCoding::VRmixin::theAgent.getData();
-        float bearing2ThisShape = (kShape.getData().getCentroid() - agentData.getCentroid()).atanYX();
-        AngSignPi dtheta = bearing2ThisShape - agentData.getOrientation();
+        // get the bearing from the agent to the shape
+        AngSignPi dtheta = calcBearingToShape(kShape);
+        // since the last calculate would produce a value between -pi/2 and +pi/2, add pi/2 to last calculate
+        // the result will give a position angle if the object is in front the agent
         dtheta += AngSignPi(M_PI / 2.0f);
+        // check the value of theta
         return (dtheta > 0.0f ? true : false);
     }
 
     bool IsBehindAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
-        /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
-        if (shapePoint.refFrameType == DualCoding::allocentric
-            && thisShapeLocation.refFrameType == DualCoding::allocentric)
-        {
-            return shapePoint.coordX() < thisShapeLocation.coordX();
-        }*/
-        //return false;
-        //return (kShape.getData().getCentroid().isBelow(thisShapeLocation));
+        // is behind agent is simply the opposite of what is in front agent would return
         return (!(IsInFrontMe()(kShape)));
     }
 
     bool IsCloseByAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
-        /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
-        if (shapePoint.refFrameType == DualCoding::allocentric
-            && thisShapeLocation.refFrameType == DualCoding::allocentric)
-        {
-            float dx = shapePoint.coordX() - thisShapeLocation.coordX();
-            float dy = shapePoint.coordY() - thisShapeLocation.coordY();
-            return (sqrt((dx * dx) + (dy * dy)) < 700.0f);
-        }*/
-        return false;
-        //return ((kShape.getData().getCentroid().xyDistanceFrom(thisShapeLocation)) < 700);
+        // get the distance between the shape and the agent
+        return (calcDistanceToShape(kShape) =< 700.0f);
     }
 
     bool IsFarAwayFromAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
-        /*const DualCoding::Point& shapePoint = kShape.getData().getCentroid();
-        if (shapePoint.refFrameType == DualCoding::allocentric
-            && thisShapeLocation.refFrameType == DualCoding::allocentric)
-        {
-            float dx = shapePoint.coordX() - thisShapeLocation.coordX();
-            float dy = shapePoint.coordY() - thisShapeLocation.coordY();
-            return (sqrt((dx * dx) + (dy * dy)) > 1000.0f);
-        }*/
-        return false;
-        //return ((kShape.getData().getCentroid().xyDistanceFrom(thisShapeLocation)) > 1000);
+        // get the distance between the shape and the agent
+        return (calcDistanceToShape(kShape) >= 1050.0f);
     }
 }
