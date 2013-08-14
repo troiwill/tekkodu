@@ -14,6 +14,7 @@
 namespace Kodu {
 
 	bool KoduConditionSee::evaluate() {
+		DualCoding::Shape<DualCoding::CylinderData> _refdObject;
 		// Tekkotsu. Where the robot (presumably) is in the world.
 		DualCoding::Shape<DualCoding::AgentData> agent = DualCoding::VRmixin::theAgent;
 		DualCoding::Point agentLocation = agent.getData().getCentroid();
@@ -35,19 +36,19 @@ namespace Kodu {
 			// test if the search area should be limited to the left or right sides
 			if (searchRegion & SRG_TO_LEFT) {
 				std::cout << "Checking map for objects to the left of me\n";
-				objects = DualCoding::subset(objects, IsLeftOfMe(agent));
+				objects = DualCoding::subset(objects, IsLeftOfMe());//(agent));
 			} else if (searchRegion & SRG_TO_RIGHT) {
 				std::cout << "Checking map for objects to the right of me\n";
-				objects = DualCoding::subset(objects, IsRightOfMe(agent));
+				objects = DualCoding::subset(objects, IsRightOfMe());//(agent));
 			}
 
 			// test if the search area should be limited to the front or back
 			if (searchRegion & SRG_IN_FRONT) {
 				std::cout << "Checking map for objects in front me\n";
-				objects = DualCoding::subset(objects, IsInFrontMe(agent));
+				objects = DualCoding::subset(objects, IsInFrontMe());// (agent));
 			} else if (searchRegion & SRG_BEHIND) {
 				std::cout << "Checking map for objects behind me\n";
-				objects = DualCoding::subset(objects, IsBehindMe(agent));
+				objects = DualCoding::subset(objects, IsBehindMe());//(agent));
 			}
 		}
 
@@ -55,10 +56,10 @@ namespace Kodu {
 		if (searchRadius != SRD_UNRESTRICTED && objects.size() > 0) {
 			if (searchRadius == SRD_CLOSE_BY) {
 				std::cout << "Checking map for objects close by me\n";
-				objects = DualCoding::subset(objects, IsCloseByMe(agent));
+				objects = DualCoding::subset(objects, IsCloseByMe());//(agent));
 			} else {
 				std::cout << "Checking map for objects far away from me\n";
-				objects = DualCoding::subset(objects, IsFarAwayFromMe(agent));
+				objects = DualCoding::subset(objects, IsFarAwayFromMe());//(agent));
 			}
 		}
 
@@ -69,15 +70,15 @@ namespace Kodu {
 			float currDistance = agentLocation.xyDistanceFrom(currObject.getData().getCentroid());
 			if (currDistance < smallestDistance) {
 				smallestDistance = currDistance;
-				refdObject = currObject;
+				_refdObject = currObject;
 			}
 		END_ITERATE;
 		
 		// Reports if there is at least one valid object after all tests have been performed (above)
-		std::cout << "Refd object is" << (refdObject.isValid() ? " " : " not ") << "valid.\n";
+		std::cout << "Refd object is" << (_refdObject.isValid() ? " " : " not ") << "valid.\n";
 		// If there is one valid remaining, the robot will react to that object
-		if (refdObject.isValid()) {
-			ObjectKeeper::tempObject = refdObject;
+		if (_refdObject.isValid()) {
+			ObjectKeeper::tempObject = _refdObject;
 			ObjectKeeper::isValid = true;
 			return true;
 		}
