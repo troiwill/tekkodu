@@ -127,16 +127,36 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 	$nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
 		$reference KoduGame::pages;
 		$reference KoduGame::currPageIndex;
+		// get the colors of the objects the agent should search for on this page
 		std::vector<std::string> objectDescrips = pages[currPageIndex]->getObjectDescriptors();
 		const std::size_t kSize = objectDescrips.size();
+		// add those colors to the MapBuilderRequest mapreq
 		for (std::size_t index = 0; index < kSize; index++) {
 			mapreq.addObjectColor(cylinderDataType, objectDescrips[index]);
 		}
+		// create some gaze points for the agent to look at to see if it finds any objects with the specified
+		// color and shape type
+		std::vector<Point> gazePoints;
+		float closeByRadius =  500.0f;
+		float distantRadius = 2000.0f;
+		// used only for targets with wheels?
+		gazePoints.push_back(Point(cos(deg2rad( 25.0f)) * distantRadius, sin(deg2rad( 25.0f)) * distantRadius, 0, egocentric));
+		gazePoints.push_back(Point(cos(deg2rad( 25.0f)) * closeByRadius, sin(deg2rad( 25.0f)) * closeByRadius, 0, egocentric));
+		gazePoints.push_back(Point(cos(deg2rad(-25.0f)) * closeByRadius, sin(deg2rad(-25.0f)) * closeByRadius, 0, egocentric));
+		gazePoints.push_back(Point(cos(deg2rad(-25.0f)) * distantRadius, sin(deg2rad(-25.0f)) * distantRadius, 0, egocentric));
+		// create a polygon search area
+		NEW_SHAPE(gazePolygon, PolygonData, new PolygonData(worldShS, gazePoints, false));
+		mapreq.searchArea = gazePolygon;
+		//mapreq.doScan = true;
+		mapreq.pursueShapes = false;
+		mapreq.maxDist = distantRadius * 1.15f;
 	}
 
-	//$nodeclass PointHead(float x, float y, float z) : HeadPointerNode : doStart {
-
-	//}
+	$nodeclass PointHeadFwd(float x, float y, float z) : HeadPointerNode : doStart {
+		// look ahead at point {x, y, z}
+		getMC()->lookAtPoint(2000.0f, 0, 0);
+		getMC()->updateOutputs();
+	}
 
 	
 	//! Kodu Interpreter
@@ -464,7 +484,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 			
 			startGame =C=> parser
 
-			parser =C=> SnapImage =C=> interp
+			parser =C=> SnapImage =C=> { interp, PointHeadFwd }
 			parser =F=> endState
 		
 			interp =C=> runner
