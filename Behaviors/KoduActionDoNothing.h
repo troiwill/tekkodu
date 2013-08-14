@@ -5,42 +5,42 @@
 #include "Kodu/Behaviors/KoduAction.h"
 
 namespace Kodu {
-	
-	class KoduActionDoNothing : public KoduAction {
-	public:
-		//! Constructor
-		KoduActionDoNothing()
-		  : KoduAction("KoduActionDoNothing")
-		{ }
+    
+    class KoduActionDoNothing : public KoduAction {
+    public:
+        //! Constructor
+        KoduActionDoNothing()
+          : KoduAction("KoduActionDoNothing")
+        { }
 
-		//! Copy constructor
-		KoduActionDoNothing(const KoduActionDoNothing& kAction)
-		  : KoduAction(kAction)
-		{ }
+        //! Copy constructor
+        KoduActionDoNothing(const KoduActionDoNothing& kAction)
+          : KoduAction(kAction)
+        { }
 
-		//! Destructor
-		~KoduActionDoNothing() {
-			// no explicit implementation
-		}
+        //! Destructor
+        ~KoduActionDoNothing() {
+            // no explicit implementation
+        }
 
-		//! Assignment operator
-		KoduActionDoNothing& operator=(const KoduActionDoNothing& kAction) {
-			if (this != &kAction) {
-				KoduAction::operator=(kAction);
-			}
-			return *this;
-		}
+        //! Assignment operator
+        KoduActionDoNothing& operator=(const KoduActionDoNothing& kAction) {
+            if (this != &kAction) {
+                KoduAction::operator=(kAction);
+            }
+            return *this;
+        }
 
-		//! Used to reinitialize certain variables (e.g. when switching to another page)
-		virtual void reinitialize() {
-			// nothing to do
-		}
-		
-		//! Prints the attributes of a particular instance
-		virtual void printAttrs() {
-			KoduAction::printAttrs();
-		}
-	};
+        //! Used to reinitialize certain variables (e.g. when switching to another page)
+        virtual void reinitialize() {
+            // nothing to do
+        }
+        
+        //! Prints the attributes of a particular instance
+        virtual void printAttrs() {
+            KoduAction::printAttrs();
+        }
+    };
 }
 
 #endif // KODU_ACTION_DO_NOTHING_H_
