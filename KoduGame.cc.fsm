@@ -152,7 +152,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 		mapreq.maxDist = distantRadius * 1.15f;
 	}
 
-	$nodeclass PointHeadFwd(float x, float y, float z) : HeadPointerNode : doStart {
+	$nodeclass PointHeadFwd : HeadPointerNode : doStart {
 		// look ahead at point {x, y, z}
 		getMC()->lookAtPoint(2000.0f, 0, 0);
 		getMC()->updateOutputs();
