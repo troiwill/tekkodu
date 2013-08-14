@@ -28,7 +28,7 @@ Move the project's zip file into the ~/project folder and execute the following 
 	$ make
 
 ### IV.		Run Tekkotsu
-If you do have a physical Tekkotsu-compatible robot, or prefer to run Tekkotsu on in a virtual environment, do the following:
+If you do not have a physical Tekkotsu-compatible robot, or prefer to run Tekkotsu on in a virtual environment, do the following:
 1) Open three Terminal tabs (two more if you already one Terminal window open from running the previous commands)
 2) In tab #1, run:
 
