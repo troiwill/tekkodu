@@ -6,7 +6,11 @@
 #include "DualCoding/ShapeAgent.h"
 #include "DualCoding/ShapeFuns.h"
 #include "DualCoding/ShapeRoot.h"
+#include "DualCoding/VRmixin.h"
 #include "Shared/Measures.h"
+
+// C++ Library
+#include <cstdlib>
 
 namespace Kodu {
 
@@ -39,7 +43,7 @@ namespace Kodu {
 
     //! Calcaulate the bearing from the agent to a specified shape/object
     inline
-    AngSignPi calcBearingToShape(const DualCoding::ShapeRoot& kShape) {
+    AngSignPi calcBearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
         // get the agent's data
         DualCoding::AgentData agentData = DualCoding::VRmixin::theAgent.getData();
         // calculate the bearing between some shape "kShape" and the agent ==> theta = arctan(dy/dx)
@@ -52,7 +56,7 @@ namespace Kodu {
 
     //! Calculates the distance between the agent and a specified shape/object
     inline
-    float calcDistanceToShape(const DualCoding::ShapeRoot& kShape) {
+    float calcDistanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
         // get the shape's point
         DualCoding::Point shapePoint = kShape.getData().getCentroid();
         // get the agent's point
@@ -62,6 +66,39 @@ namespace Kodu {
         float dy = shapePoint.coordY() - agentPoint.coordY();
         // return the distance
         return sqrt((dx * dx) + (dy * dy));
+    }
+
+    //! Returns the closest shape/object to the agent
+    template<typename Type>
+    Type getClosestObject(const std::vector<Type>& kObjects)
+    {
+        const std::size_t kSize = kObjects.size();
+
+        // if the vector's size is zero, return an invalid shape
+        if (kSize == 0) {
+            return Type();
+        }
+
+        // else if the vector's size is one, return the first element (the only shape in the vector)
+        else if (kSize == 1) {
+            return kObjects[0];
+        }
+
+        // else iterate over the vector and find the closest shape
+        else {
+            Type nearestObject = kObjects[0];
+            float nearestObjectDist = calcDistanceFromAgentToObject(nearestObject);
+            
+            // iterate over the remainder of the objects
+            for (std::size_t index = 1; index < kSize; index++) {
+                float currentObjectDist = calcDistanceFromAgentToObject(kObjects[index]);
+                if (currentObjectDist < nearestObjectDist) {
+                    nearestObjectDist = currentObjectDist;
+                    nearestObject = kObjects[index];
+                }
+            }
+            return nearestObject;
+        }
     }
 
     // TODO

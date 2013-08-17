@@ -15,24 +15,25 @@ namespace Kodu {
 
     bool KoduConditionSee::evaluate() {
         DualCoding::Shape<DualCoding::CylinderData> _refdObject;
-        // Tekkotsu. Where the robot (presumably) is in the world.
-        DualCoding::Shape<DualCoding::AgentData> agent = DualCoding::VRmixin::theAgent;
-        DualCoding::Point agentLocation = agent.getData().getCentroid();
         
         // Tekkotsu function. Returns all the objects that are Cylinders
         NEW_SHAPEVEC(objects, DualCoding::CylinderData,
                         DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
         std::cout << "Size of objects vec: " << objects.size() << std::endl;
 
-        // test if any specified objects were seen
+        // test if there are still any objects that match what this condiion is searching for
         if (objects.size() == 0)
             return false;
 
         // Tekkotsu function. Returns all objects with a specified color
         objects = DualCoding::subset(objects, DualCoding::IsColor(objColor));
         
+        // test if there are still any objects that match what this condiion is searching for
+        if (objects.size() == 0)
+            return false;
+
         // test if the search region is unrestricted
-        if (searchRegion != SRG_UNRESTRICTED && objects.size() > 0) {
+        if (searchRegion != SRG_UNRESTRICTED) {
             // test if the search area should be limited to the left or right sides
             if (searchRegion & SRG_TO_LEFT) {
                 std::cout << "Checking map for objects to the left of me\n";
@@ -52,8 +53,12 @@ namespace Kodu {
             }
         }
 
+        // test if there are still any objects that match what this condiion is searching for
+        if (objects.size() == 0)
+            return false;
+
         // test if the search radius is unrestricted
-        if (searchRadius != SRD_UNRESTRICTED && objects.size() > 0) {
+        if (searchRadius != SRD_UNRESTRICTED) {
             if (searchRadius == SRD_CLOSE_BY) {
                 std::cout << "Checking map for objects close by me\n";
                 objects = DualCoding::subset(objects, IsCloseByAgent());
@@ -63,17 +68,13 @@ namespace Kodu {
             }
         }
         
-        // units = millimeters.
-        float smallestDistance = 200000;
-        // Tekkotsu macro for iterating over a vector of Shapes
-        SHAPEVEC_ITERATE(objects, DualCoding::CylinderData, currObject)
-            float currDistance = agentLocation.xyDistanceFrom(currObject.getData().getCentroid());
-            if (currDistance < smallestDistance) {
-                smallestDistance = currDistance;
-                _refdObject = currObject;
-            }
-        END_ITERATE;
-        
+        // test if there are still any objects that match what this condiion is searching for
+        if (objects.size() == 0)
+            return false;
+
+        // get the closest object to the agent from the vector of shapes.
+        _refdObject = getClosestObject(objects);
+
         // Reports if there is at least one valid object after all tests have been performed (above)
         std::cout << "Refd object is" << (_refdObject.isValid() ? " " : " not ") << "valid.\n";
         // If there is one valid remaining, the robot will react to that object
@@ -103,6 +104,42 @@ namespace Kodu {
     }
     
     void KoduConditionSee::printAttrs() {
+        KoduCondition::printAttrs();
+        // object color and type
+        std::cout << "Object color and type: " << objColor << " " << objType << std::endl;
+        // search region
+        std::cout << "Search region:";
+        if (searchRegion == SRG_UNRESTRICTED) {
+            std::cout << " unrestricted\n";
+        } else {
+            if (searchRegion & SRG_TO_LEFT) {
+                std::cout << " to_left";
+            } else if (searchRegion & SRG_TO_RIGHT) {
+                std::cout << " to_right";
+            }
 
+            if (searchRegion & SRG_IN_FRONT) {
+                std::cout << " in_front";
+            } else if (searchRegion & SRG_BEHIND) {
+                std::cout << " behind";
+            }
+            std::cout << std::endl;
+        }
+        // search radius
+        std::cout << "Search radius: ";
+        switch (searchRadius) {
+            case SRD_UNRESTRICTED:
+                std::cout << "unrestricted\n";
+                break;
+
+            case SRD_CLOSE_BY:
+                std::cout << "close_by\n";
+                break;
+
+            case SRD_FAR_AWAY:
+                std::cout << "far_away\n";
+                break;
+        }
+        // referenced object...
     }
 }

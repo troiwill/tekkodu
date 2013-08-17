@@ -5,17 +5,17 @@ namespace Kodu {
     
     bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape and return the result
-        return (calcBearingToShape(kShape) > 0.0f ? true : false);
+        return (calcBearingFromAgentToObject(kShape) > 0.0f ? true : false);
     }
 
     bool IsRightOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // is right of agent is simply the opposite of what is left of agent would return
-        return (!(IsLeftOfMe()(kShape)));
+        return (!(IsLeftOfAgent()(kShape)));
     }
 
     bool IsInFrontAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape
-        AngSignPi dtheta = calcBearingToShape(kShape);
+        AngSignPi dtheta = calcBearingFromAgentToObject(kShape);
         // since the last calculate would produce a value between -pi/2 and +pi/2, add pi/2 to last calculate
         // the result will give a position angle if the object is in front the agent
         dtheta += AngSignPi(M_PI / 2.0f);
@@ -25,16 +25,16 @@ namespace Kodu {
 
     bool IsBehindAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // is behind agent is simply the opposite of what is in front agent would return
-        return (!(IsInFrontMe()(kShape)));
+        return (!(IsInFrontAgent()(kShape)));
     }
 
     bool IsCloseByAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the distance between the shape and the agent
-        return (calcDistanceToShape(kShape) =< 700.0f);
+        return (calcDistanceFromAgentToObject(kShape) <= 700.0f);
     }
 
     bool IsFarAwayFromAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the distance between the shape and the agent
-        return (calcDistanceToShape(kShape) >= 1050.0f);
+        return (calcDistanceFromAgentToObject(kShape) >= 1050.0f);
     }
 }
