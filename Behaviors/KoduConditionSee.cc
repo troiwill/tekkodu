@@ -28,7 +28,7 @@ namespace Kodu {
         // Tekkotsu function. Returns all objects with a specified color
         objects = DualCoding::subset(objects, DualCoding::IsColor(objColor));
         
-        // test if there are still any objects that match what this condiion is searching for
+        // test if there are still any objects that match what this condition is searching for
         if (objects.size() == 0)
             return false;
 
@@ -53,7 +53,7 @@ namespace Kodu {
             }
         }
 
-        // test if there are still any objects that match what this condiion is searching for
+        // test if there are still any objects that match what this condition is searching for
         if (objects.size() == 0)
             return false;
 
@@ -68,7 +68,7 @@ namespace Kodu {
             }
         }
         
-        // test if there are still any objects that match what this condiion is searching for
+        // test if there are still any objects that match what this condition is searching for
         if (objects.size() == 0)
             return false;
 

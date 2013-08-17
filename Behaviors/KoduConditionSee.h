@@ -12,9 +12,6 @@
 #include "DualCoding/ShapeFuns.h"
 #include "DualCoding/ShapeRoot.h"
 
-// C++ Library
-#include <iostream>
-
 namespace Kodu {
 
     class KoduConditionSee : public KoduCondition {
@@ -64,13 +61,13 @@ namespace Kodu {
             return *this;
         }
 
-        //! Checks if the target object was seen
+        //! Checks if a specified object was seen
         virtual bool evaluate();
 
-        //! Returns the target object's color
+        //! Returns a specified object's color
         const std::string& getObjectColor() const;
 
-        //! Returns the target object's type
+        //! Returns a specified object's type
         const std::string& getObjectType() const;
 
         //! Returns the target object... if none is available, return an invalid object
