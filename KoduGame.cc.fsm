@@ -21,6 +21,7 @@
 #include "Kodu/Behaviors/KoduActionPageSwitch.h"
 #include "Kodu/Behaviors/KoduActionSay.h"
 #include "Kodu/Behaviors/KoduConditionAlways.h"
+#include "Kodu/Behaviors/KoduConditionBump.h"
 #include "Kodu/Behaviors/KoduConditionSee.h"
 
 #include "Kodu/Keepers/ScoreKeeper.h"
@@ -59,14 +60,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         $reference KoduGame::newReqdPage;
         $reference KoduGame::stringToSpeak;
         std::cout << "Initializing Kodu Game.\n";
-        // initialize the color container
-        Kodu::ColorTypes::initialize();
-
-        // initialize the scoring letter container
-        Kodu::KoduScoringLetter::initialize();
-
-        // initialize the scores
-        Kodu::ScoreKeeper::initialize();
         
         cycleCount = 0;
         currPageIndex = 0;
@@ -82,9 +75,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     //! Kodu Code Parser
     $nodeclass KoduParser : StateNode : doStart {
         $reference KoduGame::pages;
-        std::vector<std::string> koduStrings;
-        std::vector<Kodu::ParsedPage*> tempPages;
-        
+        //std::vector<std::string> koduStrings;
+        //std::vector<Kodu::ParsedPage*> tempPages;
+        /*
         // reads the code from a file
         if (Kodu::TokenParser::readText(koduStrings) == false) {
             postStateFailure();
@@ -104,12 +97,23 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             postStateFailure();
             std::cerr << "Kode creation failed.\n";
             return;
+        }*/
+
+        if (Kodu::Parser::parseAndCreateKoduProgram(pages) == false) {
+            postStateFailure();
+            std::cerr << "Error parsing and creating Kodu program.\n";
+            return;
         }
 
         for (size_t i = 0; i < pages.size(); i++) {
             for (size_t j = 0; j < pages[i]->getRuleCount(); j++) {
-                Kodu::KoduConditionSee* cond = NULL;
-                if ((cond = dynamic_cast<Kodu::KoduConditionSee*>(pages[i]->getRuleInPos(j)->condition)) != NULL) {
+                std::string conditionType = pages[i]->getRuleInPos(j)->condition->getBehaviorType();
+                if (conditionType == "KoduConditionSee") {
+                    Kodu::KoduConditionSee* cond = dynamic_cast<Kodu::KoduConditionSee*>(pages[i]->getRuleInPos(j)->condition);
+                    pages[i]->addObjectDescriptor(cond->getObjectColor());
+                }
+                else if (conditionType == "KoduConditionBump") {
+                    Kodu::KoduConditionBump* cond = dynamic_cast<Kodu::KoduConditionBump*>(pages[i]->getRuleInPos(j)->condition);
                     pages[i]->addObjectDescriptor(cond->getObjectColor());
                 }
             }
@@ -117,6 +121,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         // TODO (27/JUL/13) find out why this is causing a segmentation fault
         //if (!tempPages.empty())
         //  GeneralFncs::destroyAllPtrsInVector(tempPages);
+
         std::cout << "Parsing complete.\n";
 
         postStateCompletion();
