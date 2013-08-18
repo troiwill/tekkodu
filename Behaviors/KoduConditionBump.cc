@@ -58,11 +58,10 @@ namespace Kodu {
         // get the closest object to the agent from the vector of shapes.
         _refdObject = getClosestObject(objects);
 
-        // Reports if there is at least one valid object after all tests have been performed (above)
-        std::cout << "Refd object is" << (_refdObject.isValid() ? " " : " not ") << "valid.\n";
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
-        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 500) {
+        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 400) {
+            std::cout << "Bumped a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
             ObjectKeeper::tempObject = _refdObject;
             ObjectKeeper::isValid = true;
             return true;
