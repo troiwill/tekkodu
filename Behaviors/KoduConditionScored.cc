@@ -44,7 +44,7 @@ namespace Kodu {
             }
         }
         // check if the "not" modifier is enabled
-        if (notEnabled)
+        if (notModifierEnabled)
             rv = !rv;
         return rv;
     }
@@ -55,7 +55,7 @@ namespace Kodu {
 
     void KoduConditionScored::printAttrs() {
         KoduCondition::printAttrs();
-        PRINT_ATTRS("Not enabled", notEnabled);
+        PRINT_ATTRS("Not enabled", notModifierEnabled);
         PRINT_ATTRS("Numerics were specified", numericsWereSpecified);
         std::cout << "Inequality: ";
         switch (type) {

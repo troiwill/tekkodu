@@ -15,7 +15,7 @@ namespace Kodu {
         if (timeDifference >= timerThreshold) {
             timerThreshold = numericGen.getNumericValue();
             startTime = getTimeInSec();
-            if (notEnabled) {
+            if (notModifierEnabled) {
                 return false;
                 
             } else {
@@ -25,7 +25,7 @@ namespace Kodu {
                 // ======================= //
                 return true;
             }
-        } else if (timeDifference < timerThreshold && notEnabled) {
+        } else if (timeDifference < timerThreshold && notModifierEnabled) {
             // ==== for debugging ==== //
             std::cout << getBehaviorType() << ": Time not reached [threshold = "
                       << timerThreshold << " secs]\n";
@@ -43,7 +43,7 @@ namespace Kodu {
     void KoduConditionTimer::printAttrs() {
         KoduCondition::printAttrs();
         numericGen.printAttrs();
-        PRINT_ATTRS("Not enabled", notEnabled);
+        PRINT_ATTRS("Not enabled", notModifierEnabled);
         std::cout << "Current time difference: " << (currentTime - startTime) << std::endl;
         std::cout << "Current threshold: " << timerThreshold << std::endl;
     }

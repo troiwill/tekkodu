@@ -37,7 +37,7 @@ namespace Kodu {
         KoduConditionScored(bool useNot, CompareType_t compType, const NumericGenerator& kNumericGen, 
             const std::string& kDesignator, bool numericModWasSpecified)
           : KoduCondition ("KoduConditionScored"),
-            notEnabled(useNot),
+            notModifierEnabled(useNot),
             type(compType),
             numericGen(kNumericGen),
             designator(kDesignator),
@@ -48,7 +48,7 @@ namespace Kodu {
         //! Copy constructor
         KoduConditionScored(const KoduConditionScored& kCondition)
           : KoduCondition(kCondition),
-            notEnabled(kCondition.notEnabled),
+            notModifierEnabled(kCondition.notModifierEnabled),
             type(kCondition.type),
             numericGen(kCondition.numericGen),
             designator(kCondition.designator),
@@ -65,7 +65,7 @@ namespace Kodu {
         KoduConditionScored& operator=(const KoduConditionScored& kCondition) {
             if (this != &kCondition) {
                 KoduCondition::operator=(kCondition);
-                notEnabled = kCondition.notEnabled;
+                notModifierEnabled = kCondition.notModifierEnabled;
                 type = kCondition.type;
                 numericGen = kCondition.numericGen;
                 designator = kCondition.designator;
@@ -85,7 +85,7 @@ namespace Kodu {
         virtual void printAttrs();
 
     private:
-        bool notEnabled;        //!< if true, the NOT operator is applied to the evaluate function's result
+        bool notModifierEnabled;     //!< if true, the NOT operator is applied to the evaluate function's result
         CompareType_t type;     //!< states how the target value and current score are compared
         NumericGenerator numericGen; //!< returns a constant or random numeric value (the target score)
         std::string designator; //!< the score type (the key to the Score Keeper map)

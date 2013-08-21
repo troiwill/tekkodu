@@ -26,7 +26,7 @@ namespace Kodu {
           : KoduCondition("KoduConditionTimer"),
             numericGen(kNumericGen),
             timerThreshold(0.0f),
-            notEnabled(useNot),
+            notModifierEnabled(useNot),
             needToInitialize(true),
             currentTime(0),
             startTime(0)
@@ -37,7 +37,7 @@ namespace Kodu {
           : KoduCondition(kCondition),
             numericGen(kCondition.numericGen),
             timerThreshold(kCondition.timerThreshold),
-            notEnabled(kCondition.notEnabled),
+            notModifierEnabled(kCondition.notModifierEnabled),
             needToInitialize(kCondition.needToInitialize),
             currentTime(kCondition.currentTime),
             startTime(kCondition.startTime)
@@ -54,7 +54,7 @@ namespace Kodu {
                 KoduCondition::operator=(kCondition);
                 numericGen = kCondition.numericGen;
                 timerThreshold = kCondition.timerThreshold;
-                notEnabled = kCondition.notEnabled;
+                notModifierEnabled = kCondition.notModifierEnabled;
                 needToInitialize = kCondition.needToInitialize;
                 currentTime = kCondition.currentTime;
                 startTime = kCondition.startTime;
@@ -76,7 +76,7 @@ namespace Kodu {
     private:
         NumericGenerator numericGen;    //!< returns a constant or random timer value
         float timerThreshold;           //!< amount of time needed to past
-        bool notEnabled;                //!< states if the not modifier is in use
+        bool notModifierEnabled;        //!< states if the not modifier is in use
         bool needToInitialize;          //!< used to initialize start time
         unsigned int currentTime;       //!< most recent time request
         unsigned int startTime;         //!< used for time elapsed calculation
