@@ -73,7 +73,6 @@ namespace Kodu {
     Type getClosestObject(const std::vector<Type>& kObjects)
     {
         const std::size_t kSize = kObjects.size();
-
         // if the vector's size is zero, return an invalid shape
         if (kSize == 0) {
             return Type();
@@ -99,6 +98,40 @@ namespace Kodu {
             }
             return nearestObject;
         }
+    }
+
+    //! Returns the objects located in the specified region(s) relative to the agent orientation
+    template<typename Type>
+    std::vector<Type> getObjectsLocatedInRegion(const std::vector<Type>& kObjects
+                                                SearchRegion_t searchRegion)
+    {
+        std::vector<Type> result = kObjects;
+        // test if the search area should be limited to the left or right sides
+        if (searchRegion & SRG_TO_LEFT) {
+            std::cout << "Checking map for objects to the left of me\n";
+            result = DualCoding::subset(result, IsLeftOfAgent());
+        } else if (searchRegion & SRG_TO_RIGHT) {
+            std::cout << "Checking map for objects to the right of me\n";
+            result = DualCoding::subset(result, IsRightOfAgent());
+        }
+
+        // test if the search area should be limited to the front or back
+        if (searchRegion & SRG_IN_FRONT) {
+            std::cout << "Checking map for objects in front me\n";
+            result = DualCoding::subset(result, IsInFrontAgent());
+        } else if (searchRegion & SRG_BEHIND) {
+            std::cout << "Checking map for objects behind me\n";
+            result = DualCoding::subset(result, IsBehindAgent());
+        }
+        return result;
+    }
+
+    //! Returns the objects that are a specified color
+    template<typename Type>
+    std::vector<Type> getObjectsWithColor(const std::vector<Type>& kObjects,
+                                          const std::string& colorName)
+    {
+        return DualCoding::subset(kObjects, DualCoding::IsColor(colorName));
     }
 
     // TODO

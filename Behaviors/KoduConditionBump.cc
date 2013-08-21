@@ -12,61 +12,38 @@
 namespace Kodu {
 
     bool KoduConditionBump::evaluate() {
+        bool rv = false;
         DualCoding::Shape<DualCoding::CylinderData> _refdObject;
         
         // Tekkotsu function. Returns all the objects that are Cylinders
         NEW_SHAPEVEC(objects, DualCoding::CylinderData,
                         DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
-        std::cout << "Size of objects vec: " << objects.size() << std::endl;
-
-        // test if there are still any objects that match what this condition is searching for
-        if (objects.size() == 0)
-            return false;
-
+        
         // Tekkotsu function. Returns all objects with a specified color
-        objects = DualCoding::subset(objects, DualCoding::IsColor(objColor));
+        if (objects.size() > 0)
+            objects = getObjectsWithColor(objects, objColor);
         
-        // test if there are still any objects that match what this condition is searching for
-        if (objects.size() == 0)
-            return false;
-
         // test if the search region is unrestricted
-        if (searchRegion != SRG_UNRESTRICTED) {
-            // test if the search area should be limited to the left or right sides
-            if (searchRegion & SRG_TO_LEFT) {
-                std::cout << "Checking map for objects to the left of me\n";
-                objects = DualCoding::subset(objects, IsLeftOfAgent());
-            } else if (searchRegion & SRG_TO_RIGHT) {
-                std::cout << "Checking map for objects to the right of me\n";
-                objects = DualCoding::subset(objects, IsRightOfAgent());
-            }
+        if (searchRegion != SRG_UNRESTRICTED && objects.size() > 0)
+            objects = getObjectsLocatedInRegion(objects, searchRegion);
 
-            // test if the search area should be limited to the front or back
-            if (searchRegion & SRG_IN_FRONT) {
-                std::cout << "Checking map for objects in front me\n";
-                objects = DualCoding::subset(objects, IsInFrontAgent());
-            } else if (searchRegion & SRG_BEHIND) {
-                std::cout << "Checking map for objects behind me\n";
-                objects = DualCoding::subset(objects, IsBehindAgent());
-            }
-        }
-
-        // test if there are still any objects that match what this condition is searching for
-        if (objects.size() == 0)
-            return false;
-        
         // get the closest object to the agent from the vector of shapes.
-        _refdObject = getClosestObject(objects);
+        if (objects.size() > 0)
+            _refdObject = getClosestObject(objects);
 
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
-        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 400) {
+        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 250) {
             std::cout << "Bumped a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
             ObjectKeeper::tempObject = _refdObject;
             ObjectKeeper::isValid = true;
-            return true;
+            rv = true;
         }
-        return false;
+        
+        if (notModifierEnabled)
+            return (!rv);
+        else
+            return rv;
     }
 
     const std::string& KoduConditionBump::getObjectColor() const {
@@ -89,7 +66,7 @@ namespace Kodu {
     void KoduConditionBump::printAttrs() {
         KoduCondition::printAttrs();
         // not enabled?
-        PRINT_ATTRS("Not enabled", notEnabled);
+        PRINT_ATTRS("Not enabled", notModifierEnabled);
         // object color and type
         std::cout << "Object color and type: " << objColor << " " << objType << std::endl;
         // search region

@@ -23,9 +23,10 @@ namespace Kodu {
         };
 
         //! Constructor
-        KoduConditionSee(const std::string& kObjectType, const std::string& kObjectColor,
+        KoduConditionSee(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
             SearchRegion_t regionToSearch, SearchRadius_t radiusToSearch)
           : KoduCondition("KoduConditionSee"),
+            notModifierEnabled(useNot),
             objType(kObjectType),
             objColor(kObjectColor),
             searchRegion(regionToSearch),
@@ -36,6 +37,7 @@ namespace Kodu {
         //! Copy constructor
         KoduConditionSee(const KoduConditionSee& kCondition)
           : KoduCondition(kCondition),
+            notModifierEnabled(kCondition.notModifierEnabled),
             objType(kCondition.objType),
             objColor(kCondition.objColor),
             searchRegion(kCondition.searchRegion),
@@ -52,6 +54,7 @@ namespace Kodu {
         KoduConditionSee& operator=(const KoduConditionSee& kCondition) {
             if (this != &kCondition) {
                 KoduCondition::operator=(kCondition);
+                notModifierEnabled = kCondition.notModifierEnabled;
                 objType = kCondition.objType;
                 objColor = kCondition.objColor;
                 searchRegion = kCondition.searchRegion;
@@ -80,6 +83,7 @@ namespace Kodu {
         virtual void printAttrs();
 
     private:
+        bool notModifierEnabled;
         std::string objType;
         std::string objColor;
         SearchRegion_t searchRegion;
