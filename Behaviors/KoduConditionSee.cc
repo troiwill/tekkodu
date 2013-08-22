@@ -1,5 +1,6 @@
 // Kodu Library
 #include "Kodu/Behaviors/KoduConditionSee.h"
+#include "Kodu/General/GeneralMacros.h"
 
 // Tekkotsu Library
 #include "DualCoding/AgentData.h"

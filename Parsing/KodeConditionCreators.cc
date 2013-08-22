@@ -102,6 +102,7 @@ namespace Kodu {
         std::string objectColor;
 
         // optional modifiers
+        bool notEnabled = false;
         SearchRegion_t leftRight = SRG_UNRESTRICTED;
         SearchRegion_t frontBack = SRG_UNRESTRICTED;
         KoduConditionSee::SearchRadius_t spatialSearch = KoduConditionSee::SRD_UNRESTRICTED;
@@ -163,6 +164,14 @@ namespace Kodu {
                     else
                         spatialSearch = KoduConditionSee::SRD_FAR_AWAY;
                 }
+                // check if the keyword is the "not" modifier
+                else if (keyword == "not") {
+                    // ASSERTION: The "not" modifier has not been specified before in this condition
+                    PARSER_ASSERT((notEnabled == false),
+                        errorMessage << "The \"not\" modifier was already used in this rule. It can " << 
+                        "only be used once per rule.");
+                    notEnabled = true;
+                }
                 // the user specified the wrong keyword
                 else {
                     // ASSERTION: The user entered a wrong keyword
@@ -190,7 +199,7 @@ namespace Kodu {
             errorMessage << "An object color must be specified (e.g. red, green, blue).");
 
         // create the condition
-        return (new KoduConditionSee(objectType, objectColor, (frontBack | leftRight), spatialSearch));
+        return (new KoduConditionSee(notEnabled, objectType, objectColor, (frontBack | leftRight), spatialSearch));
     }
     
     KoduConditionScored* Parser::KodeCreator::createScoredKode(std::vector<TokenBase*>& mods) {
