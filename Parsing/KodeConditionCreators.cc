@@ -8,8 +8,8 @@ namespace Kodu {
         std::string objectColor;
 
         // optional modifiers
-        SearchRegion_t leftRight = SRG_UNRESTRICTED;
-        SearchRegion_t frontBack = SRG_UNRESTRICTED;
+        SearchLocation_t leftRight = SL_UNRESTRICTED;
+        SearchLocation_t frontBack = SL_UNRESTRICTED;
         bool notEnabled = false;
         
         // checkers
@@ -43,9 +43,9 @@ namespace Kodu {
                         errorMessage << "A front/back regional specifier was already specified.\n"
                         <<  "Second instance found: " << keyword);
                     if (keyword == "in_front")
-                        frontBack = SRG_IN_FRONT;
+                        frontBack = SL_IN_FRONT;
                     else
-                        frontBack = SRG_BEHIND;
+                        frontBack = SL_BEHIND;
                 }
                 // check if the keyword is a regional specifier
                 else if (keyword == "to_left" || keyword == "to_right") {
@@ -54,9 +54,9 @@ namespace Kodu {
                         errorMessage << "A front/back regional specifier was already specified.\n"
                         <<  "Second instance found: " << keyword);
                     if (keyword == "to_left")
-                        leftRight = SRG_TO_LEFT;
+                        leftRight = SL_TO_LEFT;
                     else
-                        leftRight = SRG_TO_RIGHT;
+                        leftRight = SL_TO_RIGHT;
                 }
                 // check if the keyword is the "not" modifier
                 else if (keyword == "not") {
@@ -103,9 +103,9 @@ namespace Kodu {
 
         // optional modifiers
         bool notEnabled = false;
-        SearchRegion_t leftRight = SRG_UNRESTRICTED;
-        SearchRegion_t frontBack = SRG_UNRESTRICTED;
-        KoduConditionSee::SearchRadius_t spatialSearch = KoduConditionSee::SRD_UNRESTRICTED;
+        SearchLocation_t leftRight = SL_UNRESTRICTED;
+        SearchLocation_t frontBack = SL_UNRESTRICTED;
+        SearchLocation_t closeFar = SL_UNRESTRICTED;
 
         // checkers
         int tokenCount = 1;
@@ -133,36 +133,36 @@ namespace Kodu {
                 }
                 // check if the keyword is a regional specifier
                 else if (keyword == "in_front" || keyword == "behind") {
-                    // ASSERTION: The front/back region was not specified
-                    PARSER_ASSERT((frontBack == 0),
-                        errorMessage << "A front/back regional specifier was already specified.\n"
+                    // ASSERTION: The front/back location was not specified
+                    PARSER_ASSERT((frontBack == SL_UNRESTRICTED),
+                        errorMessage << "A front/back location specifier was already specified.\n"
                         <<  "Second instance found: " << keyword);
                     if (keyword == "in_front")
-                        frontBack = SRG_IN_FRONT;
+                        frontBack = SL_IN_FRONT;
                     else
-                        frontBack = SRG_BEHIND;
+                        frontBack = SL_BEHIND;
                 }
                 // check if the keyword is a regional specifier
                 else if (keyword == "to_left" || keyword == "to_right") {
-                    // ASSERTION: The front/back region was not specified
-                    PARSER_ASSERT((leftRight == 0),
-                        errorMessage << "A front/back regional specifier was already specified.\n"
+                    // ASSERTION: The left/right location was not specified
+                    PARSER_ASSERT((leftRight == SL_UNRESTRICTED),
+                        errorMessage << "A front/back location specifier was already specified.\n"
                         <<  "Second instance found: " << keyword);
                     if (keyword == "to_left")
-                        leftRight = SRG_TO_LEFT;
+                        leftRight = SL_TO_LEFT;
                     else
-                        leftRight = SRG_TO_RIGHT;
+                        leftRight = SL_TO_RIGHT;
                 }
                 // check if the keyword is a spatial specifier
                 else if (keyword == "close_by" || keyword == "far_away") {
-                    // ASSERTION: The front/back region was not specified
-                    PARSER_ASSERT((spatialSearch == KoduConditionSee::SRD_UNRESTRICTED),
-                        errorMessage << "A close_by/far_away radius specifier was already specified.\n"
+                    // ASSERTION: The close/far location was not specified
+                    PARSER_ASSERT((closeFar == SL_UNRESTRICTED),
+                        errorMessage << "A close_by/far_away location specifier was already specified.\n"
                         <<  "Second instance found: " << keyword);
                     if (keyword == "close_by")
-                        spatialSearch = KoduConditionSee::SRD_CLOSE_BY;
+                        closeFar = SL_CLOSE_BY;
                     else
-                        spatialSearch = KoduConditionSee::SRD_FAR_AWAY;
+                        closeFar = SL_FAR_AWAY;
                 }
                 // check if the keyword is the "not" modifier
                 else if (keyword == "not") {
@@ -199,7 +199,7 @@ namespace Kodu {
             errorMessage << "An object color must be specified (e.g. red, green, blue).");
 
         // create the condition
-        return (new KoduConditionSee(notEnabled, objectType, objectColor, (frontBack | leftRight), spatialSearch));
+        return (new KoduConditionSee(notEnabled, objectType, objectColor, (frontBack | leftRight | closeFar)));
     }
     
     KoduConditionScored* Parser::KodeCreator::createScoredKode(std::vector<TokenBase*>& mods) {
