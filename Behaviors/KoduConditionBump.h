@@ -9,8 +9,6 @@
 // Tekkotsu Library
 #include "DualCoding/CylinderData.h"
 #include "DualCoding/ShapeCylinder.h"
-// #include "DualCoding/ShapeFuns.h"
-// #include "DualCoding/ShapeRoot.h"
 
 // C++ Library
 #include <iostream>

@@ -2,13 +2,6 @@
 #include "Kodu/Behaviors/KoduConditionBump.h"
 #include "Kodu/General/GeneralMacros.h"
 
-// Tekkotsu Library
-// #include "DualCoding/AgentData.h"
-// #include "DualCoding/Point.h"
-// #include "DualCoding/ShapeAgent.h"
-// #include "DualCoding/ShapeFuns.h"
-// #include "DualCoding/VRmixin.h"
-
 namespace Kodu {
 
     bool KoduConditionBump::evaluate() {
