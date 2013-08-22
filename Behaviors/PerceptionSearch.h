@@ -41,6 +41,33 @@ namespace Kodu {
         return SearchRegion_t(static_cast<int>(rs1) & static_cast<int>(rs2));
     }
 
+    // TODO
+    // Find a permanent solution to removing elements that do not satisfy the predicate.
+    // Unary- and binary-predicate function classes are deprecated in C++11
+    // Concerns the following lines...
+    // Assumes the "Agent" data is always valid
+#define PERCEPTION_SEARCH(Dir)                                                  \
+    class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
+    public:                                                                     \
+        Is##Dir##Agent() : DualCoding::UnaryShapeRootPred() { }                 \
+                                                                                \
+        ~Is##Dir##Agent() { }                                                   \
+                                                                                \
+        bool operator()(const DualCoding::ShapeRoot&) const;                    \
+    };
+
+    // Creates IsLeftOfAgent and IsRightOfAgent
+    PERCEPTION_SEARCH(LeftOf);
+    PERCEPTION_SEARCH(RightOf);
+
+    // Creates IsInFrontOfAgent and IsBehindAgent
+    PERCEPTION_SEARCH(InFront);
+    PERCEPTION_SEARCH(Behind);
+
+    // Creates IsCloseByAgent and IsFarAwayFromAgent
+    PERCEPTION_SEARCH(CloseBy);
+    PERCEPTION_SEARCH(FarAwayFrom);
+
     //! Calcaulate the bearing from the agent to a specified shape/object
     inline
     AngSignPi calcBearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
@@ -102,7 +129,7 @@ namespace Kodu {
 
     //! Returns the objects located in the specified region(s) relative to the agent orientation
     template<typename Type>
-    std::vector<Type> getObjectsLocatedInRegion(const std::vector<Type>& kObjects
+    std::vector<Type> getObjectsLocatedInRegion(const std::vector<Type>& kObjects,
                                                 SearchRegion_t searchRegion)
     {
         std::vector<Type> result = kObjects;
@@ -133,33 +160,6 @@ namespace Kodu {
     {
         return DualCoding::subset(kObjects, DualCoding::IsColor(colorName));
     }
-
-    // TODO
-    // Find a permanent solution to removing elements that do not satisfy the predicate.
-    // Unary- and binary-predicate function classes are deprecated in C++11
-    // Concerns the following lines...
-    // Assumes the "Agent" data is always valid
-#define PERCEPTION_SEARCH(Dir)                                                  \
-    class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
-    public:                                                                     \
-        Is##Dir##Agent() : DualCoding::UnaryShapeRootPred() { }                 \
-                                                                                \
-        ~Is##Dir##Agent() { }                                                   \
-                                                                                \
-        bool operator()(const DualCoding::ShapeRoot&) const;                    \
-    };
-
-    // Creates IsLeftOfAgent and IsRightOfAgent
-    PERCEPTION_SEARCH(LeftOf);
-    PERCEPTION_SEARCH(RightOf);
-
-    // Creates IsInFrontOfAgent and IsBehindAgent
-    PERCEPTION_SEARCH(InFront);
-    PERCEPTION_SEARCH(Behind);
-
-    // Creates IsCloseByAgent and IsFarAwayFromAgent
-    PERCEPTION_SEARCH(CloseBy);
-    PERCEPTION_SEARCH(FarAwayFrom);
 }
 
 #endif // PERCEPTION_SEARCH_H_
