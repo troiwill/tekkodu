@@ -373,7 +373,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         if (motionCmd.targetObjectIsValid()) {
             pReq.requestType = PilotTypes::goToShape;
             pReq.targetShape = motionCmd.getTargetObject();
-            pReq.baseOffset = fmat::pack(350,0,0);
+            pReq.baseOffset = fmat::pack(220,0,0);
         } else {
             pReq.requestType = PilotTypes::walk;
             pReq.da = AngSignPi(motionCmd.getTurningAngle());
