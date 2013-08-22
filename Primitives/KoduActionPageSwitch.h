@@ -4,7 +4,7 @@
 #include <iostream>
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduAction.h"
+#include "Kodu/Primitives/KoduAction.h"
 #include "Kodu/Generators/KoduGenerators.h"
 
 // TODO

@@ -1,49 +1,49 @@
 // Kodu Library
-#include "Kodu/Behaviors/KoduConditionSee.h"
+#include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/General/GeneralMacros.h"
 
 namespace Kodu {
 
-    bool KoduConditionSee::evaluate() {
+    bool KoduConditionBump::evaluate() {
         bool rv = false;
         DualCoding::Shape<DualCoding::CylinderData> _refdObject;
         
         // get the closest object that matches what this condition is searching for
         _refdObject = getClosestObjectMatching(objColor, searchLocation);
         
-        // If there is one valid remaining, the robot will react to that object
-        if (_refdObject.isValid()) {
-            std::cout << "Saw a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
+        // If there is one valid remaining and it is within some distance to the agent,
+        // then the robot will react to that object
+        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 250) {
+            std::cout << "Bumped a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
             ObjectKeeper::tempObject = _refdObject;
             ObjectKeeper::isValid = true;
             rv = true;
         }
         
-        // check if the not modifier is enabled
         if (notModifierEnabled)
             return (!rv);
         else
             return rv;
     }
 
-    const std::string& KoduConditionSee::getObjectColor() const {
+    const std::string& KoduConditionBump::getObjectColor() const {
         return objColor;
     }
 
-    const std::string& KoduConditionSee::getObjectType() const {
+    const std::string& KoduConditionBump::getObjectType() const {
         return objType;
     }
 
-    const DualCoding::Shape<DualCoding::CylinderData>& KoduConditionSee::getTargetObject() {
+    const DualCoding::Shape<DualCoding::CylinderData>& KoduConditionBump::getTargetObject() {
         return refdObject;
     }
 
-    void KoduConditionSee::reinitialize() {
+    void KoduConditionBump::reinitialize() {
         // TODO (9/Aug/2013)
         // do I need to clear the Shape object?
     }
     
-    void KoduConditionSee::printAttrs() {
+    void KoduConditionBump::printAttrs() {
         KoduCondition::printAttrs();
         // not enabled?
         PRINT_ATTRS("Not enabled", notModifierEnabled);
@@ -52,36 +52,21 @@ namespace Kodu {
         // search region
         /*
         std::cout << "Search region:";
-        if (searchRegion == SR_UNRESTRICTED) {
+        if (searchRegion == SRG_UNRESTRICTED) {
             std::cout << " unrestricted\n";
         } else {
-            if (searchRegion & SR_TO_LEFT) {
+            if (searchRegion & SRG_TO_LEFT) {
                 std::cout << " to_left";
-            } else if (searchRegion & SR_TO_RIGHT) {
+            } else if (searchRegion & SRG_TO_RIGHT) {
                 std::cout << " to_right";
             }
 
-            if (searchRegion & SR_IN_FRONT) {
+            if (searchRegion & SRG_IN_FRONT) {
                 std::cout << " in_front";
-            } else if (searchRegion & SR_BEHIND) {
+            } else if (searchRegion & SRG_BEHIND) {
                 std::cout << " behind";
             }
             std::cout << std::endl;
-        }
-        // search radius
-        std::cout << "Search distance: ";
-        switch (searchDistance) {
-            case SD_UNRESTRICTED:
-                std::cout << "unrestricted\n";
-                break;
-
-            case SD_CLOSE_BY:
-                std::cout << "close_by\n";
-                break;
-
-            case SD_FAR_AWAY:
-                std::cout << "far_away\n";
-                break;
         }
         */
         // referenced object...

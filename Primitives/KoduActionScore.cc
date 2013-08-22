@@ -1,4 +1,4 @@
-#include "Kodu/Behaviors/KoduActionScore.h"
+#include "Kodu/Primitives/KoduActionScore.h"
 
 namespace Kodu {
 

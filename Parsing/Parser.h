@@ -10,24 +10,24 @@
 #include <vector>
 
 // Tekkodu Library
-// Behaviors
+// Primitives
 // Actions
-#include "Kodu/Behaviors/KoduAction.h"
-#include "Kodu/Behaviors/KoduActionDoNothing.h"
-#include "Kodu/Behaviors/KoduActionMotion.h"
-#include "Kodu/Behaviors/KoduActionPageSwitch.h"
-#include "Kodu/Behaviors/KoduActionPlay.h"
-#include "Kodu/Behaviors/KoduActionSay.h"
-#include "Kodu/Behaviors/KoduActionScore.h"
+#include "Kodu/Primitives/KoduAction.h"
+#include "Kodu/Primitives/KoduActionDoNothing.h"
+#include "Kodu/Primitives/KoduActionMotion.h"
+#include "Kodu/Primitives/KoduActionPageSwitch.h"
+#include "Kodu/Primitives/KoduActionPlay.h"
+#include "Kodu/Primitives/KoduActionSay.h"
+#include "Kodu/Primitives/KoduActionScore.h"
 // Conditions
-#include "Kodu/Behaviors/KoduCondition.h"
-#include "Kodu/Behaviors/KoduConditionAlways.h"
-#include "Kodu/Behaviors/KoduConditionBump.h"
-#include "Kodu/Behaviors/KoduConditionSee.h"
-#include "Kodu/Behaviors/KoduConditionScored.h"
-#include "Kodu/Behaviors/KoduConditionTimer.h"
+#include "Kodu/Primitives/KoduCondition.h"
+#include "Kodu/Primitives/KoduConditionAlways.h"
+#include "Kodu/Primitives/KoduConditionBump.h"
+#include "Kodu/Primitives/KoduConditionSee.h"
+#include "Kodu/Primitives/KoduConditionScored.h"
+#include "Kodu/Primitives/KoduConditionTimer.h"
 
-#include "Kodu/Behaviors/PerceptionSearch.h"
+#include "Kodu/Primitives/PerceptionSearch.h"
 
 // General Functions
 #include "Kodu/General/GeneralFncs.h"

@@ -60,8 +60,8 @@ namespace Kodu {
                 koduRule->condition = koduCondition;
                 koduRule->action = koduAction;
                 std::cout << "Created Kodu Rule (" << koduRule->getRuleNumber() << ". " 
-                          << koduCondition->getBehaviorType() << " + "
-                          << koduAction->getBehaviorType() << ").\n";
+                          << koduCondition->getPrimitiveType() << " + "
+                          << koduAction->getPrimitiveType() << ").\n";
 
                 // add the newly created rule to the page
                 koduPage->addKoduRule(koduRule);

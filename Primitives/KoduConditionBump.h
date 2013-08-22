@@ -1,23 +1,26 @@
-#ifndef KODU_CONDITION_SEE_H_
-#define KODU_CONDITION_SEE_H_
+#ifndef KODU_CONDITION_BUMP_H_
+#define KODU_CONDITION_BUMP_H_
 
 // Tekkodu Library
-#include "Kodu/Behaviors/KoduCondition.h"
-#include "Kodu/Behaviors/PerceptionSearch.h"
+#include "Kodu/Primitives/KoduCondition.h"
+#include "Kodu/Primitives/PerceptionSearch.h"
 #include "Kodu/Keepers/ObjectKeeper.h"
 
 // Tekkotsu Library
 #include "DualCoding/CylinderData.h"
 #include "DualCoding/ShapeCylinder.h"
 
+// C++ Library
+#include <iostream>
+
 namespace Kodu {
 
-    class KoduConditionSee : public KoduCondition {
+    class KoduConditionBump : public KoduCondition {
     public:
         //! Constructor
-        KoduConditionSee(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
+        KoduConditionBump(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
             SearchLocation_t locationToSearch)
-          : KoduCondition("KoduConditionSee"),
+          : KoduCondition("KoduConditionBump"),
             notModifierEnabled(useNot),
             objType(kObjectType),
             objColor(kObjectColor),
@@ -26,7 +29,7 @@ namespace Kodu {
         { }
 
         //! Copy constructor
-        KoduConditionSee(const KoduConditionSee& kCondition)
+        KoduConditionBump(const KoduConditionBump& kCondition)
           : KoduCondition(kCondition),
             notModifierEnabled(kCondition.notModifierEnabled),
             objType(kCondition.objType),
@@ -36,12 +39,12 @@ namespace Kodu {
         { }
 
         //! Destructor
-        ~KoduConditionSee() {
+        ~KoduConditionBump() {
             // no explicit implementation
         }
 
         //! Assignment operator
-        KoduConditionSee& operator=(const KoduConditionSee& kCondition) {
+        KoduConditionBump& operator=(const KoduConditionBump& kCondition) {
             if (this != &kCondition) {
                 KoduCondition::operator=(kCondition);
                 notModifierEnabled = kCondition.notModifierEnabled;
@@ -53,7 +56,7 @@ namespace Kodu {
             return *this;
         }
 
-        //! Checks if a specified object was seen
+        //! Checks if a specified object was bumped
         virtual bool evaluate();
 
         //! Returns a specified object's color
@@ -80,4 +83,4 @@ namespace Kodu {
     };
 }
 
-#endif // KODU_CONDITION_SEE_H_
+#endif // KODU_CONDITION_BUMP_H_

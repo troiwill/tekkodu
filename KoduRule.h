@@ -2,8 +2,8 @@
 #define KODU_RULE_H_
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduAction.h"
-#include "Kodu/Behaviors/KoduCondition.h"
+#include "Kodu/Primitives/KoduAction.h"
+#include "Kodu/Primitives/KoduCondition.h"
 
 namespace Kodu {
     //! Kodu Rule

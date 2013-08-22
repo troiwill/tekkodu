@@ -16,13 +16,13 @@
 #include "Kodu/Parsing/ParsedPage.h"
 #include "Kodu/Parsing/Parser.h"
 
-// Kodu Behaviors
-#include "Kodu/Behaviors/KoduActionMotion.h"
-#include "Kodu/Behaviors/KoduActionPageSwitch.h"
-#include "Kodu/Behaviors/KoduActionSay.h"
-#include "Kodu/Behaviors/KoduConditionAlways.h"
-#include "Kodu/Behaviors/KoduConditionBump.h"
-#include "Kodu/Behaviors/KoduConditionSee.h"
+// Kodu Primitives
+#include "Kodu/Primitives/KoduActionMotion.h"
+#include "Kodu/Primitives/KoduActionPageSwitch.h"
+#include "Kodu/Primitives/KoduActionSay.h"
+#include "Kodu/Primitives/KoduConditionAlways.h"
+#include "Kodu/Primitives/KoduConditionBump.h"
+#include "Kodu/Primitives/KoduConditionSee.h"
 
 #include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Keepers/ObjectKeeper.h"
@@ -107,7 +107,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
         for (size_t i = 0; i < pages.size(); i++) {
             for (size_t j = 0; j < pages[i]->getRuleCount(); j++) {
-                std::string conditionType = pages[i]->getRuleInPos(j)->condition->getBehaviorType();
+                std::string conditionType = pages[i]->getRuleInPos(j)->condition->getPrimitiveType();
                 if (conditionType == "KoduConditionSee") {
                     Kodu::KoduConditionSee* cond = dynamic_cast<Kodu::KoduConditionSee*>(pages[i]->getRuleInPos(j)->condition);
                     pages[i]->addObjectDescriptor(cond->getObjectColor());
@@ -201,8 +201,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             }
 
             // get the condition and action types
-            std::string conditionType = cRule->condition->getBehaviorType();
-            std::string actionType = cRule->action->getBehaviorType();
+            std::string conditionType = cRule->condition->getPrimitiveType();
+            std::string actionType = cRule->action->getPrimitiveType();
             
             // TODO (05/July/2013) Add handle (ptr) for move request so it can be canceled here
             if (cRule->condition->evaluate()) {
@@ -282,7 +282,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
             } else {
                 cRule->condEvalResult = false; // states rule evaluated false
-                if (cRule->condition->getBehaviorType() != "KoduConditionTimer") {
+                if (cRule->condition->getPrimitiveType() != "KoduConditionTimer") {
                     cRule->action->actionHasAlreadyRan = false;
                 }
             }

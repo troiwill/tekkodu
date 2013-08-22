@@ -2,7 +2,7 @@
 #define KODU_CONDITION_ALWAYS_H_
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduCondition.h"
+#include "Kodu/Primitives/KoduCondition.h"
 
 namespace Kodu {
     

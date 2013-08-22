@@ -1,4 +1,4 @@
-#include "Kodu/Behaviors/KoduActionMotion.h"
+#include "Kodu/Primitives/KoduActionMotion.h"
 #include "DualCoding/VRmixin.h"
 
 namespace Kodu {

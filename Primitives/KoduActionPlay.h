@@ -6,7 +6,7 @@
 #include <string>
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduAction.h"
+#include "Kodu/Primitives/KoduAction.h"
 #include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Generators/KoduGenerators.h"
 

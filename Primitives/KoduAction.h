@@ -6,25 +6,25 @@
 #include <string>
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduBehavior.h"
+#include "Kodu/Primitives/KoduPrimitive.h"
 #include "Kodu/General/GeneralMacros.h"
 
 namespace Kodu {
         
     //! Kodu Action (derived from Kodu Behavior)
-    class KoduAction : public KoduBehavior {
+    class KoduAction : public KoduPrimitive {
     public:
         bool actionHasAlreadyRan;       //!< set true after an action has ran
 
         //! Constructor
         explicit KoduAction(const std::string& kActionName)
-          : KoduBehavior(kActionName),
+          : KoduPrimitive(kActionName),
             actionHasAlreadyRan(false)
         { }
         
         //! Copy constructor
         explicit KoduAction(const KoduAction& kAction)
-          : KoduBehavior(kAction),
+          : KoduPrimitive(kAction),
             actionHasAlreadyRan(kAction.actionHasAlreadyRan)
         { }
 
@@ -36,7 +36,7 @@ namespace Kodu {
         //! Assignment operator
         KoduAction& operator=(const KoduAction& kAction) {
             if (this != &kAction) {
-                KoduBehavior::operator=(kAction);
+                KoduPrimitive::operator=(kAction);
                 actionHasAlreadyRan = kAction.actionHasAlreadyRan;
             }
             return *this;
@@ -54,7 +54,7 @@ namespace Kodu {
 
         //! Prints the attributes for a particular behavior
         virtual void printAttrs() {
-            KoduBehavior::printAttrs();
+            KoduPrimitive::printAttrs();
             PRINT_ATTRS("Action has ran", actionHasAlreadyRan);
         }
     };

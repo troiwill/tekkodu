@@ -5,21 +5,21 @@
 #include <string>
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduBehavior.h"
+#include "Kodu/Primitives/KoduPrimitive.h"
 
 namespace Kodu {
 
-    //! Kodu Condition (derived from Kodu Behavior)
-    class KoduCondition : public KoduBehavior {
+    //! Kodu Condition (derived from Kodu Primitive)
+    class KoduCondition : public KoduPrimitive {
     public:
         //! Constructor
         KoduCondition(const std::string& kConditionName)
-            : KoduBehavior(kConditionName)
+            : KoduPrimitive(kConditionName)
         { }
         
         //! Copy constructor
         KoduCondition(const KoduCondition& kCondition)
-          : KoduBehavior(kCondition)
+          : KoduPrimitive(kCondition)
         { }
 
         //! Destructor
@@ -30,7 +30,7 @@ namespace Kodu {
         //! Assignment operator
         KoduCondition& operator=(const KoduCondition& kCondition) {
             if (this != &kCondition) {
-                KoduBehavior::operator=(kCondition);
+                KoduPrimitive::operator=(kCondition);
             }
             return *this;
         }
@@ -45,7 +45,7 @@ namespace Kodu {
         
         //! Prints the attributes of a particular instance
         virtual void printAttrs() {
-            KoduBehavior::printAttrs();
+            KoduPrimitive::printAttrs();
         }
     };
 } // end of Kodu namespace

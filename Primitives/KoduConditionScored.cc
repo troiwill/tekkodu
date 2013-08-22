@@ -1,4 +1,4 @@
-#include "Kodu/Behaviors/KoduConditionScored.h"
+#include "Kodu/Primitives/KoduConditionScored.h"
 
 namespace Kodu {
 

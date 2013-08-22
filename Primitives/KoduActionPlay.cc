@@ -1,4 +1,4 @@
-#include "Kodu/Behaviors/KoduActionPlay.h"
+#include "Kodu/Primitives/KoduActionPlay.h"
 
 namespace Kodu {
 	/*

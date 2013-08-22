@@ -5,7 +5,7 @@
 #include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Generators/KoduGenerators.h"
 #include "Kodu/Keepers/ScoreKeeper.h"
-#include "Kodu/Behaviors/KoduCondition.h"
+#include "Kodu/Primitives/KoduCondition.h"
 
 // TODO
 // (28/03/13) implement the random modifier (needs an initial value and increment?)

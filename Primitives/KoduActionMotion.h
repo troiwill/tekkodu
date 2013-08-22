@@ -5,7 +5,7 @@
 #include <cmath>
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduAction.h"
+#include "Kodu/Primitives/KoduAction.h"
 #include "Kodu/Generators/KoduGenerators.h"
 #include "Kodu/Keepers/ObjectKeeper.h"
 #include "DualCoding/DualCoding.h"

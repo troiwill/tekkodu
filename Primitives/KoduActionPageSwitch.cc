@@ -1,4 +1,4 @@
-#include "Kodu/Behaviors/KoduActionPageSwitch.h"
+#include "Kodu/Primitives/KoduActionPageSwitch.h"
 
 namespace Kodu {
 	

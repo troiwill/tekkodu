@@ -5,7 +5,7 @@
 #include <iostream>
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduCondition.h"
+#include "Kodu/Primitives/KoduCondition.h"
 #include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Generators/KoduGenerators.h"
 

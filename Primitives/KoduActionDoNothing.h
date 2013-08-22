@@ -2,7 +2,7 @@
 #define KODU_ACTION_DO_NOTHING_H_
 
 // Kodu Library
-#include "Kodu/Behaviors/KoduAction.h"
+#include "Kodu/Primitives/KoduAction.h"
 
 namespace Kodu {
     

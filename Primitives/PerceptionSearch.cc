@@ -1,5 +1,5 @@
 // Tekkodu Library
-#include "Kodu/Behaviors/PerceptionSearch.h"
+#include "Kodu/Primitives/PerceptionSearch.h"
 
 namespace Kodu {
     

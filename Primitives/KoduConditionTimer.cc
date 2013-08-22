@@ -1,4 +1,4 @@
-#include "Kodu/Behaviors/KoduConditionTimer.h"
+#include "Kodu/Primitives/KoduConditionTimer.h"
 #include "Shared/get_time.h"
 
 namespace Kodu {
@@ -19,17 +19,12 @@ namespace Kodu {
                 return false;
                 
             } else {
-                // ==== for debugging ==== //
-                std::cout << getBehaviorType() << ": Time reached [threshold = "
-                          << timerThreshold << " secs]\n";
-                // ======================= //
+                std::cout << "Timer threshold reached [threshold = " << timerThreshold << " secs]\n";
                 return true;
             }
         } else if (timeDifference < timerThreshold && notModifierEnabled) {
-            // ==== for debugging ==== //
-            std::cout << getBehaviorType() << ": Time not reached [threshold = "
-                      << timerThreshold << " secs]\n";
-            // ======================= //
+            std::cout << "Timer threshold NOT reached [threshold = " << timerThreshold << " secs; "
+                      << "time elasped = " << timeDifference << " secs]\n";
             return true;
         }
         return false;

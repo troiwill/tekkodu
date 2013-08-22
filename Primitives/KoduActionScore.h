@@ -8,7 +8,7 @@
 #include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Generators/KoduGenerators.h"
 #include "Kodu/Keepers/ScoreKeeper.h"
-#include "Kodu/Behaviors/KoduAction.h"
+#include "Kodu/Primitives/KoduAction.h"
 
 /**
  * NAME:			KODU ACTION SCORE
