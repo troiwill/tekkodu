@@ -3,11 +3,11 @@
 #include "Kodu/General/GeneralMacros.h"
 
 // Tekkotsu Library
-#include "DualCoding/AgentData.h"
-#include "DualCoding/Point.h"
-#include "DualCoding/ShapeAgent.h"
-#include "DualCoding/ShapeFuns.h"
-#include "DualCoding/VRmixin.h"
+// #include "DualCoding/AgentData.h"
+// #include "DualCoding/Point.h"
+// #include "DualCoding/ShapeAgent.h"
+// #include "DualCoding/ShapeFuns.h"
+// #include "DualCoding/VRmixin.h"
 
 namespace Kodu {
 
@@ -15,22 +15,9 @@ namespace Kodu {
         bool rv = false;
         DualCoding::Shape<DualCoding::CylinderData> _refdObject;
         
-        // Tekkotsu function. Returns all the objects that are Cylinders
-        NEW_SHAPEVEC(objects, DualCoding::CylinderData,
-                        DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
+        // get the closest object that matches what this condition is searching for
+        _refdObject = getClosestObjectMatching(objColor, searchLocation);
         
-        // Tekkotsu function. Returns all objects with a specified color
-        if (objects.size() > 0)
-            objects = getObjectsWithColor(objects, objColor);
-        
-        // test if the search region is unrestricted
-        if (searchRegion != SRG_UNRESTRICTED && objects.size() > 0)
-            objects = getObjectsLocatedInRegion(objects, searchRegion);
-
-        // get the closest object to the agent from the vector of shapes.
-        if (objects.size() > 0)
-            _refdObject = getClosestObject(objects);
-
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
         if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 250) {
@@ -70,6 +57,7 @@ namespace Kodu {
         // object color and type
         std::cout << "Object color and type: " << objColor << " " << objType << std::endl;
         // search region
+        /*
         std::cout << "Search region:";
         if (searchRegion == SRG_UNRESTRICTED) {
             std::cout << " unrestricted\n";
@@ -87,6 +75,7 @@ namespace Kodu {
             }
             std::cout << std::endl;
         }
+        */
         // referenced object...
     }
 }

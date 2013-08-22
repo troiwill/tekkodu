@@ -37,4 +37,33 @@ namespace Kodu {
         // get the distance between the shape and the agent
         return (calcDistanceFromAgentToObject(kShape) >= 1050.0f);
     }
+
+    DualCoding::Shape<DualCoding::CylinderData> getClosestObjectMatching(const std::string& color,
+                                                                         SearchLocation_t location)
+    {
+        // The closest object that matches the specified criteria
+        DualCoding::Shape<DualCoding::CylinderData> closestMatch;
+
+        // Tekkotsu function. Returns all the objects that are Cylinders
+        NEW_SHAPEVEC(matchingObjects, DualCoding::CylinderData,
+                     DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
+
+        // get objects with a particular color
+        if (matchingObjects.size() > 0) {
+            matchingObjects = getObjectsWithColor(matchingObjects, color);
+        }
+
+        // get objects that are located in a particular region (left, right, front, behind) and
+        // distance (close by, far away) from the agent
+        if (matchingObjects.size() > 0 && (location != SL_UNRESTRICTED)) {
+            matchingObjects = getObjectsLocated(matchingObjects, location);
+        }
+
+        // get the closest object to the agent
+        if (matchingObjects.size() > 0) {
+            closestMatch = getClosestObject(matchingObjects);
+        }
+        // return the object that matches the search criteria (may be valid or invalid)
+        return closestMatch;
+    }
 }

@@ -9,8 +9,8 @@
 // Tekkotsu Library
 #include "DualCoding/CylinderData.h"
 #include "DualCoding/ShapeCylinder.h"
-#include "DualCoding/ShapeFuns.h"
-#include "DualCoding/ShapeRoot.h"
+// #include "DualCoding/ShapeFuns.h"
+// #include "DualCoding/ShapeRoot.h"
 
 // C++ Library
 #include <iostream>
@@ -21,12 +21,12 @@ namespace Kodu {
     public:
         //! Constructor
         KoduConditionBump(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
-            SearchRegion_t regionToSearch)
+            SearchLocation_t locationToSearch)
           : KoduCondition("KoduConditionBump"),
             notModifierEnabled(useNot),
             objType(kObjectType),
             objColor(kObjectColor),
-            searchRegion(regionToSearch),
+            searchLocation(locationToSearch),
             refdObject()
         { }
 
@@ -36,7 +36,7 @@ namespace Kodu {
             notModifierEnabled(kCondition.notModifierEnabled),
             objType(kCondition.objType),
             objColor(kCondition.objColor),
-            searchRegion(kCondition.searchRegion),
+            searchLocation(kCondition.searchLocation),
             refdObject(kCondition.refdObject)
         { }
 
@@ -52,7 +52,7 @@ namespace Kodu {
                 notModifierEnabled = kCondition.notModifierEnabled;
                 objType = kCondition.objType;
                 objColor = kCondition.objColor;
-                searchRegion = kCondition.searchRegion;
+                searchLocation = kCondition.searchLocation;
                 refdObject = kCondition.refdObject;
             }
             return *this;
@@ -80,7 +80,7 @@ namespace Kodu {
         bool notModifierEnabled;
         std::string objType;
         std::string objColor;
-        SearchRegion_t searchRegion;
+        SearchLocation_t searchLocation;
         DualCoding::Shape<DualCoding::CylinderData> refdObject;
     };
 }

@@ -9,28 +9,21 @@
 // Tekkotsu Library
 #include "DualCoding/CylinderData.h"
 #include "DualCoding/ShapeCylinder.h"
-#include "DualCoding/ShapeFuns.h"
-#include "DualCoding/ShapeRoot.h"
+// #include "DualCoding/ShapeFuns.h"
+// #include "DualCoding/ShapeRoot.h"
 
 namespace Kodu {
 
     class KoduConditionSee : public KoduCondition {
     public:
-        enum SearchRadius_t {
-            SRD_UNRESTRICTED    = 1L << 0,
-            SRD_CLOSE_BY        = 1L << 1,
-            SRD_FAR_AWAY        = 1L << 2
-        };
-
         //! Constructor
         KoduConditionSee(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
-            SearchRegion_t regionToSearch, SearchRadius_t radiusToSearch)
+            SearchLocation_t locationToSearch)
           : KoduCondition("KoduConditionSee"),
             notModifierEnabled(useNot),
             objType(kObjectType),
             objColor(kObjectColor),
-            searchRegion(regionToSearch),
-            searchRadius(radiusToSearch),
+            searchLocation(locationToSearch),
             refdObject()
         { }
 
@@ -40,8 +33,7 @@ namespace Kodu {
             notModifierEnabled(kCondition.notModifierEnabled),
             objType(kCondition.objType),
             objColor(kCondition.objColor),
-            searchRegion(kCondition.searchRegion),
-            searchRadius(kCondition.searchRadius),
+            searchLocation(kCondition.searchLocation),
             refdObject(kCondition.refdObject)
         { }
 
@@ -57,8 +49,7 @@ namespace Kodu {
                 notModifierEnabled = kCondition.notModifierEnabled;
                 objType = kCondition.objType;
                 objColor = kCondition.objColor;
-                searchRegion = kCondition.searchRegion;
-                searchRadius = kCondition.searchRadius;
+                searchLocation = kCondition.searchLocation;
                 refdObject = kCondition.refdObject;
             }
             return *this;
@@ -86,8 +77,7 @@ namespace Kodu {
         bool notModifierEnabled;
         std::string objType;
         std::string objColor;
-        SearchRegion_t searchRegion;
-        SearchRadius_t searchRadius;
+        SearchLocation_t searchLocation;
         DualCoding::Shape<DualCoding::CylinderData> refdObject;
     };
 }
