@@ -4,6 +4,8 @@
 
 namespace Kodu {
 
+    const int KoduConditionBump::kMaxDistanceToSenseBump = 250; // millimeters
+
     bool KoduConditionBump::evaluate() {
         bool rv = false;
         DualCoding::Shape<DualCoding::CylinderData> _refdObject;
@@ -13,7 +15,7 @@ namespace Kodu {
         
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
-        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= 250) {
+        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= kMaxDistanceToSenseBump) {
             std::cout << "Bumped a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
             ObjectKeeper::tempObject = _refdObject;
             ObjectKeeper::isValid = true;
