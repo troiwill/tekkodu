@@ -1,5 +1,6 @@
 // Tekkotsu Library
 #include "Behaviors/StateMachine.h"
+#include "DualCoding/VRmixin.h"
 
 // C++ Library
 #include <cctype>
@@ -68,6 +69,22 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         stringToSpeak.clear();
         robotIsMoving = false;
 
+        // create world bounds
+        std::vector<Point> worldBounds;
+        const float maxBoundLength = 2000.0f;   // assumes the world is a square
+        const float minX = -500.0f;
+        const float maxX = maxBoundLength - minX;
+        const float minY = -maxBoundLength / 2.0f;
+        const float maxY =  maxBoundLength / 2.0f;
+        worldBounds.push_back(Point(minX, maxY, 0, egocentric));
+        worldBounds.push_back(Point(maxX, maxY, 0, egocentric));
+        worldBounds.push_back(Point(maxX, minY, 0, egocentric));
+        worldBounds.push_back(Point(minX, minY, 0, egocentric));
+        worldBounds.push_back(worldBounds[0]);  // close the polygon
+        // create a Shape<PolygonData> object and use it as the world bounds.
+        NEW_SHAPE(wBoundPolygon, PolygonData, new PolygonData(worldShS, worldBounds, false));
+        DualCoding::VRmixin::pilot->setWorldBounds(wBoundPolygon);
+
         std::cout << "Initialization complete.\n";
         postStateCompletion();
     }
@@ -75,30 +92,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     //! Kodu Code Parser
     $nodeclass KoduParser : StateNode : doStart {
         $reference KoduGame::pages;
-        //std::vector<std::string> koduStrings;
-        //std::vector<Kodu::ParsedPage*> tempPages;
-        /*
-        // reads the code from a file
-        if (Kodu::TokenParser::readText(koduStrings) == false) {
-            postStateFailure();
-            std::cerr << "File reading failed.\n";
-            return;
-        }
-        
-        // parses the code
-        if (Kodu::TokenParser::parseTokens(koduStrings, tempPages) == false) {
-            postStateFailure();
-            std::cerr << "Code parsing failed.\n";
-            return;
-        }
-
-        // create the Kodu pages, rules, conditions, and actions
-        if (Kodu::KodeCreator::createKode(tempPages, pages) == false) {
-            postStateFailure();
-            std::cerr << "Kode creation failed.\n";
-            return;
-        }*/
-
+        // parses and creates Kodu program
         if (Kodu::Parser::parseAndCreateKoduProgram(pages) == false) {
             postStateFailure();
             std::cerr << "Error parsing and creating Kodu program.\n";
@@ -149,9 +143,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         gazePoints.push_back(Point(cos(deg2rad(-25.0f)) * distantRadius, sin(deg2rad(-25.0f)) * distantRadius, 0, egocentric));
         // create a polygon search area
         NEW_SHAPE(gazePolygon, PolygonData, new PolygonData(worldShS, gazePoints, false));
+        // make sure the polygon is not an obstacle nor viewable (on the worldShS)
+        gazePolygon.getData().setObstacle(false);
+        gazePolygon.getData().setViewable(false);
         mapreq.searchArea = gazePolygon;
         //mapreq.doScan = true;
-        mapreq.pursueShapes = false;
+        mapreq.pursueShapes = true;
         mapreq.maxDist = distantRadius * 1.15f;
     }
 
@@ -373,7 +370,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         if (motionCmd.targetObjectIsValid()) {
             pReq.requestType = PilotTypes::goToShape;
             pReq.targetShape = motionCmd.getTargetObject();
-            pReq.baseOffset = fmat::pack(220,0,0);
+            pReq.baseOffset = fmat::pack(250,0,0);
         } else {
             pReq.requestType = PilotTypes::walk;
             pReq.da = AngSignPi(motionCmd.getTurningAngle());
