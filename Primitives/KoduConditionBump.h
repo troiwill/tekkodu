@@ -18,7 +18,7 @@ namespace Kodu {
     class KoduConditionBump : public KoduCondition {
     public:
         //! The maximum distance the agent can be away from an object to sense a "bump"
-        static const int kMaxDistanceToSenseBump;
+        static const int kMaxDistanceAwayToSenseBump;
 
         //! Constructor
         KoduConditionBump(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
