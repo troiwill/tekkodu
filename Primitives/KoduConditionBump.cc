@@ -4,7 +4,7 @@
 
 namespace Kodu {
 
-    const int KoduConditionBump::kMaxDistanceToSenseBump = 250; // millimeters
+    const int KoduConditionBump::kMaxDistanceToSenseBump = 265; // millimeters
 
     bool KoduConditionBump::evaluate() {
         bool rv = false;
