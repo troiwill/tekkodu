@@ -46,8 +46,11 @@ namespace Kodu {
         //! Returns the size of the rules vector
         unsigned int getRuleCount() const;
 
-        const std::vector<std::string> getObjectDescriptors() const;
+        const std::vector<std::string>& getObjectDescriptors() const;
         void addObjectDescriptor(const std::string& descriptor);
+
+        //! Checks if a page requires vision (the use of the robot's camera to perform a task)
+        bool requiresVision() const;
         
     private:
         //! Disallow the copy constructor and assignment operator

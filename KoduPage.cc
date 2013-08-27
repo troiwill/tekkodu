@@ -27,11 +27,15 @@ namespace Kodu {
             return NULL;
     }
 
-    const std::vector<std::string> KoduPage::getObjectDescriptors() const {
+    const std::vector<std::string>& KoduPage::getObjectDescriptors() const {
         return objectColors;
     }
 
     void KoduPage::addObjectDescriptor(const std::string& descriptor) {
         objectColors.push_back(descriptor);
+    }
+
+    bool KoduPage::requiresVision() const {
+        return (objectColors.size() > 0);
     }
 }
