@@ -44,7 +44,6 @@ namespace Kodu {
         ~KoduAgent() {
             pages.clear();
             stringToSpeak.clear();
-            //playQueue.clear();
         }
 
         /// ================================ Gazing functions ================================ ///

@@ -13,7 +13,7 @@ namespace Kodu {
         unsigned int parent;                //!< Parent rule (assigned during program parsing)
         KoduCondition* condition;           //!< Condition to evaluate
         KoduAction* action;                 //!< Action to execute
-        bool condEvalResult;                //!< Evaluation result for a condition (true|false)
+        bool condLastEvalResult;            //!< Evaluation result for a condition (true|false)
         
         //! Constructor
         KoduRule(unsigned int kRuleNumber, unsigned int kParent)
@@ -21,7 +21,7 @@ namespace Kodu {
             parent(kParent),
             condition(NULL),
             action(NULL),
-            condEvalResult(false)
+            condLastEvalResult(false)
         { }
         
         //! Destructor
@@ -47,9 +47,14 @@ namespace Kodu {
 
         //! Reinitializes a rule's primitives
         void reinitializePrimitives() {
-            condEvalResult = false;
+            condLastEvalResult = false;
             condition->reinitialize();
             action->reinitialize();
+        }
+
+        //! Sets the condition evaluation result
+        void setConditionEvalResult(bool bVal) {
+            condLastEvalResult = bVal;
         }
         
     private:

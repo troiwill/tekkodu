@@ -118,6 +118,28 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     //! Kodu Interpreter
     $nodeclass KoduInterpreter : StateNode {
 
+        //! Enables child rules with the once modifier enabled (who have already ran) to run (again)
+        void resetChildRulesWithOnceEnabled(const unsigned int kParentRuleNumer) {
+            $reference KoduGame::agent;
+
+            Kodu::KoduPage* page = agent.getCurrentPage();
+            Kodu::KoduRule* rule = NULL;
+            const int kRuleCount = page->getRuleCount();
+            for (int childRule_i = kParentRuleNumer + 1; childRule_i < kRuleCount; childRule_i++) {
+                // get rule# i
+                rule = page->getRule(childRule_i);
+                // check if this rule's parent is kParentRuleNumber
+                // if it is, set actionCanRun flag to true
+                // else break--this rule has no more child actions
+                if (rule->getParentNumber() == kParentRuleNumer)
+                    rule->action->setActionCanRun(true);
+                else
+                    break;
+            }
+            page = NULL;
+            rule = NULL;
+        }
+
         virtual void doStart() {
             $reference KoduGame::cycleCount;
             $reference KoduGame::agent;
@@ -150,32 +172,17 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     return;
                 }
 
-                // get the condition and action types
-                std::string conditionType = cRule->condition->getPrimitiveType();
-                std::string actionType = cRule->action->getPrimitiveType();
-                
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                if (cRule->condition->evaluate()) {
+                if (cRule->condition->evaluate() == true) {
                     // resets the action has already ran flag
-                    if (cRule->condEvalResult == false) {
-                        unsigned int cRuleNumber = cRule->getRuleNumber();
-                        int cRuleIndex = i;
-                        Kodu::KoduRule* rule = NULL;
-                        for (int j = cRuleIndex + 1; j < numbOfRules; j++) {
-                            rule = cPage->getRuleInPos(j);
-                            if (rule->getParentNumber() == cRuleNumber) {
-                                rule->action->setActionCanRun(true);
-                            } else {
-                                break;
-                            }
-                        }
-                        rule = NULL;
+                    if (cRule->condLastEvalResult == false) {
+                        resetChildRulesWithOnceEnabled(cRule->getRuleNumber());
                     }
-                    // states rule evaluated true (no matter if action executed or not)
-                    cRule->condEvalResult = true;
+                    // states condition evaluated true (no matter if action can execute or not)
+                    cRule->setConditionEvalResult(true);
                     // check if this rule has a parent rule and if it's condition evaluated true
-                    if (cRule->isIndented() && cPage->getRule(cRule->getParentNumber())->condEvalResult
-                        == false)
+                    if (cRule->isIndented()
+                        && (cPage->getRule(cRule->getParentNumber())->condLastEvalResult == false))
                     {
                         continue;
                     }
@@ -240,7 +247,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             cRule->action->setActionCanRun(false);
                     }
                 } else {
-                    cRule->condEvalResult = false; // states rule evaluated false
+                    cRule->setConditionEvalResult(false); // states rule evaluated false
                     // check the condition type...
                     // if it is not a timer condition, then set the "action can run" flag to true
                     if (!Kodu::KoduConditionTimer::isSameTypeAs(cRule->condition)) {
