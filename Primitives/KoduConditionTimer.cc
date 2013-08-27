@@ -30,12 +30,16 @@ namespace Kodu {
         return false;
     }
 
+    bool KoduConditionTimer::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduConditionTimer*>(kPrimitive) != NULL);
+    }
+
     void KoduConditionTimer::reinitialize() {
         KoduCondition::reinitialize();
         needToInitialize = true;
     }
     
-    void KoduConditionTimer::printAttrs() {
+    void KoduConditionTimer::printAttrs() const {
         KoduCondition::printAttrs();
         numericGen.printAttrs();
         PRINT_ATTRS("Not enabled", notModifierEnabled);

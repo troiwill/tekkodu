@@ -65,11 +65,14 @@ namespace Kodu {
         //! Checks if the timer threshold has been reached or exceeded
         virtual bool evaluate();
         
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
+        
         //! Used to reinitialize certain variables each condition and action type
         virtual void reinitialize();
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs();
+        virtual void printAttrs() const;
 
         unsigned int getTimeInSec();
 
