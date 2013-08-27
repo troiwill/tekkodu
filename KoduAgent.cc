@@ -3,11 +3,49 @@
 
 // Tekkotsu
 #include "DualCoding/Point.h"
+#include "DualCoding/ShapeTypes.h"
+#include "Shared/get_time.h"
+#include "Shared/mathutils.h"
 
 namespace Kodu {
+    /// ================================ Static initializations ================================ ///
+    const float KoduAgent::kLocalizationDistanceThreshold = 1200.0f;
 
-    const float kLocalizationDistanceThreshold = 1000.0f;
+    /// ================================ Motion functions ================================ ///
+    bool KoduAgent::hasMotionCommand() const {
+        return currMotionCmd.isValid();
+    }
 
+    bool KoduAgent::isWalking() const {
+        return isWalkingFlag;
+    }
+
+    bool KoduAgent::needsToLocalize() const {
+        return ((distanceSinceLastLocalization >= kLocalizationDistanceThreshold)
+                && getCurrentPage()->requiresVision());
+    }
+
+    void KoduAgent::startMonitoringWalk() {
+        isWalkingFlag = true;
+        walkStartTime = get_time();
+    }
+
+    void KoduAgent::stopMonitoringWalk() {
+        isWalkingFlag = false;
+        unsigned int timeElasped = get_time() - walkStartTime;
+        walkStartTime = 0;
+        // if the time is less than the specified value, do not do the calculation
+        // the agent probably did not have enough time to accelerate/walk
+        if (timeElasped > 250) {
+            // calculate the approx distance travelled, and add it to 1) the total approx distance
+            // and 2) the distance since last localization
+            float approxDistanceTravelled = KoduActionMotion::kWalkingSpeed / timeElasped;
+            totalApproxDistanceTravelled += approxDistanceTravelled;
+            distanceSinceLastLocalization += approxDistanceTravelled;
+        }
+    }
+
+    /// ================================ Page functions ================================ ///
     KoduPage* KoduAgent::getCurrentPage() const {
         return pages[currPageIndex];
     }
@@ -25,9 +63,23 @@ namespace Kodu {
         }
     }
 
-    bool KoduAgent::needsToLocalize() const {
-        return ((distanceSinceLastLocalization >= kLocalizationDistanceThreshold)
-                && getCurrentPage()->requiresVision());
+    bool KoduAgent::hasNewPageNumber() const {
+        return (newReqdPage > 0);
+    }
+
+    /// ================================ Speech functions ================================ ///
+    bool KoduAgent::hasTextToSay() const {
+        return (!stringToSpeak.empty());
+    }
+
+    /// ================================ Sound functions ================================ ///
+    bool KoduAgent::hasSoundsToPlay() const {
+        return (!playQueue.empty());
+    }
+
+    /// ================================ Gaze functions ================================ ///
+    const DualCoding::Shape<DualCoding::PolygonData>& KoduAgent::getGazePolygon() const {
+        return agentGazePolygon;
     }
 
     void KoduAgent::generateGazePolygon() {
@@ -55,23 +107,26 @@ namespace Kodu {
         float radii[numbOfRadii] = {
             2000.0f,        // the distant radius
              500.0f         // the nearby radius
-        }
+        };
+
         for (int radiiIndex = 0; radiiIndex < numbOfRadii; radiiIndex++) {
             for (int gaIndex = 0; gaIndex < numbOfGazeAngles * 2; gaIndex++) {
-                gazePoints.push_back(Point(
-                    cos(deg2rad(gazeAngles[gaIndex])) * radii[radiiIndex],  // x-value
-                    sin(deg2rad(gazeAngles[gaIndex])) * radii[radiiIndex],  // y-value
-                    0.0f,                                                   // z-value
-                    egocentric                                              // point is relative to agent body
+                gazePoints.push_back(DualCoding::Point(
+                    cos(mathutils::deg2rad(gazeAngles[gaIndex])) * radii[radiiIndex],  // x-value
+                    sin(mathutils::deg2rad(gazeAngles[gaIndex])) * radii[radiiIndex],  // y-value
+                    0.0f,                                                              // z-value
+                    DualCoding::egocentric                     // point is relative to agent body
                     ));
             }
         }
         // create a polygon search area
-        NEW_SHAPE(theGazePolygon, PolygonData, new PolygonData(worldShS, gazePoints, false));
+        NEW_SHAPE(gazePolygon, DualCoding::PolygonData,
+            new DualCoding::PolygonData(DualCoding::VRmixin::worldShS, gazePoints, false));
         // make sure the polygon is not an obstacle (in the worldShS) nor viewable (in the world view)
-        theGazePolygon->setObstacle(false);
-        theGazePolygon->setViewable(false);
-        // assign theGazePolygon to gazePolygon
-        gazePolygon = theGazePolygon;
+        gazePolygon->setObstacle(false);
+        gazePolygon->setViewable(false);
+        // assign gazePolygon to agentaGzePoints
+        agentGazePolygon = gazePolygon;
     }
+    
 }

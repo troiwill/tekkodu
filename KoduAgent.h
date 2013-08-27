@@ -24,14 +24,17 @@ namespace Kodu {
     public:
         //! Constructor
         KoduAgent()
-          : pages(),
-            currPageIndex(0),
+          : isWalkingFlag(false),
+            currMotionCmd(),
+            newReqdPage(0),
             stringToSpeak(""),
             playQueue(),
-            agentIsMoving(false),
-            approxDistanceTravelled(0.0f),
-            currMotionCmd(),
-            gazePolygon()
+            pages(),
+            currPageIndex(0),
+            walkStartTime(0),
+            totalApproxDistanceTravelled(0.0f),
+            distanceSinceLastLocalization(0.0f),
+            agentGazePolygon()
         {
             // generate the gaze polygon
             generateGazePolygon();
@@ -41,9 +44,30 @@ namespace Kodu {
         ~KoduAgent() {
             pages.clear();
             stringToSpeak.clear();
-            playQueue.clear();
+            //playQueue.clear();
         }
 
+        /// ================================ Gazing functions ================================ ///
+        //! Returns the gaze polygon (the egocentric points the agent should look at in space)
+        const DualCoding::Shape<DualCoding::PolygonData>& getGazePolygon() const;
+        
+        /// ================================ Motion functions ================================ ///
+        //! Checks if the agent has a valid motion command
+        bool hasMotionCommand() const;
+
+        //! Checks if the agent is walking (returns value of isWalkingFlag)
+        bool isWalking() const;
+
+        //! Checks if the agent needs to localize
+        bool needsToLocalize() const;
+
+        //! Notes what time the agent started walking and sets the "walking" flag to true
+        void startMonitoringWalk();
+
+        //! Calculates the approx distance the robot travelled and sets the "walking" flag to false
+        void stopMonitoringWalk();
+
+        /// ================================ Page functions ================================ ///
         //! Returns the page currently being evaluated (determined by the current page index variable)
         KoduPage* getCurrentPage() const;
 
@@ -53,30 +77,61 @@ namespace Kodu {
         //! Returns the specified page (using it's location in the vector--(PAGE# - 1))
         KoduPage* getPageInPos(unsigned int pageIndex) const;
 
-        //! Checks if the agent needs to localize
-        bool needsToLocalize() const;
+        //! Checks if the agent wants to switch pages
+        bool hasNewPageNumber() const;
+
+        /// ================================ Speech functions ================================ ///
+        //! Checks if the agent has a string to speak
+        bool hasTextToSay() const;
+
+        /// ================================ Sound functions ================================ ///
+        //! Checks if the agent has sounds to play
+        bool hasSoundsToPlay() const;
+
+        //! States whether or not the agent is (supposed to be) holding something
+        // bool isHoldingAnObject() const;
 
     private:
+        /// ================================ Gaze functions ================================ ///
         //! Generates the agent's gaze points (the points in space the agent should search for objects)
-        void generateGazePoints();
+        void generateGazePolygon();
 
         // Disallows the copy constructor and assignment operator
         DISALLOW_COPY_ASSIGN(KoduAgent);
 
-        // page stuff
+    public: //// ================= The Public Agent Variables ================= ////
+        // === Motion variables === //
+        //! The mininum travelling distance (including turns) to consider performing localization
+        static const float kLocalizationDistanceThreshold;
+        bool isWalkingFlag;                 //!< A flag stating whether or not the agent is walking
+        MotionCommand currMotionCmd;        //!< The current motion command
+        
+        // === Page variables === //
+        unsigned int newReqdPage;           //!< Stores the page number the agent wants to switch to
+
+        // === Speech variables === //
+        std::string stringToSpeak;          //!< The string the agent wants to speak
+        
+        // === Sound variables === //
+        std::queue<std::string> playQueue;  //!< The vector of sound files the agent wants to play
+        
+        //! The object the agent is holding
+        // DualCoding::ShapeRoot heldObject;
+
+    //private: //// ================= The Private Agent Variables ================= ////
+        // === Page variables === //
         std::vector<KoduPage*> pages;       //!< The vector of pages containing kode
         unsigned int currPageIndex;         //!< The page (index) currently being executed
-        // speech
-        std::string stringToSpeak;          //!< The string the agent wants to speak
-        // sounds
-        std::queue<std::string> playQueue;  //!< The vector of sound files the agent wants to play
-        // agent motion
-        bool agentIsMoving;                 //!< A flag stating whether or not the agent is moving
-        float approxDistanceTravelled;      //!< The approx. distance the agent has travelled (including turns)
+    
+    private:
+        // === Motion variables === //
+        unsigned int walkStartTime;         //!< The time (in milliseconds) the agent started walking
+        float totalApproxDistanceTravelled; //!< The total approx. distance travelled (including turns)
         float distanceSinceLastLocalization;//!< The (approx.) distance travelled since the last localization
-        MotionCommand currMotionCmd;        //!< The current motion command
+        
+        // === Gaze polygon variables === //
         //! egocentric (relative to the robot's body) "directions" to look at (they are really points)
-        DualCoding::Shape<DualCoding::PolygonData> gazePolygon;  
+        DualCoding::Shape<DualCoding::PolygonData> agentGazePolygon;
     };
 }
 
