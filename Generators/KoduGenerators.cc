@@ -40,7 +40,7 @@ namespace Kodu {
 
 	float NumericGenerator::getNumericValue() {
 		if (moduloDivisor >= 2.0f) {
-			float randVal = (float)(rand() % (int)moduloDivisor);
+			float randVal = static_cast<float>(rand() % static_cast<int>(moduloDivisor));
 			return (randVal + constant);
 		} else {
 			return constant;
