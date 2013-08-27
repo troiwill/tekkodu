@@ -68,6 +68,17 @@ namespace Kodu {
                 std::cout << "Added Kodu Rule " << koduRule->getRuleNumber()
                           << " to Page " << koduPage->getPageNumber() << ".\n";
 
+                // check if this condition would require vision
+                // std::string conditionType = koduRule->condition->getPrimitiveType();
+                if (KoduConditionSee::isSameTypeAs(koduRule->condition)) {
+                    KoduConditionSee* seeCondition = dynamic_cast<KoduConditionSee*>(koduRule->condition);
+                    koduPage->addObjectDescriptor(seeCondition->getObjectColor());
+                }
+                else if (KoduConditionBump::isSameTypeAs(koduRule->condition)) {
+                    KoduConditionBump* bumpCondition = dynamic_cast<KoduConditionBump*>(koduRule->condition);
+                    koduPage->addObjectDescriptor(bumpCondition->getObjectColor());
+                }
+                
                 // bookkeeping
                 tempRule = NULL;
                 koduAction = NULL;
