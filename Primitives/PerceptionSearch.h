@@ -78,7 +78,7 @@ namespace Kodu {
         // get the agent's data
         DualCoding::AgentData agentData = DualCoding::VRmixin::theAgent.getData();
         // calculate the bearing between some shape "kShape" and the agent ==> theta = arctan(dy/dx)
-        float bearing2ThisShape = (kShape.getData().getCentroid() - agentData.getCentroid()).atanYX();
+        float bearing2ThisShape = (kShape->getCentroid() - agentData.getCentroid()).atanYX();
         // subtract the agent's orientation (heading) from the bearing to get the shape's
         // angle relative to the agent
         AngSignPi dtheta = bearing2ThisShape - agentData.getOrientation();
@@ -89,9 +89,9 @@ namespace Kodu {
     inline
     float calcDistanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
         // get the shape's point
-        DualCoding::Point shapePoint = kShape.getData().getCentroid();
+        DualCoding::Point shapePoint = kShape->getCentroid();
         // get the agent's point
-        DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent.getData().getCentroid();
+        DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
         // calculate the differences in the shape's and agent's positions
         float dx = shapePoint.coordX() - agentPoint.coordX();
         float dy = shapePoint.coordY() - agentPoint.coordY();
