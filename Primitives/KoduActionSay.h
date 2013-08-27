@@ -30,18 +30,18 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionSay(const std::string& kDesignator, const LiteralGenerator& kStringLiteral, bool useOnce)
-          : KoduAction("KoduActionSay"),
+          : KoduAction("KoduActionSay", true, useOnce),
             designator(kDesignator),
-            literalGen(kStringLiteral),
-            onceEnabled(useOnce)
+            literalGen(kStringLiteral)//,
+            // onceEnabled(useOnce)
         { }
 
         //! Copy constructor
         KoduActionSay(const KoduActionSay& kAction)
           : KoduAction(kAction),
             designator(kAction.designator),
-            literalGen(kAction.literalGen),
-            onceEnabled(kAction.onceEnabled)
+            literalGen(kAction.literalGen)//,
+            // onceEnabled(kAction.onceEnabled)
         { }
         
         //! Destructor
@@ -55,24 +55,27 @@ namespace Kodu {
                 KoduAction::operator=(kAction);
                 designator = kAction.designator;
                 literalGen = kAction.literalGen;
-                onceEnabled = kAction.onceEnabled;
+                // onceEnabled = kAction.onceEnabled;
             }
             return *this;
         }
         
         //! Returns a literal string to speak
-        const std::string& getSpeechText();
+        const std::string& getStringToSpeak();
         
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs();
+        virtual void printAttrs() const;
 
     private:
         std::string designator;
         LiteralGenerator literalGen;
-        bool onceEnabled;
+        // bool onceEnabled;
     };
 }
 

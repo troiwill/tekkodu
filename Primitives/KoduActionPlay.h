@@ -20,16 +20,16 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionPlay(const LiteralGenerator& kSoundFile, bool useOnce)
-          : KoduAction ("KoduActionPlay"),
-            soundFile(kSoundFile),
-            onceEnabled(useOnce)
+          : KoduAction ("KoduActionPlay", true, useOnce),
+            soundFile(kSoundFile)//,
+            // onceModifierEnabled(useOnce)
         { }
         
         //! Copy constructor
         KoduActionPlay(const KoduActionPlay& kAction)
           : KoduAction(kAction),
-            soundFile(kAction.soundFile),
-            onceEnabled(kAction.onceEnabled)
+            soundFile(kAction.soundFile)//,
+            // onceModifierEnabled(kAction.onceModifierEnabled)
         { }
 
         //! Destructor
@@ -42,7 +42,7 @@ namespace Kodu {
             if (this != &kAction) {
                 KoduAction::operator=(kAction);
                 soundFile = kAction.soundFile;
-                onceEnabled = kAction.onceEnabled;
+                // onceModifierEnabled = kAction.onceModifierEnabled;
             }
             return *this;
         }
@@ -50,15 +50,18 @@ namespace Kodu {
         //! Returns the name of the sound file
         const std::string& getSoundFile();
         
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();
 
         //! Prints the attributes of a particular instance
-        virtual void printAttrs();
+        virtual void printAttrs() const;
 
     private:
-        LiteralGenerator soundFile;
-        bool onceEnabled;
+        LiteralGenerator soundFile;     //!< Returns the name of the sound file the agent needs to play
+        // bool onceModifierEnabled;       //!< States if to play a sound file once
     };
 }
 

@@ -2,18 +2,7 @@
 
 namespace Kodu {
 
-    /*
-    const ScoreRequest& KoduActionScore::execute() {
-        if (onceEnabled)        // disable this action if "once" modifier is enabled
-            actionDisabled = true;
-        ScoreKeeper::addScore(value);
-        return value;
-    }
-    */
-    
     int KoduActionScore::changeScore() {
-        if (onceEnabled)
-            actionHasAlreadyRan = true;
         int rv = 0;
         switch (type) {
             case ST_SCORE:
@@ -28,11 +17,15 @@ namespace Kodu {
         return rv;
     }
 
+    bool KoduActionScore::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduActionScore*>(kPrimitive) != NULL);
+    }
+
     void KoduActionScore::reinitialize() {
         KoduAction::reinitialize();
     }
 
-    void KoduActionScore::printAttrs() {
+    void KoduActionScore::printAttrs() const {
         KoduAction::printAttrs();
         std::cout << "Score operation type: ";
         switch (type) {
@@ -51,7 +44,6 @@ namespace Kodu {
         std::cout << std::endl;
         std::cout << "Score designator: " << designator << std::endl;
         numericGen.printAttrs();
-        PRINT_ATTRS("Once enabled", onceEnabled);
         std::cout << std::endl;
     }
 } // end of Kodu namespace

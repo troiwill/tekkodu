@@ -31,13 +31,18 @@ namespace Kodu {
             return *this;
         }
 
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive* kPrimitive) {
+            return (dynamic_cast<const KoduActionDoNothing*>(kPrimitive) != NULL);
+        }
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize() {
             // nothing to do
         }
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs() {
+        virtual void printAttrs() const {
             KoduAction::printAttrs();
         }
     };

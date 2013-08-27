@@ -1,4 +1,6 @@
 #include "Kodu/Primitives/KoduActionMotion.h"
+#include "Kodu/Primitives/PerceptionSearch.h"
+
 #include "DualCoding/VRmixin.h"
 
 namespace Kodu {
@@ -47,13 +49,15 @@ namespace Kodu {
         return targetObject;
     }
 
+    const float KoduActionMotion::kWalkingSpeed = 150.0f;
+
     const MotionCommand& KoduActionMotion::getMotionCommand() {
         switch (motionType) {
             // random walk
             case MT_MOVE_WANDER:
             {
                 motionCmd.dx = distGen.getNumericValue();
-                motionCmd.da = angleGen.getNumericValue();// * 10;
+                motionCmd.da = angleGen.getNumericValue();
                 break;
             }
             
@@ -68,8 +72,7 @@ namespace Kodu {
             case MT_MOVE_TOWARDS:
             {
                 if (ObjectKeeper::isValid) {
-                    DualCoding::Point targetLocation = ObjectKeeper::tempObject.getData().getCentroid();
-                    if (DualCoding::VRmixin::theAgent.getData().getCentroid().xyDistanceFrom(targetLocation) > 400) {
+                    if (calcDistanceFromAgentToObject(ObjectKeeper::tempObject) > 400) {
                         motionCmd.targetObject = ObjectKeeper::tempObject;
                     } else {
                         motionCmd.targetObject = ObjectKeeper::invalidObject;
@@ -104,6 +107,10 @@ namespace Kodu {
 
     KoduActionMotion::MotionType_t KoduActionMotion::getMotionType() const {
         return motionType;
+    }
+
+    bool KoduActionMotion::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduActionMotion*>(kPrimitive) != NULL);
     }
 
     void KoduActionMotion::reinitialize() {

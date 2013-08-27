@@ -14,18 +14,18 @@ namespace Kodu {
     //! Kodu Action (derived from Kodu Behavior)
     class KoduAction : public KoduPrimitive {
     public:
-        bool actionHasAlreadyRan;       //!< set true after an action has ran
-
         //! Constructor
-        explicit KoduAction(const std::string& kActionName)
+        KoduAction(const std::string& kActionName, bool actionCanUseOnceMod = false, bool runOnce = false)
           : KoduPrimitive(kActionName),
-            actionHasAlreadyRan(false)
+            actionCanRun(true),
+            onceModEnabled(actionCanUseOnceMod && runOnce)
         { }
         
         //! Copy constructor
         explicit KoduAction(const KoduAction& kAction)
           : KoduPrimitive(kAction),
-            actionHasAlreadyRan(kAction.actionHasAlreadyRan)
+            actionCanRun(kAction.actionCanRun),
+            onceModEnabled(kAction.onceModEnabled)
         { }
 
         //! Destructor
@@ -37,26 +37,42 @@ namespace Kodu {
         KoduAction& operator=(const KoduAction& kAction) {
             if (this != &kAction) {
                 KoduPrimitive::operator=(kAction);
-                actionHasAlreadyRan = kAction.actionHasAlreadyRan;
+                actionCanRun = kAction.actionCanRun;
+                onceModEnabled = kAction.onceModEnabled;
             }
             return *this;
         }
 
-        //! Returns whether or not the action has ran
-        bool actionHasRan() {
-            return actionHasAlreadyRan;
+        //! Returns whether or not the action can ran
+        bool canRun() const {
+            return actionCanRun;
+        }
+
+        //! Checks if the once modifier is enabled
+        bool onceModIsEnabled() const {
+            return onceModEnabled;
         }
 
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         void reinitialize() {
-            actionHasAlreadyRan = false;
+            actionCanRun = false;
+        }
+
+        //! Sets the action can run variable
+        void setActionCanRun(bool bVal) {
+            actionCanRun = bVal;
         }
 
         //! Prints the attributes for a particular behavior
-        virtual void printAttrs() {
+        virtual void printAttrs() const {
             KoduPrimitive::printAttrs();
-            PRINT_ATTRS("Action has ran", actionHasAlreadyRan);
+            PRINT_ATTRS("Action can ran", actionCanRun);
+            PRINT_ATTRS("Once modifier enabled", onceModEnabled);
         }
+
+    private:
+        bool actionCanRun;       //!< states if an action can run
+        bool onceModEnabled;     //!< states if the once modifier is enabled (depends on action type too)
     };
 } // end of Kodu namespace
 

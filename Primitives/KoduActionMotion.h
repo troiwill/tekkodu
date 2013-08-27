@@ -114,6 +114,9 @@ namespace Kodu {
             RS_SLOWLY               = 1L << 2
         };
 
+        //! The walking speed of the robot (the distance the robot's wheel travels per unit time)
+        static const float kWalkingSpeed;
+
         //! Constructor
         KoduActionMotion(MotionType_t type, RateSpecifier_t rate, unsigned int motionMagCount)
           : KoduAction("KoduActionMotion"),
@@ -122,27 +125,30 @@ namespace Kodu {
             angleGen(0,0),
             distGen(0,0)
         {
+            const float kForwardSpeed = kWalkingSpeed;
+            const float kTurningSpeed = kForwardSpeed;
+
             // motion type is move
             if (type < MT_EMPTY_MOTION_TYPE) {
-                motionCmd.forwardSpeed = 150.0f;
+                motionCmd.forwardSpeed = kForwardSpeed;
                 motionCmd.turnSpeed = 0.0f;
 
                 if (type == MT_MOVE_WANDER) {
                     angleGen.setNumericValues(0, M_PI * 2.0f);
                     distGen.setNumericValues(500, 300);
-                    motionCmd.turnSpeed = M_PI / 5.0f;
+                    motionCmd.turnSpeed = kTurningSpeed;
                 }
                 else if (type == MT_MOVE_FORWARD) {
                     distGen.setNumericValues(500, 0);
                 }
                 else if (type == MT_MOVE_TOWARDS) {
-                    motionCmd.turnSpeed = M_PI / 5.0f;
+                    motionCmd.turnSpeed = kTurningSpeed;
                 }
             }
             // motion type is turn
             else {
                 motionCmd.forwardSpeed = 0.0f;
-                motionCmd.turnSpeed = M_PI / 5.0f;
+                motionCmd.turnSpeed = kTurningSpeed;
 
                 if (type == MT_TURN_LEFT)
                     angleGen.setNumericValues(-M_PI, 0);    
@@ -183,6 +189,9 @@ namespace Kodu {
 
         //! Returns the motion type
         MotionType_t getMotionType() const;
+
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
 
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();

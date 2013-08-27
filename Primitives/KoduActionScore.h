@@ -32,11 +32,11 @@ namespace Kodu {
         //! Constructor
         KoduActionScore(ScoringType_t scoreOpType, const NumericGenerator& kNumericGen,
             const std::string& kDesignator, bool useOnce)
-          : KoduAction("KoduActionScore"),
+          : KoduAction("KoduActionScore", true, useOnce),
             type(scoreOpType),
             numericGen(kNumericGen),
-            designator(kDesignator),
-            onceEnabled(useOnce)
+            designator(kDesignator)//,
+            // onceEnabled(useOnce)
         {
             ScoreKeeper::registerScore(designator);
         }
@@ -46,8 +46,8 @@ namespace Kodu {
           : KoduAction(kAction),
             type(kAction.type),
             numericGen(kAction.numericGen),
-            designator(kAction.designator),
-            onceEnabled(kAction.onceEnabled)
+            designator(kAction.designator)//,
+            // onceEnabled(kAction.onceEnabled)
         { }
         
         //! Destructor
@@ -62,7 +62,7 @@ namespace Kodu {
                 type = kAction.type;
                 numericGen = kAction.numericGen;
                 designator = kAction.designator;
-                onceEnabled = kAction.onceEnabled;
+                // onceEnabled = kAction.onceEnabled;
             }
             return *this;
         }
@@ -70,17 +70,20 @@ namespace Kodu {
         //! Changes the score based on the operation type
         int changeScore();
 
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();
 
         //! Prints the attributes of a particular instance
-        virtual void printAttrs();
+        virtual void printAttrs() const;
 
     private:
         ScoringType_t type;             //!< States whether a score is incremented, decremented, or set
         NumericGenerator numericGen;    //!< Generates a numeric value
         std::string designator;         //!< The score designator
-        bool onceEnabled;               //!< States if an action should run once every time a condition is evaluated true
+        // bool onceEnabled;            
     };
 }
 

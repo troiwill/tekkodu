@@ -6,13 +6,17 @@ namespace Kodu {
         return (int)(pageNumb.getNumericValue());
     }
 
-    void KoduActionPageSwitch::reinitialize() {
-        KoduAction::reinitialize();
-        // do nothing
+    bool KoduActionPageSwitch::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduActionPageSwitch*>(kPrimitive) != NULL);
     }
 
-    void KoduActionPageSwitch::printAttrs() {
+    void KoduActionPageSwitch::reinitialize() {
+        KoduAction::reinitialize();
+    }
+
+    void KoduActionPageSwitch::printAttrs() const {
         KoduAction::printAttrs();
-        std::cout << "Page requested: " << pageNumb.getNumericValue() << std::endl;
+        std::cout << "Page requested: "
+                  << const_cast<KoduActionPageSwitch*>(this)->pageNumb.getNumericValue() << std::endl;
     }
 }

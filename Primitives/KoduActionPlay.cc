@@ -1,30 +1,21 @@
 #include "Kodu/Primitives/KoduActionPlay.h"
 
 namespace Kodu {
-    /*
-    const PlayRequest& KoduActionPlay::execute() {
-        if (onceEnabled)
-            actionDisabled = true;  // prevents rule from being evaluated/executed
-        // ==== for debugging ==== //
-        std::cout << getBehaviorType() << ": Playing sound \"" << playreq.soundFile << "\"\n";
-        // ======================= //
-        return playreq;
-    }
-    */
-
+    
     const std::string& KoduActionPlay::getSoundFile() {
-        if (onceEnabled)
-            actionHasAlreadyRan = true;
         return soundFile.getLiteralString();
+    }
+
+    bool KoduActionPlay::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduActionPlay*>(kPrimitive) != NULL);
     }
 
     void KoduActionPlay::reinitialize() {
         KoduAction::reinitialize();
     }
     
-    void KoduActionPlay::printAttrs() {
+    void KoduActionPlay::printAttrs() const {
         KoduAction::printAttrs();
         soundFile.printAttrs();
-        PRINT_ATTRS("Once modifier", onceEnabled);
     }
 }
