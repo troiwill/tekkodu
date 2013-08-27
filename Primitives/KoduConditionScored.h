@@ -78,11 +78,14 @@ namespace Kodu {
         //! Compares the target score against the current (global) score
         virtual bool evaluate();
         
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs();
+        virtual void printAttrs() const;
 
     private:
         bool notModifierEnabled;     //!< if true, the NOT operator is applied to the evaluate function's result

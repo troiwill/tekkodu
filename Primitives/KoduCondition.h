@@ -44,7 +44,7 @@ namespace Kodu {
         }
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs() {
+        virtual void printAttrs() const {
             KoduPrimitive::printAttrs();
         }
     };

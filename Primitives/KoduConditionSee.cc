@@ -38,12 +38,16 @@ namespace Kodu {
         return refdObject;
     }
 
+    bool KoduConditionSee::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduConditionSee*>(kPrimitive) != NULL);
+    }
+
     void KoduConditionSee::reinitialize() {
         // TODO (9/Aug/2013)
         // do I need to clear the Shape object?
     }
     
-    void KoduConditionSee::printAttrs() {
+    void KoduConditionSee::printAttrs() const {
         KoduCondition::printAttrs();
         // not enabled?
         PRINT_ATTRS("Not enabled", notModifierEnabled);

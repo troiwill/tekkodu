@@ -65,11 +65,14 @@ namespace Kodu {
         //! Returns the target object... if none is available, return an invalid object
         const DualCoding::Shape<DualCoding::CylinderData>& getTargetObject();
 
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive*);
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs();
+        virtual void printAttrs() const;
 
     private:
         bool notModifierEnabled;

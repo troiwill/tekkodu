@@ -36,6 +36,11 @@ namespace Kodu {
         virtual bool evaluate() {
             return true;
         }
+
+        //! Tests if the primitive argument is the same as the calling class
+        static bool isSameTypeAs(const KoduPrimitive* kPrimitive) {
+            return (dynamic_cast<const KoduConditionAlways*>(kPrimitive) != NULL);
+        }
         
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize() {
@@ -43,7 +48,7 @@ namespace Kodu {
         }
         
         //! Prints the attributes of a particular instance
-        virtual void printAttrs() {
+        virtual void printAttrs() const {
             KoduCondition::printAttrs();
         }
     };

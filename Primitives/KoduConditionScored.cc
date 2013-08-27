@@ -49,11 +49,15 @@ namespace Kodu {
         return rv;
     }
     
+    bool KoduConditionScored::isSameTypeAs(const KoduPrimitive* kPrimitive) {
+        return (dynamic_cast<const KoduConditionScored*>(kPrimitive) != NULL);
+    }
+
     void KoduConditionScored::reinitialize() {
         KoduCondition::reinitialize();
     }
 
-    void KoduConditionScored::printAttrs() {
+    void KoduConditionScored::printAttrs() const {
         KoduCondition::printAttrs();
         PRINT_ATTRS("Not enabled", notModifierEnabled);
         PRINT_ATTRS("Numerics were specified", numericsWereSpecified);
