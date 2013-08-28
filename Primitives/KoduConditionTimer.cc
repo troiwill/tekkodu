@@ -11,7 +11,7 @@ namespace Kodu {
             needToInitialize = false;
         }
         currentTime = getTimeInSec();
-        unsigned int timeDifference = currentTime - startTime;
+        float timeDifference = currentTime - startTime;
         if (timeDifference >= timerThreshold) {
             timerThreshold = numericGen.getNumericValue();
             startTime = getTimeInSec();
@@ -47,7 +47,7 @@ namespace Kodu {
         std::cout << "Current threshold: " << timerThreshold << std::endl;
     }
 
-    unsigned int KoduConditionTimer::getTimeInSec() {
-        return (get_time() / 1000);
+    float KoduConditionTimer::getTimeInSec() {
+        return (static_cast<float>(get_time()) / 1000.0f);
     }
 } // end of Kodu namespace

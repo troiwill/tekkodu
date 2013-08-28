@@ -74,15 +74,16 @@ namespace Kodu {
         //! Prints the attributes of a particular instance
         virtual void printAttrs() const;
 
-        unsigned int getTimeInSec();
+        //! Gets the behavior runtime in seconds
+        float getTimeInSec();
 
     private:
         NumericGenerator numericGen;    //!< returns a constant or random timer value
         float timerThreshold;           //!< amount of time needed to past
         bool notModifierEnabled;        //!< states if the not modifier is in use
         bool needToInitialize;          //!< used to initialize start time
-        unsigned int currentTime;       //!< most recent time request
-        unsigned int startTime;         //!< used for time elapsed calculation
+        float currentTime;              //!< most recent time request
+        float startTime;                //!< used for time elapsed calculation
     };
 }
 
