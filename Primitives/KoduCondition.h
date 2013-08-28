@@ -38,7 +38,7 @@ namespace Kodu {
         //! Evaluates the event portion of the rule (implementation in derived classes)
         virtual bool evaluate() = 0;
         
-        //! Used to reinitialize certain variables because of certain circumstances (e.g. switching to another page)
+        //! Used to reinitialize certain variables during certain circumstances (e.g. switching to another page)
         virtual void reinitialize() {
             // do nothing
         }
