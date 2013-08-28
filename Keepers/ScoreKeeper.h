@@ -1,50 +1,170 @@
 #ifndef SCORE_KEEPER_H_
 #define SCORE_KEEPER_H_
 
+// Tekkodu Library
+#include "Kodu/General/GeneralMacros.h"
+#include "Kodu/Primitives/KoduActionScore.h"
+
+// Tekkotsu Library
+#include "Shared/get_time.h"
+
 // C++ Library
 #include <iostream>
 #include <string>
 
-// Kodu Library
-#include "Kodu/General/GeneralMacros.h"
-
 namespace Kodu {
-// ======================== KODU KEEPER TYPE: SCORE =================================== //
-	//! Score Keeper
-	class ScoreKeeper {
-	public:
-		//! Adds to a particular score
-		static int addScore(const std::string&, int);
-		
-		//! Checks the value of a particular score
-		static int checkScoreValue(const std::string&);
-		
-		//! Clears all the contents of the map (calls the initialize function)
-		static void clearScores();
-		
-		//! Initializes the global score board (deletes the contents of the map)
-		static void initialize();
+    //! The timestamp
+    typedef unsigned int Timestamp_t;
+    
+    // Forward declare the KoduActionScore class (will eliminate cyclic dependencies between included files)
+    class KoduActionScore;
 
-		//! Registers an entry for a new score based on the key provided
-		static bool registerScore(const std::string&);
-		
-		//! Checks if a particular score type (identified by color+letter key) exists
-		static bool scoreExists(const std::string&);
+    class ScoreChange {
+    public:
+        //! Constructor
+        ScoreChange(KoduActionScore::ScoringType_t scoreOp, const std::string& kDesignator, unsigned int val)
+          : operationType(scoreOp),
+            designator(kDesignator),
+            value(val),
+            timeCreated(0)
+        {
+            timeCreated = get_time();
+        }
 
-		//! Sets a particular score
-		static int setScore(const std::string&, int);
-		
-		//! Subtracts from a particular score
-		static int subtractScore(const std::string&, int);
+        //! Copy constructor
+        ScoreChange(const ScoreChange& kChange)
+          : operationType(kChange.operationType),
+            designator(kChange.designator),
+            value(kChange.value),
+            timeCreated(kChange.timeCreated)
+        { }
 
-	private:
-		//! Contains all the global scores
-		static std::map<std::string,int> scoreBoard;
+        //! Destructor
+        ~ScoreChange() {
+            // no explicit implementation
+        }
 
-		//! Disallows users from creating an instance of this class
-		DISALLOW_INSTANTIATION(ScoreKeeper);
-	};
-// ==================================================================================== //
+        //! Assignment operator
+        ScoreChange& operator=(const ScoreChange& kChange) {
+            if (this != &kChange) {
+                operationType = kChange.operationType;
+                designator = kChange.designator;
+                value = kChange.value;
+                timeCreated = kChange.timeCreated;
+            }
+            return *this;
+        }
+
+        Timestamp_t getTimestamp() const;
+
+        //! Overloaded greater than operator
+        bool operator>(const ScoreChange&);
+
+        //! Overloaded less than operator
+        bool operator<(const ScoreChange&);
+
+        //! Overloaded equal to operator
+        bool operator==(const ScoreChange&);
+
+        //! Overloaded not equal to operator
+        bool operator!=(const ScoreChange&);
+
+        // The ScoreKeeper class can directly access all the members of this class
+        friend class ScoreKeeper;
+    
+        KoduActionScore::ScoringType_t operationType; //!< The operation type (e.g. add, set, subtract)
+        std::string designator;     //!< The score designator (color or score letter)
+        unsigned int value;         //!< The value to set, substract, or add
+
+    private:
+        Timestamp_t timeCreated;    //!< The approximate time (in milliseconds) the score was created
+    };
+
+    //! Score Keeper
+    class ScoreKeeper {
+    public:
+        //! Constructor
+        ScoreKeeper()
+          : scoreBoard()
+        { }
+
+        //! Destructor
+        ~ScoreKeeper() {
+            scoreBoard.clear();
+        }
+
+        //! Assignment operator
+        ScoreKeeper& operator=(const ScoreKeeper& kKeeper) {
+            if (this != &kKeeper) {
+                scoreBoard = kKeeper.scoreBoard;
+            }
+            return *this;
+        }
+
+        //! Adds to a particular score
+        int addScore(const std::string&, int);
+        
+        //! Checks the value of a particular score
+        int checkScoreValue(const std::string&);
+
+        //! (Re)Initializes the score board
+        void initialize();
+
+        //! Registers an entry for a new score based on the key provided
+        bool registerScore(const std::string&);
+        
+        //! Checks if a particular score type (identified by color+letter key) exists
+        bool scoreExists(const std::string&);
+
+        //! Sets a particular score
+        int setScore(const std::string&, int);
+        
+        //! Subtracts from a particular score
+        int subtractScore(const std::string&, int);
+
+    private:
+        //! Disallows the copy constructor and assignment operator
+        DISALLOW_COPY(ScoreKeeper);
+
+        //! Contains all the global scores
+        std::map<std::string,int> scoreBoard;
+    };
+
+    /**
+    class ScoreKeeper {
+    public:
+        //! Adds to a particular score
+        static int addScore(const std::string&, int);
+        
+        //! Checks the value of a particular score
+        static int checkScoreValue(const std::string&);
+        
+        //! Clears all the contents of the map (calls the initialize function)
+        static void clearScores();
+        
+        //! Initializes the global score board (deletes the contents of the map)
+        static void initialize();
+
+        //! Registers an entry for a new score based on the key provided
+        static bool registerScore(const std::string&);
+        
+        //! Checks if a particular score type (identified by color+letter key) exists
+        static bool scoreExists(const std::string&);
+
+        //! Sets a particular score
+        static int setScore(const std::string&, int);
+        
+        //! Subtracts from a particular score
+        static int subtractScore(const std::string&, int);
+
+    private:
+        //! Contains all the global scores
+        static std::map<std::string,int> scoreBoard;
+
+        //! Disallows users from creating an instance of this class
+        DISALLOW_INSTANTIATION(ScoreKeeper);
+    };
+    **/
 } // end of Kodu namespace
 
 #endif // SCORE_KEEPER_H_

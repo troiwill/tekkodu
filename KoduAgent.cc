@@ -9,7 +9,7 @@
 
 namespace Kodu {
     /// ================================ Static initializations ================================ ///
-    const float KoduAgent::kLocalizationDistanceThreshold = 1200.0f;
+    const float KoduAgent::kLocalizationDistanceThreshold = 3000.0f;
 
     /// ================================ Motion functions ================================ ///
     bool KoduAgent::hasMotionCommand() const {
@@ -36,13 +36,22 @@ namespace Kodu {
         walkStartTime = 0;
         // if the time is less than the specified value, do not do the calculation
         // the agent probably did not have enough time to accelerate/walk
-        if (timeElasped > 250) {
-            // calculate the approx distance travelled, and add it to 1) the total approx distance
-            // and 2) the distance since last localization
-            float approxDistanceTravelled = KoduActionMotion::kWalkingSpeed / timeElasped;
+        if (timeElasped > 200) {
+            // calculate the approx distance travelled, and add it to:
+            // 1) the total approx distance and
+            // 2) the distance since last localization
+            float approxDistanceTravelled = KoduActionMotion::kWalkingSpeed * (timeElasped / 1000);
             totalApproxDistanceTravelled += approxDistanceTravelled;
             distanceSinceLastLocalization += approxDistanceTravelled;
+            std::cout << "Approx. Dist. Travelled = " << approxDistanceTravelled << std::endl;
+            std::cout << "Total Approx. Dist. Travelled = " << totalApproxDistanceTravelled << std::endl;
+            std::cout << "Dist. Since Last Localization = " << distanceSinceLastLocalization << std::endl;
         }
+    }
+
+    /// ================================ Scoring functions ================================ ///
+    bool KoduAgent::hasNewScoreChanges() const {
+        return (!scoreQueue.empty());
     }
 
     /// ================================ Page functions ================================ ///

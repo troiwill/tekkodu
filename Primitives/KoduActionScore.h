@@ -7,7 +7,7 @@
 // Kodu Library
 #include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Generators/KoduGenerators.h"
-#include "Kodu/Keepers/ScoreKeeper.h"
+// #include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Primitives/KoduAction.h"
 
 /**
@@ -20,6 +20,9 @@
 
 namespace Kodu {
 
+    // Forward declare the ScoreChange class
+    class ScoreChange;
+    
     //! Kodu Action Score (derived from Kodu Action)
     class KoduActionScore : public KoduAction {
     public:
@@ -35,11 +38,8 @@ namespace Kodu {
           : KoduAction("KoduActionScore", true, useOnce),
             type(scoreOpType),
             numericGen(kNumericGen),
-            designator(kDesignator)//,
-            // onceEnabled(useOnce)
-        {
-            ScoreKeeper::registerScore(designator);
-        }
+            designator(kDesignator)
+        { }
 
         //! Copy constructor
         KoduActionScore(const KoduActionScore& kAction)
@@ -67,8 +67,8 @@ namespace Kodu {
             return *this;
         }
 
-        //! Changes the score based on the operation type
-        int changeScore();
+        //! Returns the score change
+        ScoreChange getScoreChange();
 
         //! Tests if the primitive argument is the same as the calling class
         static bool isSameTypeAs(const KoduPrimitive*);

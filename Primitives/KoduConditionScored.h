@@ -2,9 +2,7 @@
 #define KODU_CONDITION_SCORED_H_
 
 // Kodu Library
-#include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Generators/KoduGenerators.h"
-#include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Primitives/KoduCondition.h"
 
 // TODO

@@ -10,6 +10,7 @@
 
 // ========= Kodu Library ========= //
 #include "Kodu/KoduAgent.h"
+#include "Kodu/KoduWorld.h"
 
 // General Functions
 #include "Kodu/General/GeneralFncs.h"
@@ -33,41 +34,43 @@
 
 $nodeclass KoduGame : VisualRoutinesStateNode {
     
-    $provide Kodu::KoduAgent agent;
+    $provide Kodu::KoduWorld* theWorld;
+    $provide Kodu::KoduAgent* theAgent;
     $provide unsigned int cycleCount;
     
-    $provide std::queue<Kodu::KoduActionScore*> scoreQueue;
-
     $provide MotionActuator* motionActRef;
     $provide PageSwitchActuator* pageSwitchActRef;
     $provide PlayActuator* playActRef;
     $provide SayActuator* sayActRef;
     $provide ScoreActuator* scoreActRef;
     
+    ~KoduGame() {
+        std::cout << "Destructing Kodu Game...\n";
+        // null the KoduAgent pointer
+        theAgent = NULL;
+
+        // delete the world instance
+        std::cout << "Destroying Kodu World.\n";
+        GeneralFncs::deletePtr(theWorld);
+        
+        std::cout << "Kodu Game destruction complete!\n";
+    }
+
     $nodeclass InitializeGame : StateNode : doStart {
+        $reference KoduGame::theWorld;
+        $reference KoduGame::theAgent;
         $reference KoduGame::cycleCount;
         
         std::cout << "Initializing Kodu Game.\n";
         cycleCount = 0;
         
-        // create world bounds
-        std::vector<Point> worldBounds;
-        const float maxBoundLength = 2000.0f;   // assumes the world is a square
-        const float minX = -500.0f;
-        const float maxX = maxBoundLength + minX;
-        const float minY = -maxBoundLength / 2.0f;
-        const float maxY =  maxBoundLength / 2.0f;
-        
-        // add the points of the square polygon to the vector
-        worldBounds.push_back(Point(minX, maxY, 0, egocentric));
-        worldBounds.push_back(Point(maxX, maxY, 0, egocentric));
-        worldBounds.push_back(Point(maxX, minY, 0, egocentric));
-        worldBounds.push_back(Point(minX, minY, 0, egocentric));
-        worldBounds.push_back(worldBounds[0]);  // close the polygon
-        
-        // create a Shape<PolygonData> object and use it as the world bounds.
-        NEW_SHAPE(wBoundPolygon, PolygonData, new PolygonData(worldShS, worldBounds, false));
-        DualCoding::VRmixin::pilot->setWorldBounds(wBoundPolygon);
+        // create an instance of the Kodu World
+        theWorld = new Kodu::KoduWorld();
+        // point the KoduAgent pointer to KoduWorld::thisAgent
+        theAgent = &(theWorld->thisAgent);
+
+        // set the world bounds
+        VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
 
         std::cout << "Initialization complete.\n";
         postStateCompletion();
@@ -75,10 +78,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     
     //! Kodu Code Parser
     $nodeclass KoduParser : StateNode : doStart {
-        $reference KoduGame::agent;
+        $reference KoduGame::theAgent;
         
         // parses and creates Kodu program
-        if (Kodu::Parser::parseAndCreateKoduProgram(agent.pages) == false) {
+        if (Kodu::Parser::parseAndCreateKoduProgram(theAgent->pages) == false) {
             postStateFailure();
             std::cerr << "Error parsing and creating Kodu program.\n";
             return;
@@ -93,16 +96,16 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
-        $reference KoduGame::agent;
+        $reference KoduGame::theAgent;
         
         // get the colors of the objects the agent should search for on this page
-        std::vector<std::string> objectDescrips = agent.getCurrentPage()->getObjectDescriptors();
+        std::vector<std::string> objectDescrips = theAgent->getCurrentPage()->getObjectDescriptors();
         const std::size_t kSize = objectDescrips.size();
         // add those colors to the MapBuilderRequest mapreq
         for (std::size_t index = 0; index < kSize; index++) {
             mapreq.addObjectColor(cylinderDataType, objectDescrips[index]);
         }
-        mapreq.searchArea = agent.getGazePolygon();
+        mapreq.searchArea = theAgent->getGazePolygon();
         //mapreq.doScan = true;
         mapreq.pursueShapes = true;
         //mapreq.maxDist = distantRadius * 1.15f;   // would be world bounds
@@ -120,9 +123,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
         //! Enables child rules with the once modifier enabled (who have already ran) to run (again)
         void resetChildRulesWithOnceEnabled(const unsigned int kParentRuleNumer) {
-            $reference KoduGame::agent;
+            $reference KoduGame::theAgent;
 
-            Kodu::KoduPage* page = agent.getCurrentPage();
+            Kodu::KoduPage* page = theAgent->getCurrentPage();
             Kodu::KoduRule* rule = NULL;
             const int kRuleCount = page->getRuleCount();
             for (int childRule_i = kParentRuleNumer + 1; childRule_i < kRuleCount; childRule_i++) {
@@ -142,12 +145,11 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
         virtual void doStart() {
             $reference KoduGame::cycleCount;
-            $reference KoduGame::agent;
-            $reference KoduGame::scoreQueue;
+            $reference KoduGame::theAgent;
             
             Kodu::KoduPage* cPage;
             Kodu::KoduRule* cRule;
-            if ((cPage = agent.getCurrentPage()) == NULL) {
+            if ((cPage = theAgent->getCurrentPage()) == NULL) {
                 std::cerr << "!!! A NULL page was found.\n";
                 postStateFailure();
                 return;
@@ -197,15 +199,15 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         else if (Kodu::KoduActionMotion::isSameTypeAs(cRule->action)) {
                             Kodu::MotionCommand cmd =
                                 dynamic_cast<Kodu::KoduActionMotion*>(cRule->action)->getMotionCommand();
-                            if (!agent.isWalking() && !agent.hasMotionCommand() && cmd.isValid()) {
-                                agent.currMotionCmd = cmd;
+                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand() && cmd.isValid()) {
+                                theAgent->currMotionCmd = cmd;
                                 std::cout << "Added a motion command...\n";
                             }
                         }
 
                         // Kodu Action Page Switch
                         else if (Kodu::KoduActionPageSwitch::isSameTypeAs(cRule->action)) {
-                            agent.newReqdPage =
+                            theAgent->newReqdPage =
                                 dynamic_cast<Kodu::KoduActionPageSwitch*>(cRule->action)->getPageNumber();
                             std::cout << "Switching to another page!\n";
                             break;
@@ -215,22 +217,23 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         else if (Kodu::KoduActionPlay::isSameTypeAs(cRule->action)) {
                             std::string soundFile =
                                 dynamic_cast<Kodu::KoduActionPlay*>(cRule->action)->getSoundFile();
-                            agent.playQueue.push(soundFile);
+                            theAgent->playQueue.push(soundFile);
                             std::cout << "Added the sound file \"" << soundFile << "\".\n";
                         }
 
                         // Kodu Action Say
-                        else if (Kodu::KoduActionSay::isSameTypeAs(cRule->action)) {
-                            if (!agent.hasTextToSay()) {
-                                agent.stringToSpeak =
-                                    dynamic_cast<Kodu::KoduActionSay*>(cRule->action)->getStringToSpeak();
-                                std::cout << "Added literal string: \"" << agent.stringToSpeak << "\".\n";
-                            }
+                        else if (Kodu::KoduActionSay::isSameTypeAs(cRule->action)
+                                 && (!theAgent->hasTextToSay()))
+                        {
+                            theAgent->stringToSpeak =
+                                dynamic_cast<Kodu::KoduActionSay*>(cRule->action)->getStringToSpeak();
+                            std::cout << "Added literal string: \"" << theAgent->stringToSpeak << "\".\n";
                         }
 
                         // Kodu Action Score
                         else if (Kodu::KoduActionScore::isSameTypeAs(cRule->action)) {
-                            scoreQueue.push(dynamic_cast<Kodu::KoduActionScore*>(cRule->action));
+                            theAgent->scoreQueue.push(
+                                dynamic_cast<Kodu::KoduActionScore*>(cRule->action)->getScoreChange());
                             std::cout << "Added a score action type.\n";
                         }
 
@@ -265,35 +268,32 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     
     //! Kodu Action Runner
     $nodeclass KoduActionRunner : StateNode : doStart {
-        $reference KoduGame::agent;
-        $reference KoduGame::scoreQueue;
-        
+        $reference KoduGame::theAgent;
         $reference KoduGame::motionActRef;
         $reference KoduGame::pageSwitchActRef;
         $reference KoduGame::playActRef;
         $reference KoduGame::sayActRef;
         $reference KoduGame::scoreActRef;
         
-        if (agent.hasMotionCommand())
+        if (theAgent->hasMotionCommand())
             motionActRef->start();
 
-        if (agent.hasNewPageNumber())
+        if (theAgent->hasNewPageNumber())
             pageSwitchActRef->start();
 
-        if (agent.hasSoundsToPlay())
+        if (theAgent->hasSoundsToPlay())
             playActRef->start();
         
-        if (agent.hasTextToSay())
+        if (theAgent->hasTextToSay())
             sayActRef->start();
             
-        if (!scoreQueue.empty())
+        if (theAgent->hasNewScoreChanges())
             scoreActRef->start();
     }
 
     $nodeclass TerminateGame : StateNode : doStart {
-        $reference KoduGame::scoreQueue;
-        $reference KoduGame::agent;
-        
+        //$reference KoduGame::theAgent;
+        /**
         $reference KoduGame::motionActRef;
         $reference KoduGame::pageSwitchActRef;
         $reference KoduGame::playActRef;
@@ -319,10 +319,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             delete sayActRef;
         if (scoreActRef != NULL)
             delete scoreActRef;
-
+        
         std::cout << "Clearing pages...\n";
-        GeneralFncs::destroyAllPtrsInVector(agent.pages);
-
+        GeneralFncs::destroyAllPtrsInVector(theAgent->pages);
+        **/
         std::cout << "Terminating execution Kodu Game.\n";
     }
 
@@ -331,30 +331,30 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Motion 
 
     $nodeclass MotionActuator : PilotNode : doStart {
-        $reference KoduGame::agent;
-        
+        $reference KoduGame::theAgent;
         PilotRequest pReq(PilotTypes::noRequest);
-        if (agent.currMotionCmd.targetObjectIsValid()) {
+        Kodu::MotionCommand& newCmd = theAgent->currMotionCmd;
+        if (newCmd.targetObjectIsValid()) {
             pReq.requestType = PilotTypes::goToShape;
-            pReq.targetShape = agent.currMotionCmd.getTargetObject();
-            pReq.baseOffset = fmat::pack(250,0,0);
+            pReq.targetShape = newCmd.getTargetObject();
+            pReq.baseOffset = fmat::pack(Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump - 60 ,0 ,0 );
         } else {
             pReq.requestType = PilotTypes::walk;
-            pReq.da = AngSignPi(agent.currMotionCmd.getTurningAngle());
-            pReq.dx = agent.currMotionCmd.getDistanceToTravel();
+            pReq.da = AngSignPi(newCmd.getTurningAngle());
+            pReq.dx = newCmd.getDistanceToTravel();
         }
-        pReq.forwardSpeed = agent.currMotionCmd.getForwardSpeed();
-        pReq.turnSpeed = agent.currMotionCmd.getTurnSpeed();
+        pReq.forwardSpeed = newCmd.getForwardSpeed();
+        pReq.turnSpeed = newCmd.getTurnSpeed();
         pReq.collisionAction = collisionIgnore;
         pilotreq = pReq;
-        agent.currMotionCmd.invalidate();
-        agent.startMonitoringWalk();
+        newCmd.invalidate();
+        theAgent->startMonitoringWalk();
     }
 
     $nodeclass CompleteMotionActuator : StateNode : doStart {
-        $reference KoduGame::agent;
-        
-        agent.stopMonitoringWalk();
+        $reference KoduGame::theAgent;
+        theAgent->stopMonitoringWalk();
+        std::cout << "Motion action complete.\n";
         postStateCompletion();
     }
 
@@ -363,25 +363,24 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Page Switch 
 
     $nodeclass PageSwitchActuator : StateNode : doStart {
-        $reference KoduGame::agent;
-
-        int newPageIndex = agent.newReqdPage - 1;
-        if (agent.pages[newPageIndex] == NULL) {
+        $reference KoduGame::theAgent;
+        int newPageIndex = theAgent->newReqdPage - 1;
+        if (theAgent->pages[newPageIndex] == NULL) {
             std::cerr << "!!! A NULL page (index #" << newPageIndex << ") was requested.\n"
                       << "Ignoring action.\n";
             postStateFailure();
         } else {
-            std::cout << "Switching to page " << agent.newReqdPage << " (index #" << newPageIndex << ")\n";
-            Kodu::KoduPage* nextPage = agent.pages[newPageIndex];
+            std::cout << "Switching to page " << theAgent->newReqdPage << " (index #" << newPageIndex << ")\n";
+            Kodu::KoduPage* nextPage = theAgent->pages[newPageIndex];
             const int kRuleCount = nextPage->getRuleCount();
             for (int i = 0; i < kRuleCount; i++) {
                 nextPage->getRuleInPos(i)->reinitializePrimitives();
             }
-            agent.currPageIndex = newPageIndex;
+            theAgent->currPageIndex = newPageIndex;
             nextPage = NULL;
         }
-        agent.newReqdPage = 0;
-        std::cout << "Page switch actuator finished.\n";
+        theAgent->newReqdPage = 0;
+        std::cout << "Page switch action complete.\n";
         postStateCompletion();
     }
 
@@ -390,15 +389,14 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Play Actuator
 
     $nodeclass PlayActuator : StateNode : doStart {
-        $reference KoduGame::agent;
-
-        if (agent.hasSoundsToPlay()) {
-            std::cout << "Play actuator finished.\n";
+        $reference KoduGame::theAgent;
+        if (theAgent->hasSoundsToPlay()) {
+            std::cout << "All Play actions complete.\n";
             postStateCompletion();
             return;
         }
-        std::string wavfile = agent.playQueue.front();
-        agent.playQueue.pop();
+        std::string wavfile = theAgent->playQueue.front();
+        theAgent->playQueue.pop();
         postStateSignal<std::string>(wavfile);
     }
     
@@ -407,16 +405,14 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Say Actuator
 
     $nodeclass SayActuator : StateNode : doStart {
-        $reference KoduGame::agent;
-
-        postStateSignal<std::string>(agent.stringToSpeak);
+        $reference KoduGame::theAgent;
+        postStateSignal<std::string>(theAgent->stringToSpeak);
     }
 
     $nodeclass CompleteSayActuator : StateNode : doStart {
-        $reference KoduGame::agent;
-
-        agent.stringToSpeak.clear();
-        std::cout << "Say actuator finished.\n";
+        $reference KoduGame::theAgent;
+        theAgent->stringToSpeak.clear();
+        std::cout << "Say action complete.\n";
         postStateCompletion();
     }
 
@@ -425,12 +421,11 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Score Actuator
 
     $nodeclass ScoreActuator : StateNode : doStart {
-        $reference KoduGame::scoreQueue;
-        while (!scoreQueue.empty()) {
-            scoreQueue.front()->changeScore();
-            scoreQueue.pop();
-        }
-        std::cout << "All score slots released.\n";
+        $reference KoduGame::theAgent;
+        $reference KoduGame::theWorld;
+        //Kodu::KoduWorld::applyGlobalScoreChanges(theAgent->scoreQueue);
+        theWorld->applyGlobalScoreChanges(theAgent->scoreQueue);
+        std::cout << "All Score actions complete.\n";
         postStateCompletion();
     }
 

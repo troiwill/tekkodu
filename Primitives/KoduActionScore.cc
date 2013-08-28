@@ -1,20 +1,10 @@
 #include "Kodu/Primitives/KoduActionScore.h"
+#include "Kodu/Keepers/ScoreKeeper.h"
 
 namespace Kodu {
 
-    int KoduActionScore::changeScore() {
-        int rv = 0;
-        switch (type) {
-            case ST_SCORE:
-                rv = ScoreKeeper::addScore(designator, numericGen.getNumericValue());
-
-            case ST_SET_SCORE:
-                rv = ScoreKeeper::setScore(designator, numericGen.getNumericValue());
-
-            case ST_SUBTRACT:
-                rv = ScoreKeeper::subtractScore(designator, numericGen.getNumericValue());
-        }
-        return rv;
+    ScoreChange KoduActionScore::getScoreChange() {
+        return ScoreChange(type, designator, static_cast<unsigned int>(numericGen.getNumericValue()));
     }
 
     bool KoduActionScore::isSameTypeAs(const KoduPrimitive* kPrimitive) {

@@ -1,3 +1,6 @@
+// Tekkodu Library
+#include "Kodu/KoduWorld.h"
+#include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Primitives/KoduConditionScored.h"
 
 namespace Kodu {
@@ -6,7 +9,7 @@ namespace Kodu {
         // boolean return value
         bool rv = false;
         // get the latest score
-        int score = ScoreKeeper::checkScoreValue(designator);
+        int score = KoduWorld::getScoreValue(designator);
         if (numericsWereSpecified) {
             // get a (constant/random) value from the numeric generator
             int value = numericGen.getNumericValue();

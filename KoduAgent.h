@@ -3,7 +3,9 @@
 
 // Tekkodu Library
 #include "Kodu/KoduPage.h"
+#include "Kodu/General/GeneralFncs.h"
 #include "Kodu/General/GeneralMacros.h"
+#include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Primitives/KoduActionMotion.h"
 
 // Tekkotsu Library
@@ -27,6 +29,7 @@ namespace Kodu {
           : isWalkingFlag(false),
             currMotionCmd(),
             newReqdPage(0),
+            scoreQueue(),
             stringToSpeak(""),
             playQueue(),
             pages(),
@@ -42,8 +45,27 @@ namespace Kodu {
 
         //! Destructor
         ~KoduAgent() {
-            pages.clear();
+            GeneralFncs::destroyAllPtrsInVector(pages);
             stringToSpeak.clear();
+        }
+
+        //! Assignment operator
+        KoduAgent& operator=(const KoduAgent& kAgent) {
+            if (this != &kAgent) {
+                isWalkingFlag = kAgent.isWalkingFlag;
+                currMotionCmd = kAgent.currMotionCmd;
+                newReqdPage = kAgent.newReqdPage;
+                scoreQueue = kAgent.scoreQueue;
+                stringToSpeak = kAgent.stringToSpeak;
+                playQueue = kAgent.playQueue;
+                pages = kAgent.pages;
+                currPageIndex = kAgent.currPageIndex;
+                walkStartTime = kAgent.walkStartTime;
+                totalApproxDistanceTravelled = kAgent.totalApproxDistanceTravelled;
+                distanceSinceLastLocalization = kAgent.distanceSinceLastLocalization;
+                agentGazePolygon = kAgent.agentGazePolygon;
+            }
+            return *this;
         }
 
         /// ================================ Gazing functions ================================ ///
@@ -79,6 +101,10 @@ namespace Kodu {
         //! Checks if the agent wants to switch pages
         bool hasNewPageNumber() const;
 
+        /// ================================ Scoring functions ================================ ///
+        //! Checks if the agent has a string to speak
+        bool hasNewScoreChanges() const;
+
         /// ================================ Speech functions ================================ ///
         //! Checks if the agent has a string to speak
         bool hasTextToSay() const;
@@ -95,8 +121,8 @@ namespace Kodu {
         //! Generates the agent's gaze points (the points in space the agent should search for objects)
         void generateGazePolygon();
 
-        // Disallows the copy constructor and assignment operator
-        DISALLOW_COPY_ASSIGN(KoduAgent);
+        // Disallows the copy constructor
+        DISALLOW_COPY(KoduAgent);
 
     public: //// ================= The Public Agent Variables ================= ////
         // === Motion variables === //
@@ -108,11 +134,14 @@ namespace Kodu {
         // === Page variables === //
         unsigned int newReqdPage;           //!< Stores the page number the agent wants to switch to
 
+        // === Score variables === //
+        std::queue<ScoreChange> scoreQueue; //!< The queue of score operations and their value
+
         // === Speech variables === //
         std::string stringToSpeak;          //!< The string the agent wants to speak
         
         // === Sound variables === //
-        std::queue<std::string> playQueue;  //!< The vector of sound files the agent wants to play
+        std::queue<std::string> playQueue;  //!< The queue of sound files the agent wants to play
         
         //! The object the agent is holding
         // DualCoding::ShapeRoot heldObject;
