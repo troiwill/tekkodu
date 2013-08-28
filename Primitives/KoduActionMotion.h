@@ -125,8 +125,11 @@ namespace Kodu {
             angleGen(0,0),
             distGen(0,0)
         {
+            // fwdSpd = walkSpeed
             const float kForwardSpeed = kWalkingSpeed;
-            const float kTurningSpeed = kForwardSpeed;
+            // trnSpd = (fwdSpd [mm/s] / 130 [mm])
+            // 130 mm: the approx. distance from the center of the robot to the middle of the wheel
+            const float kTurningSpeed = kForwardSpeed / 130.0f;
 
             // motion type is move
             if (type < MT_EMPTY_MOTION_TYPE) {
