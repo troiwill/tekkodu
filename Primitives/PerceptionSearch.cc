@@ -2,6 +2,17 @@
 #include "Kodu/Primitives/PerceptionSearch.h"
 
 namespace Kodu {
+
+    bool HasAreaGreaterThan::operator()(const DualCoding::ShapeRoot& kShape) const {
+        // get the shape's bounding box
+        BoundingBox2D shapeBox = kShape->getBoundingBox();
+        // calculate the differences of max and min's x and y values
+        float xLength = shapeBox.max[0] - shapeBox.min[0];
+        float yLength = shapeBox.max[1] - shapeBox.min[1];
+        // get the approximate area of the shape
+        float shapeArea = xLength * yLength;
+        return (shapeArea > minAcceptableShapeArea);
+    }
     
     bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape and return the result
@@ -47,6 +58,12 @@ namespace Kodu {
         // Tekkotsu function. Returns all the objects that are Cylinders
         NEW_SHAPEVEC(matchingObjects, DualCoding::CylinderData,
                      DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
+
+        // The following attempts to remove any shapes that may create a false positive
+        // (e.g. light reflections on an object (noise) that are perceived as red blobs or canisters)
+        if (matchingObjects.size() > 0) {
+            matchingObjects = DualCoding::subset(matchingObjects, HasAreaGreaterThan(9000.0f));
+        }
 
         // get objects with a particular color
         if (matchingObjects.size() > 0) {

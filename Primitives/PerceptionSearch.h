@@ -49,6 +49,22 @@ namespace Kodu {
     // Find a permanent solution to removing elements that do not satisfy the predicate.
     // Unary- and binary-predicate function classes are deprecated in C++11
     // Concerns the following lines...
+    // Creates the HasAreaGreaterThan class
+    class HasAreaGreaterThan : public DualCoding::UnaryShapeRootPred {
+    public:
+        HasAreaGreaterThan(float mininumAcceptableShapeArea)
+          : DualCoding::UnaryShapeRootPred(),
+            minAcceptableShapeArea(mininumAcceptableShapeArea)
+        { }
+
+        ~HasAreaGreaterThan() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+
+    private:
+        float minAcceptableShapeArea;
+    };
+
     // Assumes the "Agent" data is always valid
 #define PERCEPTION_SEARCH(Dir)                                                  \
     class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
@@ -72,31 +88,38 @@ namespace Kodu {
     PERCEPTION_SEARCH(CloseBy);
     PERCEPTION_SEARCH(FarAwayFrom);
 
-    //! Calcaulate the bearing from the agent to a specified shape/object
+    //! Calculate the bearing from the agent's current position and orientation to a specified point
+    inline
+    AngSignPi calcBearingFromAgentToPoint(const DualCoding::Point& kPoint) {
+        // calculate the bearing between some point "kPoint" and the agent's position ==> theta = arctan(dy/dx)
+        float bearing2ThisPoint = (kPoint - DualCoding::VRmixin::theAgent->getCentroid()).atanYX();
+        // subtract the agent's orientation (heading) from the bearing to get the point's angle
+        // relative ot the agent
+        AngSignPi dtheta = bearing2ThisPoint - DualCoding::VRmixin::theAgent->getOrientation();
+        return dtheta;
+    }
+
+    //! Calcaulate the bearing from the agent's current position and orientation to a specified shape/object
     inline
     AngSignPi calcBearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
-        // get the agent's data
-        DualCoding::AgentData agentData = DualCoding::VRmixin::theAgent.getData();
-        // calculate the bearing between some shape "kShape" and the agent ==> theta = arctan(dy/dx)
-        float bearing2ThisShape = (kShape->getCentroid() - agentData.getCentroid()).atanYX();
-        // subtract the agent's orientation (heading) from the bearing to get the shape's
-        // angle relative to the agent
-        AngSignPi dtheta = bearing2ThisShape - agentData.getOrientation();
-        return dtheta;
+        return calcBearingFromAgentToPoint(kShape->getCentroid());
+    }
+
+    inline
+    float calcDistanceFromAgentToPoint(const DualCoding::Point& kPoint) {
+        // get the agent's point
+        DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
+        // calculate the differences in the shape's and agent's positions
+        float dx = kPoint.coordX() - agentPoint.coordX();
+        float dy = kPoint.coordY() - agentPoint.coordY();
+        // return the distance
+        return sqrt((dx * dx) + (dy * dy));
     }
 
     //! Calculates the distance between the agent and a specified shape/object
     inline
     float calcDistanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
-        // get the shape's point
-        DualCoding::Point shapePoint = kShape->getCentroid();
-        // get the agent's point
-        DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
-        // calculate the differences in the shape's and agent's positions
-        float dx = shapePoint.coordX() - agentPoint.coordX();
-        float dy = shapePoint.coordY() - agentPoint.coordY();
-        // return the distance
-        return sqrt((dx * dx) + (dy * dy));
+        return calcDistanceFromAgentToPoint(kShape->getCentroid());
     }
 
     //! Returns the closest shape/object to the agent
