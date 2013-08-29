@@ -92,19 +92,27 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         //  GeneralFncs::destroyAllPtrsInVector(tempPages);
 
         std::cout << "Parsing complete.\n";
-        postStateCompletion();
+        if (theAgent->getCurrentPage()->requiresVision()) {
+            postStateCompletion();
+        } else {
+            postStateFailure();
+        }
     }
 
     $nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
         $reference KoduGame::theAgent;
         
         // get the colors of the objects the agent should search for on this page
-        std::vector<std::string> objectDescrips = theAgent->getCurrentPage()->getObjectDescriptors();
-        const std::size_t kSize = objectDescrips.size();
+        //std::vector<std::string> objectDescrips = theAgent->getCurrentPage()->getObjectDescriptors();
+        //const std::size_t kSize = objectDescrips.size();
         // add those colors to the MapBuilderRequest mapreq
-        for (std::size_t index = 0; index < kSize; index++) {
-            mapreq.addObjectColor(cylinderDataType, objectDescrips[index]);
-        }
+        //for (std::size_t index = 0; index < kSize; index++) {
+        //    mapreq.addObjectColor(cylinderDataType, objectDescrips[index]);
+        //}
+        mapreq.addObjectColor(cylinderDataType, "red");
+        mapreq.addObjectColor(cylinderDataType, "blue");
+        mapreq.addObjectColor(cylinderDataType, "green");
+
         mapreq.searchArea = theAgent->getGazePolygon();
         //mapreq.doScan = true;
         mapreq.pursueShapes = true;
@@ -291,41 +299,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             scoreActRef->start();
     }
 
-    $nodeclass TerminateGame : StateNode : doStart {
-        //$reference KoduGame::theAgent;
-        /**
-        $reference KoduGame::motionActRef;
-        $reference KoduGame::pageSwitchActRef;
-        $reference KoduGame::playActRef;
-        $reference KoduGame::sayActRef;
-        $reference KoduGame::scoreActRef;
-        
-        std::cout << "Clearing speech variable...\n";
-        agent.stringToSpeak.clear();
-        while (!agent.playQueue.empty())
-            agent.playQueue.pop();
-
-        while (!scoreQueue.empty())
-            scoreQueue.pop();
-
-        std::cout << "Deleting actuator instances...\n";
-        if (motionActRef != NULL)
-            delete motionActRef;
-        if (pageSwitchActRef != NULL)
-            delete pageSwitchActRef;
-        if (playActRef != NULL)
-            delete playActRef;
-        if (sayActRef != NULL)
-            delete sayActRef;
-        if (scoreActRef != NULL)
-            delete scoreActRef;
-        
-        std::cout << "Clearing pages...\n";
-        GeneralFncs::destroyAllPtrsInVector(theAgent->pages);
-        **/
-        std::cout << "Terminating execution Kodu Game.\n";
-    }
-
 // ================================ Actuators ========================================= //
 
 // Motion 
@@ -445,14 +418,14 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             runner:     KoduActionRunner
 
             endState:   StateNode
-            endGame:    TerminateGame
-
+            
             lookFwd:    PointHeadFwd
             
             startGame =C=> parser
 
             parser =C=> SnapImage =C=> { interp, lookFwd }
-            parser =F=> endState
+            parser =F=> { interp, lookFwd }
+            //parser =F=> endState
         
             interp =C=> runner
             interp =F=> endState
@@ -484,7 +457,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             // page switch actuator
             pageSwitchAct: PageSwitchActuator
             pageSwitchAct =C=> endState
-            pageSwitchAct =F=> endGame
+            pageSwitchAct =F=> endState
         }
     
         // actuator references

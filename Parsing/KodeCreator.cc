@@ -11,6 +11,9 @@ namespace Kodu {
             // get the current page
             ParsedPage* tempPage = NULL;
 
+            // used to check if and record that a page needs vision
+            bool currentPageRequiresVision = false;
+
             // ASSERTION: the current page should not be NULL
             PARSER_ASSERT(((tempPage = tempPages[pgIndex]) != NULL),
                 errorMessage << "Temp page[" << pgIndex << "] is NULL!");
@@ -68,8 +71,8 @@ namespace Kodu {
                 std::cout << "Added Kodu Rule " << koduRule->getRuleNumber()
                           << " to Page " << koduPage->getPageNumber() << ".\n";
 
-                // check if this condition would require vision
-                // std::string conditionType = koduRule->condition->getPrimitiveType();
+                // check if this page requires vision
+                /*
                 if (KoduConditionSee::isSameTypeAs(koduRule->condition)) {
                     KoduConditionSee* seeCondition = dynamic_cast<KoduConditionSee*>(koduRule->condition);
                     koduPage->addObjectDescriptor(seeCondition->getObjectColor());
@@ -77,6 +80,21 @@ namespace Kodu {
                 else if (KoduConditionBump::isSameTypeAs(koduRule->condition)) {
                     KoduConditionBump* bumpCondition = dynamic_cast<KoduConditionBump*>(koduRule->condition);
                     koduPage->addObjectDescriptor(bumpCondition->getObjectColor());
+                }
+                */
+                if (currentPageRequiresVision == false) {
+                    // check if the condition is see
+                    if (KoduConditionSee::isSameTypeAs(koduRule->condition)
+                        // check if the condition is bump
+                        || KoduConditionBump::isSameTypeAs(koduRule->condition)
+                        // check if the action is move (and not turn)
+                        || (KoduActionMotion::isSameTypeAs(koduRule->action)
+                            && dynamic_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMoveAction()))
+                    {
+                        // if any of the above statements is true, then the page requires vision
+                        currentPageRequiresVision = true;
+                        koduPage->setPageRequiresVision(true);
+                    }
                 }
                 
                 // bookkeeping

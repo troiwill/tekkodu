@@ -13,17 +13,13 @@
 namespace Kodu {
     //! Kodu Page
     class KoduPage {
-    private:
-        unsigned int pageNumber;                //!< Page number
-        std::vector<KoduRule*> rules;           //!< Collection of rules for a page
-        std::vector<std::string> objectColors;
-        
     public:
         //! Constructor
         explicit KoduPage(unsigned int kPageNumber)
           : pageNumber(kPageNumber),
             rules(),
-            objectColors()
+            //objectColors()
+            pageRequiresVision(false)
         { }
         
         //! Destructor
@@ -46,8 +42,11 @@ namespace Kodu {
         //! Returns the size of the rules vector
         unsigned int getRuleCount() const;
 
-        const std::vector<std::string>& getObjectDescriptors() const;
-        void addObjectDescriptor(const std::string& descriptor);
+        //! 
+        void setPageRequiresVision(bool);
+
+        //const std::vector<std::string>& getObjectDescriptors() const;
+        //void addObjectDescriptor(const std::string& descriptor);
 
         //! Checks if a page requires vision (the use of the robot's camera to perform a task)
         bool requiresVision() const;
@@ -55,6 +54,11 @@ namespace Kodu {
     private:
         //! Disallow the copy constructor and assignment operator
         DISALLOW_COPY_ASSIGN(KoduPage);
+        
+        unsigned int pageNumber;                //!< Page number
+        std::vector<KoduRule*> rules;           //!< Collection of rules for a page
+        //std::vector<std::string> objectColors;
+        bool pageRequiresVision;
     };
 }
 #endif // KODU_PAGE_H_
