@@ -37,8 +37,7 @@ namespace Kodu {
 
     void KoduAgent::stopMonitoringWalk() {
         isWalkingFlag = false;
-        // if the time is less than the specified value, do not do the calculation
-        // the agent probably did not have enough time to accelerate/walk
+        // check if the agent has moved (its body)
         if (bodyHasMoved()) {
             unsigned int timeElasped = get_time() - walkStartTime;
             walkStartTime = 0;
@@ -97,7 +96,7 @@ namespace Kodu {
     }
 
     void KoduAgent::generateGazePolygon() {
-        // SA: the search area (in degrees)
+        // SA: the search area (in degrees)--(from -SA/2 to SA/2)
         const float kSearchArea = 160.0f;
         // FoV: the (reduced) field of view
         // (reduced to compensate for any inaccuracies in moving the head)
