@@ -65,7 +65,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         cycleCount = 0;
         
         // create an instance of the Kodu World
-        theWorld = new Kodu::KoduWorld();
+        theWorld = new Kodu::KoduWorld(VRmixin::theAgent->getCentroid(), VRmixin::theAgent->getOrientation());
         // point the KoduAgent pointer to KoduWorld::thisAgent
         theAgent = &(theWorld->thisAgent);
 
@@ -336,8 +336,11 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         Kodu::MotionCommand& newCmd = theAgent->currMotionCmd;
         if (newCmd.targetObjectIsValid()) {
             pReq.requestType = PilotTypes::goToShape;
-            pReq.targetShape = newCmd.getTargetObject();
-            pReq.baseOffset = fmat::pack(Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump - 60 ,0 ,0 );
+            ShapeRoot target = newCmd.getTargetObject();
+            target->setObstacle(false);
+            std::cout << "Target Location: " << target->getCentroid() << std::endl;
+            pReq.targetShape = target;
+            pReq.baseOffset = fmat::pack(Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump - 60, 0, 0);
         } else {
             pReq.requestType = PilotTypes::walk;
             pReq.da = AngSignPi(newCmd.getTurningAngle());
