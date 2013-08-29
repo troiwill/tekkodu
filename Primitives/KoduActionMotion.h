@@ -196,6 +196,12 @@ namespace Kodu {
         //! Tests if the primitive argument is the same as the calling class
         static bool isSameTypeAs(const KoduPrimitive*);
 
+        //! Returns true if the motion type (action) is "move"
+        bool motionTypeIsMoveAction() const;
+
+        //! Returns true if the motion type (action) is "turn"
+        bool motionTypeIsTurnAction() const;
+
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();
 
