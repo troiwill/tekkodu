@@ -15,8 +15,8 @@ namespace Kodu {
     class KoduWorld {
     public:
         //! Constructor
-        KoduWorld()
-          : thisAgent(),
+        KoduWorld(const DualCoding::Point& agentLocation, float agentOrientation)
+          : thisAgent(agentLocation, agentOrientation),
             worldBoundsPolygon()
         {
             // generates the world bounds polygon

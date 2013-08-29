@@ -9,6 +9,7 @@
 #include "Kodu/Primitives/KoduActionMotion.h"
 
 // Tekkotsu Library
+#include "DualCoding/Point.h"
 #include "DualCoding/PolygonData.h"
 #include "DualCoding/ShapePolygon.h"
 #include "DualCoding/VRmixin.h"
@@ -25,7 +26,7 @@ namespace Kodu {
     class KoduAgent {
     public:
         //! Constructor
-        KoduAgent()
+        KoduAgent(const DualCoding::Point& agentLocation, float agentOrientation)
           : isWalkingFlag(false),
             currMotionCmd(),
             newReqdPage(0),
@@ -37,6 +38,8 @@ namespace Kodu {
             walkStartTime(0),
             totalApproxDistanceTravelled(0.0f),
             distanceSinceLastLocalization(0.0f),
+            lastRecordedPosition(agentLocation),
+            lastRecordedHeading(agentOrientation),
             agentGazePolygon()
         {
             // generate the gaze polygon
@@ -63,6 +66,8 @@ namespace Kodu {
                 walkStartTime = kAgent.walkStartTime;
                 totalApproxDistanceTravelled = kAgent.totalApproxDistanceTravelled;
                 distanceSinceLastLocalization = kAgent.distanceSinceLastLocalization;
+                lastRecordedPosition = kAgent.lastRecordedPosition;
+                lastRecordedHeading = kAgent.lastRecordedHeading;
                 agentGazePolygon = kAgent.agentGazePolygon;
             }
             return *this;
@@ -73,6 +78,8 @@ namespace Kodu {
         const DualCoding::Shape<DualCoding::PolygonData>& getGazePolygon() const;
         
         /// ================================ Motion functions ================================ ///
+        bool bodyHasMoved();
+
         //! Checks if the agent has a valid motion command
         bool hasMotionCommand() const;
 
@@ -156,6 +163,8 @@ namespace Kodu {
         unsigned int walkStartTime;         //!< The time (in milliseconds) the agent started walking
         float totalApproxDistanceTravelled; //!< The total approx. distance travelled (including turns)
         float distanceSinceLastLocalization;//!< The (approx.) distance travelled since the last localization
+        DualCoding::Point lastRecordedPosition; //!< The approx. position the agent was at before it moved
+        float lastRecordedHeading;
         
         // === Gaze polygon variables === //
         //! egocentric (relative to the robot's body) "directions" to look at (they are really points)

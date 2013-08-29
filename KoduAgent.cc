@@ -1,8 +1,8 @@
 // Tekkodu
 #include "Kodu/KoduAgent.h"
+#include "Kodu/Primitives/PerceptionSearch.h"
 
 // Tekkotsu
-#include "DualCoding/Point.h"
 #include "DualCoding/ShapeTypes.h"
 #include "Shared/get_time.h"
 #include "Shared/mathutils.h"
@@ -12,6 +12,11 @@ namespace Kodu {
     const float KoduAgent::kLocalizationDistanceThreshold = 3000.0f;
 
     /// ================================ Motion functions ================================ ///
+    bool KoduAgent::bodyHasMoved() {
+        return ((calcDistanceFromAgentToPoint(lastRecordedPosition) > 50.0f)
+                || (std::abs(lastRecordedHeading - DualCoding::VRmixin::theAgent->getOrientation()) > 5.0f));
+    }
+
     bool KoduAgent::hasMotionCommand() const {
         return currMotionCmd.isValid();
     }
@@ -32,11 +37,11 @@ namespace Kodu {
 
     void KoduAgent::stopMonitoringWalk() {
         isWalkingFlag = false;
-        unsigned int timeElasped = get_time() - walkStartTime;
-        walkStartTime = 0;
         // if the time is less than the specified value, do not do the calculation
         // the agent probably did not have enough time to accelerate/walk
-        if (timeElasped > 200) {
+        if (bodyHasMoved()) {
+            unsigned int timeElasped = get_time() - walkStartTime;
+            walkStartTime = 0;
             // calculate the approx distance travelled, and add it to:
             // 1) the total approx distance and
             // 2) the distance since last localization
