@@ -89,7 +89,9 @@ namespace Kodu {
                         || KoduConditionBump::isSameTypeAs(koduRule->condition)
                         // check if the action is move (and not turn)
                         || (KoduActionMotion::isSameTypeAs(koduRule->action)
-                            && dynamic_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMoveAction()))
+                            && dynamic_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMoveAction())
+                        // check if the action is grab
+                        || KoduActionGrab::isSameTypeAs(koduRule->action))
                     {
                         // if any of the above statements is true, then the page requires vision
                         currentPageRequiresVision = true;
@@ -202,8 +204,16 @@ namespace Kodu {
         // get the modifiers for a phrase
         std::vector<TokenBase*> tempModifiers = tempAction->getPhraseModifiers();
 
+        // Kodu Action Grab
+        if (actionStr == "grab") {
+            // ASSERTION: The Kodu grab action was successfully created
+            PARSER_ASSERT(((action = createMoveKode(tempModifiers)) != NULL),
+                errorMessage << "An error occurred while trying to create the Grab action. "
+                << "See above.");
+            std::cout << "Created Grab action...\n";
+        }
         // Kodu Action Motion (Move)
-        if (actionStr == "move") {
+        else if (actionStr == "move") {
             // ASSERTION: The Kodu motion (move) action was successfully created
             PARSER_ASSERT(((action = createMoveKode(tempModifiers)) != NULL),
                 errorMessage << "An error occurred while trying to create the Move (Motion) action. "

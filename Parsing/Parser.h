@@ -14,6 +14,7 @@
 // Actions
 #include "Kodu/Primitives/KoduAction.h"
 #include "Kodu/Primitives/KoduActionDoNothing.h"
+#include "Kodu/Primitives/KoduActionGrab.h"
 #include "Kodu/Primitives/KoduActionMotion.h"
 #include "Kodu/Primitives/KoduActionPageSwitch.h"
 #include "Kodu/Primitives/KoduActionPlay.h"
@@ -89,6 +90,9 @@ namespace Kodu {
             static bool numericGenParser(std::vector<TokenBase*>&, NumericGenerator&);
             
             // action parsers
+            //! Creates the grab action
+            static KoduActionGrab* createGrabKode(std::vector<TokenBase*>&);
+
             //! Creates the move action
             static KoduActionMotion* createMoveKode(std::vector<TokenBase*>&);
 

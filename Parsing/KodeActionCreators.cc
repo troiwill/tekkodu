@@ -1,7 +1,65 @@
 #include "Kodu/Parsing/Parser.h"
 
 namespace Kodu {
-        
+
+    KoduActionGrab* Parser::KodeCreator::createGrabKode(std::vector<TokenBase*>& mods) {
+        // ASSERTION: There are 1 - 2 modifiers
+        PARSER_ASSERT((1 <= mods.size() && mods.size() <= 2),
+            errorMessage << "The Grab action should have 1 - 2 tokens.");
+
+        // Mandatory modifiers
+        bool itModifierWasSpecified = false;
+
+        // Optional modifiers
+        bool onceEnabled = false;
+
+        // checkers
+        int tokenCount = 1;
+
+        // parsing loop
+        while (!mods.empty()) {
+            // check if the token is a keyword
+            if (mods[0]->isKeywordToken()) {
+                std::string keyword = mods[0]->getKeywordData();
+                if (keyword == "once") {
+                    // ASSERTION: the once modifier was not already parsed
+                    PARSER_ASSERT((onceEnabled == false),
+                        errorMessage << "Found a second once modifier (only one is allowed).");
+                    onceEnabled = true;
+                }
+
+                else if (keyword == "it") {
+                    // ASSERTION: the "it" modifier was not already parsed
+                    PARSER_ASSERT((itModifierWasSpecified == false),
+                        errorMessage << "Found a second it modifier (only one is allowed).");
+                        itModifierWasSpecified = true;
+                }
+
+                else {
+                    // ASSERTION: "it" is the keyword
+                    PARSER_ASSERT((ERROR),
+                        errorMessage << "The keyword \"" << keyword << "\" cannot be used for this action.");
+                }
+            }
+            // this is a serious error!!!
+            else {
+                // ASSERTION: There is an illegal token for this action
+                PARSER_ASSERT((ERROR),
+                    errorMessage << "Failed to recognize token " << tokenCount
+                    << " for the grab action.");
+             }
+             // bookkeeping and prevents infinite loop
+             GeneralFncs::destroyPtrInVector(mods, 0);
+             tokenCount++;
+        }
+        // ASSERTION: the sound file was added
+        PARSER_ASSERT((itModifierWasSpecified == true),
+            errorMessage << "This Grab action does not have an it modifier!");
+
+        // create the action
+        return (new KoduActionGrab(itModifierWasSpecified, onceEnabled));
+    }
+
     KoduActionMotion* Parser::KodeCreator::createMoveKode(std::vector<TokenBase*>& mods) {
         // ASSERTION: There are
         PARSER_ASSERT((0 <= mods.size() && mods.size() <= 5),

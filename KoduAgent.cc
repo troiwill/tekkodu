@@ -11,6 +11,23 @@ namespace Kodu {
     /// ================================ Static initializations ================================ ///
     const float KoduAgent::kLocalizationDistanceThreshold = 3000.0f;
 
+    /// ================================ Grasper functions ================================ ///
+    bool KoduAgent::hasNewObjectToGrab() const {
+        return (gripperObject.isValid() && !targetObjectIsInGripper && !agentIsAttemptingGrab);
+    }
+
+    bool KoduAgent::isHoldingAnObject() const {
+        return targetObjectIsInGripper;
+    }
+
+    void KoduAgent::setIsAttemptingGrabFlag(bool bval) {
+        agentIsAttemptingGrab = bval;
+    }
+
+    void KoduAgent::setTargetInGripperFlag(bool bval) {
+        targetObjectIsInGripper = bval;
+    }
+
     /// ================================ Motion functions ================================ ///
     bool KoduAgent::bodyHasMoved() {
         return ((calcDistanceFromAgentToPoint(lastRecordedPosition) > 50.0f)
@@ -22,7 +39,7 @@ namespace Kodu {
     }
 
     bool KoduAgent::isWalking() const {
-        return isWalkingFlag;
+        return agentIsWalking;
     }
 
     bool KoduAgent::needsToLocalize() const {
@@ -31,12 +48,12 @@ namespace Kodu {
     }
 
     void KoduAgent::startMonitoringWalk() {
-        isWalkingFlag = true;
+        agentIsWalking = true;
         walkStartTime = get_time();
     }
 
     void KoduAgent::stopMonitoringWalk() {
-        isWalkingFlag = false;
+        agentIsWalking = false;
         // check if the agent has moved (its body)
         if (bodyHasMoved()) {
             unsigned int timeElasped = get_time() - walkStartTime;

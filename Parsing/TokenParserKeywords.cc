@@ -32,6 +32,7 @@ namespace Kodu {
 
         // add the following actions to the keyword set
         koduKeywords.insert("do_nothing");
+        koduKeywords.insert("grab");
         koduKeywords.insert("move");
         koduKeywords.insert("switch_to_page");
         koduKeywords.insert("play");
@@ -55,7 +56,8 @@ namespace Kodu {
         // not modifier
         koduKeywords.insert("not");
         
-        // object types/names
+        // object types/names and references
+        koduKeywords.insert("it");
         koduKeywords.insert("apple");
         koduKeywords.insert("rock");
         koduKeywords.insert("tree");

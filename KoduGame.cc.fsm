@@ -20,6 +20,7 @@
 #include "Kodu/Parsing/Parser.h"
 
 // Kodu Primitives
+#include "Kodu/Primitives/KoduActionGrab.h"
 #include "Kodu/Primitives/KoduActionMotion.h"
 #include "Kodu/Primitives/KoduActionPageSwitch.h"
 #include "Kodu/Primitives/KoduActionSay.h"
@@ -38,6 +39,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $provide Kodu::KoduAgent* theAgent;
     $provide unsigned int cycleCount;
     
+    $provide GrabActuator* grabActRef;
     $provide MotionActuator* motionActRef;
     $provide PageSwitchActuator* pageSwitchActRef;
     $provide PlayActuator* playActRef;
@@ -203,13 +205,26 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             std::cout << "Do nothing...\n";
                         }
 
+                        // Kodu Action Grab
+                        else if (Kodu::KoduActionGrab::isSameTypeAs(cRule->action)) {
+                            if (!theAgent->isWalking()) {
+                                ShapeRoot targetObject =
+                                    dynamic_cast<Kodu::KoduActionGrab*>(cRule->action)->getTargetObject();
+                                if (targetObject.isValid() && (targetObject != theAgent->gripperObject)) {
+                                    theAgent->gripperObject = targetObject;
+                                    std::cout << "Selected an object @ " << targetObject->getCentroid()
+                                              << " to be grabbed.\n";
+                                }
+                            }
+                        }
+
                         // Kodu Action Motion
                         else if (Kodu::KoduActionMotion::isSameTypeAs(cRule->action)) {
                             Kodu::MotionCommand cmd =
                                 dynamic_cast<Kodu::KoduActionMotion*>(cRule->action)->getMotionCommand();
                             if (!theAgent->isWalking() && !theAgent->hasMotionCommand() && cmd.isValid()) {
                                 theAgent->currMotionCmd = cmd;
-                                std::cout << "Added a motion command...\n";
+                                std::cout << "Added a motion command.\n";
                             }
                         }
 
@@ -277,12 +292,16 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     //! Kodu Action Runner
     $nodeclass KoduActionRunner : StateNode : doStart {
         $reference KoduGame::theAgent;
+        $reference KoduGame::grabActRef;
         $reference KoduGame::motionActRef;
         $reference KoduGame::pageSwitchActRef;
         $reference KoduGame::playActRef;
         $reference KoduGame::sayActRef;
         $reference KoduGame::scoreActRef;
         
+        if (theAgent->hasNewObjectToGrab())
+            grabActRef->start();
+
         if (theAgent->hasMotionCommand())
             motionActRef->start();
 
@@ -300,6 +319,42 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
 // ================================ Actuators ========================================= //
+
+// Grab
+
+    $nodeclass GrabActuator : GrasperNode(GrasperRequest::grasp) : doStart {
+        $reference KoduGame::theAgent;
+        theAgent->setIsAttemptingGrabFlag(true);
+        // tell the robot it can move the body to attempt grasp
+        graspreq.allowBodyMotion = true;
+        // the object the agent should grab
+        graspreq.object = theAgent->gripperObject;
+        theAgent->startMonitoringWalk();
+    }
+
+    $nodeclass CompleteGrabActuator : StateNode : doStart {
+        $reference KoduGame::theAgent;
+        // stop monitoring the walk and calculate approximately how far the agent travelled
+        theAgent->stopMonitoringWalk();
+        // the agent is not longer attempting to grab the object--the agent succeeded in grabbing it
+        theAgent->setIsAttemptingGrabFlag(false);
+        // the target object is (should be) in the gripper
+        theAgent->setTargetInGripperFlag(true);
+        std::cout << "Grab action complete.\n";
+        postStateCompletion();
+    }
+
+    $nodeclass FailedGrabActuator : StateNode : doStart {
+        $reference KoduGame::theAgent;
+        // stop monitoring the walk and calculate approximately how far the agent travelled
+        theAgent->stopMonitoringWalk();
+        // the agent is not longer attempting to grab the object--the agent succeeded in grabbing it
+        theAgent->setIsAttemptingGrabFlag(false);
+        std::cout << "Grab action failed.\n";
+        postStateCompletion();
+    }
+
+// end of Grab
 
 // Motion 
 
@@ -432,9 +487,17 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
             runner =T(150)=> interp
             
+            // grab actuator
+            grabAct:        GrabActuator
+            compGrabAct:    CompleteGrabActuator
+            failGrabAct:    FailedGrabActuator
+
+            grabAct =GRASP(noError)=> compGrabAct =C=> endState
+            grabAct =GRASP=> failGrabAct =C=> endState
+
             // motion actuator
-            motionAct:  MotionActuator
-            compMotionAct: CompleteMotionActuator
+            motionAct:      MotionActuator
+            compMotionAct:  CompleteMotionActuator
 
             motionAct =PILOT=> compMotionAct =C=> endState
 
@@ -461,11 +524,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         }
     
         // actuator references
-        sayActRef = sayAct;
-        playActRef = playAct;
-        scoreActRef = scoreAct;
-        pageSwitchActRef = pageSwitchAct;
+        grabActRef = grabAct;
         motionActRef = motionAct;
+        pageSwitchActRef = pageSwitchAct;
+        playActRef = playAct;
+        sayActRef = sayAct;
+        scoreActRef = scoreAct;
     }
     
 private:

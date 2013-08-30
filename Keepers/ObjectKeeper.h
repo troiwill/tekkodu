@@ -2,8 +2,7 @@
 #define OBJECT_KEEPER_H_
 
 #include "DualCoding/DualCoding.h"
-#include "DualCoding/ShapeRoot.h"
-#include "DualCoding/BaseData.h"
+#include "DualCoding/ShapeCylinder.h"
 
 namespace Kodu {
 
