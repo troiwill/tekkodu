@@ -38,7 +38,8 @@ namespace Kodu {
                 else {
                     // ASSERTION: "it" is the keyword
                     PARSER_ASSERT((ERROR),
-                        errorMessage << "The keyword \"" << keyword << "\" cannot be used for this action.");
+                        errorMessage << "The keyword \"" << keyword
+                        << "\" cannot be used for the grab action.");
                 }
             }
             // this is a serious error!!!

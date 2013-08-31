@@ -207,7 +207,7 @@ namespace Kodu {
         // Kodu Action Grab
         if (actionStr == "grab") {
             // ASSERTION: The Kodu grab action was successfully created
-            PARSER_ASSERT(((action = createMoveKode(tempModifiers)) != NULL),
+            PARSER_ASSERT(((action = createGrabKode(tempModifiers)) != NULL),
                 errorMessage << "An error occurred while trying to create the Grab action. "
                 << "See above.");
             std::cout << "Created Grab action...\n";
