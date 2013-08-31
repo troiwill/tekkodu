@@ -326,7 +326,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         $reference KoduGame::theAgent;
         theAgent->setIsAttemptingGrabFlag(true);
         // tell the robot it can move the body to attempt grasp
-        graspreq.allowBodyMotion = true;
+        graspreq.allowBodyMotion = false;
         // the object the agent should grab
         graspreq.object = theAgent->gripperObject;
         theAgent->startMonitoringWalk();
