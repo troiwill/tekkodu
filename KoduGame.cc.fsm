@@ -103,17 +103,11 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
     $nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
         $reference KoduGame::theAgent;
-        
-        // get the colors of the objects the agent should search for on this page
-        //std::vector<std::string> objectDescrips = theAgent->getCurrentPage()->getObjectDescriptors();
-        //const std::size_t kSize = objectDescrips.size();
-        // add those colors to the MapBuilderRequest mapreq
-        //for (std::size_t index = 0; index < kSize; index++) {
-        //    mapreq.addObjectColor(cylinderDataType, objectDescrips[index]);
-        //}
+        // search the world for the following objects
         mapreq.addObjectColor(cylinderDataType, "red");
         mapreq.addObjectColor(cylinderDataType, "blue");
         mapreq.addObjectColor(cylinderDataType, "green");
+        mapreq.setAprilTagFamily();
 
         mapreq.searchArea = theAgent->getGazePolygon();
         //mapreq.doScan = true;
