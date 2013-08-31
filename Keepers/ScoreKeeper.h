@@ -2,11 +2,9 @@
 #define SCORE_KEEPER_H_
 
 // Tekkodu Library
+#include "Kodu/General/GeneralFncs.h"
 #include "Kodu/General/GeneralMacros.h"
 #include "Kodu/Primitives/KoduActionScore.h"
-
-// Tekkotsu Library
-#include "Shared/get_time.h"
 
 // C++ Library
 #include <iostream>
@@ -14,7 +12,7 @@
 
 namespace Kodu {
     //! The timestamp
-    typedef unsigned int Timestamp_t;
+    typedef unsigned long Timestamp_t;
     
     // Forward declare the KoduActionScore class (will eliminate cyclic dependencies between included files)
     class KoduActionScore;
@@ -28,7 +26,7 @@ namespace Kodu {
             value(val),
             timeCreated(0)
         {
-            timeCreated = get_time();
+            timeCreated = GeneralFncs::getTime();
         }
 
         //! Copy constructor
@@ -77,7 +75,7 @@ namespace Kodu {
         unsigned int value;         //!< The value to set, substract, or add
 
     private:
-        Timestamp_t timeCreated;    //!< The approximate time (in milliseconds) the score was created
+        Timestamp_t timeCreated;    //!< The approximate time the score was created
     };
 
     //! Score Keeper

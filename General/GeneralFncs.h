@@ -2,7 +2,11 @@
 #define GENERAL_FNCS_H_
 
 // C++ Library
+#include <ctime>
 #include <vector>
+
+// Linux Library
+#include <sys/time.h>
 
 namespace GeneralFncs {
 
@@ -36,6 +40,22 @@ namespace GeneralFncs {
             ptr = NULL;
         }
     }
+    
+    //! Returns the time since  in seconds (value has millisecond-precision)
+    inline unsigned long getTime() {
+        // get the current time of day
+        struct timeval cTime;
+        gettimeofday(&cTime, NULL);
+        // 43 1/2 years in seconds
+        static const unsigned long kL43AndHalfYrsInSecs = 1372726281L;
+        // calculate the seconds since middle of 2013 ==> Time Since Epoch (secs) - 43.5 years (secs)
+        // then multiple answer by 1000 (to have space for millisecond-precision)
+        unsigned long secsPortion = (static_cast<unsigned long>(cTime.tv_sec) - kL43AndHalfYrsInSecs) * 1000L;
+        // calculate milliseconds ==> Microseconds / 1000 (integer division)
+        unsigned long milliSecsPortion = (static_cast<unsigned long>(cTime.tv_usec) / 1000L);
+        // add the two parts together and return the answer
+        return (secsPortion + milliSecsPortion);
+    }
 
     //! Returns a subset of a vector from the start position up to, but not including, the end position
     template <typename T>
@@ -51,24 +71,6 @@ namespace GeneralFncs {
             subVec.push_back(vec[pos]);
         return subVec;
     }
-    
-    /*
-    // TODO (24/JUL/13) will both of these do the same thing? (with or without the pointer)
-    //! Returns a subset of a vector from the start position up to, but not including, the end position
-    template <typename T>
-    std::vector<T*> subVector(const std::vector<T*>& vec,
-                              const std::size_t startPos,
-                              const std::size_t endPos)
-    {
-        std::vector<T*> subVec;
-        const std::size_t kSize = vec.size();
-        if (startPos >= kSize || endPos > kSize || startPos >= endPos)
-            return subVec;
-        for (std::size_t pos = startPos; pos < endPos; pos++)
-            subVec.push_back(vec[pos]);
-        return subVec;
-    }
-    */
 }
 
 #endif // GENERAL_FNCS_H_
