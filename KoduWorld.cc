@@ -45,6 +45,19 @@ namespace Kodu {
         return worldBoundsPolygon;
     }
 
+    bool KoduWorld::theNorthStarIsArtificial() const {
+        return northStarIsArtifical;
+    }
+
+    void KoduWorld::setNorthStar(const DualCoding::Shape<DualCoding::AprilTagData>& kNorthStar,
+                                 bool nsIsArtificial)
+    {
+        northStar = kNorthStar;
+        northStarIsArtifical = nsIsArtificial;
+        std::cout << "Northstar location @ point " << northStar->getCentroid() << std::endl;
+        std::cout << "Northstar is" << (northStarIsArtifical ? " " : " not ") << "artificial.\n\n";
+    }
+
     void KoduWorld::generateWorldBoundsPolygon() {
         // create world bounds
         std::vector<DualCoding::Point> worldBounds;
@@ -55,10 +68,10 @@ namespace Kodu {
         const float maxY =  maxBoundLength / 2.0f;
         
         // add the points of the square polygon to the vector
-        worldBounds.push_back(DualCoding::Point(minX, maxY, 0, DualCoding::egocentric));
-        worldBounds.push_back(DualCoding::Point(maxX, maxY, 0, DualCoding::egocentric));
-        worldBounds.push_back(DualCoding::Point(maxX, minY, 0, DualCoding::egocentric));
-        worldBounds.push_back(DualCoding::Point(minX, minY, 0, DualCoding::egocentric));
+        worldBounds.push_back(DualCoding::Point(minX, maxY, 0, DualCoding::egocentric));    // bottom left
+        worldBounds.push_back(DualCoding::Point(maxX, maxY, 0, DualCoding::egocentric));    // top left
+        worldBounds.push_back(DualCoding::Point(maxX, minY, 0, DualCoding::egocentric));    // top right
+        worldBounds.push_back(DualCoding::Point(minX, minY, 0, DualCoding::egocentric));    // bottom right
         worldBounds.push_back(worldBounds[0]);  // close the polygon
         
         // create a Shape<PolygonData> object and use it as the world bounds.

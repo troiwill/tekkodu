@@ -89,10 +89,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             return;
         }
 
-        // TODO (27/JUL/13) find out why this is causing a segmentation fault
-        //if (!tempPages.empty())
-        //  GeneralFncs::destroyAllPtrsInVector(tempPages);
-
         std::cout << "Parsing complete.\n";
         if (theAgent->getCurrentPage()->requiresVision()) {
             postStateCompletion();
@@ -112,13 +108,46 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         mapreq.searchArea = theAgent->getGazePolygon();
         //mapreq.doScan = true;
         mapreq.pursueShapes = true;
-        //mapreq.maxDist = distantRadius * 1.15f;   // would be world bounds
+        //mapreq.maxDist = distantRadius * 1.15f;
     }
 
     $nodeclass PointHeadFwd : HeadPointerNode : doStart {
         // look ahead at point {x, y, z}
         getMC()->lookAtPoint(2000.0f, 0, 0);
         getMC()->updateOutputs();
+    }
+
+    $nodeclass CheckForNorthStar : StateNode : doStart {
+        $reference KoduGame::theWorld;
+        // check if the north star was visible
+        // create a vector (multiple tags may have been seen)
+        NEW_SHAPEVEC(aprilTagsVec, AprilTagData, select_type<AprilTagData>(worldShS));
+        bool foundNS = false;
+        // check if any april tags were visible
+        if (aprilTagsVec.size() > 0) {
+            for (unsigned int i = 0; i < aprilTagsVec.size(); i++) {
+                if (aprilTagsVec[i]->getTagID() == 0) {
+                    theWorld->setNorthStar(aprilTagsVec[i], false);
+                    foundNS = true;
+                    std::cout << "Found the North Star!\n";
+                    break;
+                }
+            }
+        }
+        if (!foundNS) {
+            // get 2D box bounding the world
+            BoundingBox2D bounds = theWorld->getWorldBoundsPolygon()->getBoundingBox();
+            NEW_SHAPE(artificialNorthStar, AprilTagData,
+                new AprilTagData(worldShS,                      // put the northstar in the world shape space
+                    AprilTags::TagDetection(0),                 // use AprilTag (id) 0
+                    Point(
+                        bounds.max[0],                           // the max x-value
+                        ((bounds.max[1] + bounds.min[1]) / 2.0f),// the avg of the max and min y-values
+                        0)));                            // z-value; northstar is artificial, only xy matters
+            // set the world northstar to the artifically created AprilTag
+            theWorld->setNorthStar(artificialNorthStar, true);
+        }
+        postStateCompletion();
     }
 
     
@@ -179,7 +208,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
+                std::cout << "Rule " << cRule->getRuleNumber() << " evaluate result: ";
                 if (cRule->condition->evaluate() == true) {
+                    std::cout << "yes\n";
                     // resets the action has already ran flag
                     if (cRule->condLastEvalResult == false) {
                         resetChildRulesWithOnceEnabled(cRule->getRuleNumber());
@@ -267,6 +298,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             cRule->action->setActionCanRun(false);
                     }
                 } else {
+                    std::cout << "no\n";
                     cRule->setConditionEvalResult(false); // states rule evaluated false
                     // check the condition type...
                     // if it is not a timer condition, then set the "action can run" flag to true
@@ -448,7 +480,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $nodeclass ScoreActuator : StateNode : doStart {
         $reference KoduGame::theAgent;
         $reference KoduGame::theWorld;
-        //Kodu::KoduWorld::applyGlobalScoreChanges(theAgent->scoreQueue);
         theWorld->applyGlobalScoreChanges(theAgent->scoreQueue);
         std::cout << "All Score actions complete.\n";
         postStateCompletion();
@@ -469,13 +500,14 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             endState:   StateNode
             
             lookFwd:    PointHeadFwd
+            findNS:     CheckForNorthStar
             
             startGame =C=> parser
 
-            parser =C=> SnapImage =C=> { interp, lookFwd }
-            parser =F=> { interp, lookFwd }
-            //parser =F=> endState
-        
+            parser =C=> SnapImage =C=> findNS
+            parser =F=> findNS
+            findNS =C=> { interp, lookFwd }
+            
             interp =C=> runner
             interp =F=> endState
 

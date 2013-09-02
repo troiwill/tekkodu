@@ -17,6 +17,8 @@ namespace Kodu {
         //! Constructor
         KoduWorld(const DualCoding::Point& agentLocation, float agentOrientation)
           : thisAgent(agentLocation, agentOrientation),
+            northStar(),
+            northStarIsArtifical(true),
             worldBoundsPolygon()
         {
             // generates the world bounds polygon
@@ -36,9 +38,15 @@ namespace Kodu {
         //! Returns the value of a particular score (identified by the designator)
         static int getScoreValue(const std::string&);
 
-        /// ================================ World Bounds functions ================================ ///
+        /// ================================ World Bounds and North Star functions =========== ///
         //! Returns the world bounds polygon
         const DualCoding::Shape<DualCoding::PolygonData>& getWorldBoundsPolygon();
+
+        //! Returns whether or not the north star was seen by the camera
+        bool theNorthStarIsArtificial() const;
+
+        //! Sets the "North Star"
+        void setNorthStar(const DualCoding::Shape<DualCoding::AprilTagData>&, bool);
 
     private:
         //! Generates the world bounds
@@ -54,6 +62,12 @@ namespace Kodu {
     private:
         //! Local copy of the Score Keeper (each agent has its own copy which all must be kept synchronized)
         static ScoreKeeper globalScoreKeeper;
+
+        //! The North Star - used for localization, and defines "north" in the world
+        DualCoding::Shape<DualCoding::AprilTagData> northStar;
+
+        //! States if the North Star was seen by the camera, or it is artifical
+        bool northStarIsArtifical;
 
         //! The world bounds polygon
         DualCoding::Shape<DualCoding::PolygonData> worldBoundsPolygon;
