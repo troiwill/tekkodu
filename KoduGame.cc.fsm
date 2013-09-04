@@ -67,7 +67,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         cycleCount = 0;
         
         // create an instance of the Kodu World
-        theWorld = new Kodu::KoduWorld(VRmixin::theAgent->getCentroid(), VRmixin::theAgent->getOrientation());
+        theWorld = new Kodu::KoduWorld();
         // point the KoduAgent pointer to KoduWorld::thisAgent
         theAgent = &(theWorld->thisAgent);
 

@@ -54,8 +54,8 @@ namespace Kodu {
     {
         northStar = kNorthStar;
         northStarIsArtifical = nsIsArtificial;
-        std::cout << "Northstar location @ point " << northStar->getCentroid() << std::endl;
-        std::cout << "Northstar is" << (northStarIsArtifical ? " " : " not ") << "artificial.\n\n";
+        std::cout << "\n\nNorthstar location @ point " << northStar->getCentroid() << std::endl;
+        std::cout << "Northstar is" << (northStarIsArtifical ? "artificial" : " not ") << "artificial.\n\n";
     }
 
     void KoduWorld::generateWorldBoundsPolygon() {
