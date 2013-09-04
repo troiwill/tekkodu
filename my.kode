@@ -1,7 +1,2 @@
 PAGE 1
-WHEN see green tree in_front close_by to_left DO say "I see a tree"
-WHEN timer 4 DO score 3
-WHEN scored above 7 DO switch_to_page 2
-
-PAGE 2
-WHEN timer 5 DO play "barkmed.wav"
+WHEN see red apple DO move towards
