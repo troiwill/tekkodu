@@ -8,16 +8,16 @@ Microsoft's [Kodu Game Lab](https://research.microsoft.com/en-us/projects/kodu/)
 In Kodu's virtual environment, perception and manipulation are instantaneous, omnidirectional, and never fail. On a real robot, vision is slow, expensive, and limited to where the camera is pointed. Also, a robot can only manipulate an object within the gripper's reach, and because gripping is unreliable, the gripper may lose the object while the robot is moving. For these reasons we need strategies to reliably implement Kodu's primitives on a real robot such as the Calliope2SP.
 
 ## How to Install on Ubuntu
-### I.		Install Tekkotsu on a computer running Ubuntu Linux.
+### I. Install Tekkotsu on a computer running Ubuntu Linux.
 Follow all instructions in the links below:
 [Ubuntu install instructions](http://wiki.tekkotsu.org/index.php/Ubuntu_install_instructions)
 [Tekkotsu install instructions](http://wiki.tekkotsu.org/index.php/Tekkotsu_install_instructions)
 [Mirage install instructions](http://wiki.tekkotsu.org/index.php/Mirage_install_instructions)
 
-### II.		Download Tekkodu Project
+### II.	Download Tekkodu Project
 Download the Tekkodu project code by [clicking me](https://github.com/troiwilliams/tekkodu/archive/master.zip).
 
-### III.	Compile the Tekkodu source code with Tekkotsu
+### III. Compile the Tekkodu source code with Tekkotsu
 Move the project's zip file into the ~/project folder and execute the following commands in Terminal:
 
 	$ cd ~/project
@@ -27,7 +27,7 @@ Move the project's zip file into the ~/project folder and execute the following 
 	$ mv tekkodu-master Kodu
 	$ make
 
-### IV.		Run Tekkotsu
+### IV. Run Tekkotsu
 If you do not have a physical Tekkotsu-compatible robot, or prefer to run Tekkotsu on in a virtual environment, do the following:
 1) Open three Terminal tabs (two more if you already one Terminal window open from running the previous commands)
 2) In tab #1, run:
@@ -52,7 +52,7 @@ If you do not have a physical Tekkotsu-compatible robot, or prefer to run Tekkot
 
 Voila, you're now running Tekkotsu in Mirage!
 
-### V.		Run the Kodu Game
+### V. Run the Kodu Game
 In the Menu box on the left side of the Tekkotsu GUI, double-click on "User Behaviors" > "KoduGame"; the text "KoduGame" will turn red if it was activated. Now, watch the magic happen as your Kodu program runs on the virtual robot!
 To stop the Kodu program, double-click on "KoduGame"; the text "KoduGame" will turn black if it was deactivated/stopped.
 
