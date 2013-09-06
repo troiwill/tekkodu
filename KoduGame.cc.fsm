@@ -118,9 +118,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass CheckForNorthStar : StateNode : doStart {
-        $reference KoduGame::theWorld;
+        //$reference KoduGame::theWorld;
         // check if the north star was visible
         // create a vector (multiple tags may have been seen)
+        /*
         NEW_SHAPEVEC(aprilTagsVec, AprilTagData, select_type<AprilTagData>(worldShS));
         bool foundNS = false;
         // check if any april tags were visible
@@ -147,6 +148,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             // set the world northstar to the artifically created AprilTag
             //theWorld->setNorthStar(artificialNorthStar, true);
         }
+        */
         postStateCompletion();
     }
 
