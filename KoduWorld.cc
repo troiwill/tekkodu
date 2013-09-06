@@ -54,26 +54,30 @@ namespace Kodu {
     {
         northStar = kNorthStar;
         northStarIsArtifical = nsIsArtificial;
-        std::cout << "\n\nNorthstar location @ point " << northStar->getCentroid() << std::endl;
-        std::cout << "Northstar is" << (northStarIsArtifical ? "artificial" : " not ") << "artificial.\n\n";
+        std::cout << "\n\nNorth star location @ point " << northStar->getCentroid() << std::endl;
+        std::cout << "North star " << (northStarIsArtifical ? "was artificially created" : "is real")
+            << ".\n\n";
     }
 
     void KoduWorld::generateWorldBoundsPolygon() {
         // create world bounds
         std::vector<DualCoding::Point> worldBounds;
-        const float maxBoundLength = 2000.0f;   // assumes the world is a square
-        const float minX = -500.0f;
-        const float maxX = maxBoundLength + minX;
-        const float minY = -maxBoundLength / 2.0f;
-        const float maxY =  maxBoundLength / 2.0f;
-        
+        const float sideLength = 2000.0f;   // assumes the world is a square (all sides are equal)
+        const float halfSideLength = sideLength / 2.0f;
+        float minX = 0.0f;
+        float maxX = 0.0f;
+        float minY = 0.0f;
+        float maxY = 0.0f;
+        minX = -500.0f;
+        maxX = sideLength + minX;
+        minY = -halfSideLength;
+        maxY = halfSideLength;
         // add the points of the square polygon to the vector
         worldBounds.push_back(DualCoding::Point(minX, maxY, 0, DualCoding::egocentric));    // bottom left
         worldBounds.push_back(DualCoding::Point(maxX, maxY, 0, DualCoding::egocentric));    // top left
         worldBounds.push_back(DualCoding::Point(maxX, minY, 0, DualCoding::egocentric));    // top right
         worldBounds.push_back(DualCoding::Point(minX, minY, 0, DualCoding::egocentric));    // bottom right
         worldBounds.push_back(worldBounds[0]);  // close the polygon
-        
         // create a Shape<PolygonData> object and use it as the world bounds.
         NEW_SHAPE(wBoundPolygon, DualCoding::PolygonData,
             new DualCoding::PolygonData(DualCoding::VRmixin::worldShS, worldBounds, false));

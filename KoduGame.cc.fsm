@@ -103,7 +103,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         mapreq.addObjectColor(cylinderDataType, "red");
         mapreq.addObjectColor(cylinderDataType, "blue");
         mapreq.addObjectColor(cylinderDataType, "green");
-        mapreq.setAprilTagFamily();
+        //mapreq.setAprilTagFamily();
 
         mapreq.searchArea = theAgent->getGazePolygon();
         //mapreq.doScan = true;
@@ -127,9 +127,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         if (aprilTagsVec.size() > 0) {
             for (unsigned int i = 0; i < aprilTagsVec.size(); i++) {
                 if (aprilTagsVec[i]->getTagID() == 0) {
-                    theWorld->setNorthStar(aprilTagsVec[i], false);
-                    foundNS = true;
                     std::cout << "Found the North Star!\n";
+                    //theWorld->setNorthStar(aprilTagsVec[i], false);
+                    foundNS = true;
                     break;
                 }
             }
@@ -145,7 +145,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         ((bounds.max[1] + bounds.min[1]) / 2.0f),// the avg of the max and min y-values
                         0)));                            // z-value; northstar is artificial, only xy matters
             // set the world northstar to the artifically created AprilTag
-            theWorld->setNorthStar(artificialNorthStar, true);
+            //theWorld->setNorthStar(artificialNorthStar, true);
         }
         postStateCompletion();
     }
