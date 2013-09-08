@@ -11,6 +11,7 @@
 namespace Kodu {
 
     ScoreKeeper KoduWorld::globalScoreKeeper;
+    DualCoding::Point KoduWorld::northStarLocation;
 
     void KoduWorld::applyGlobalScoreChanges(std::queue<ScoreChange>& queue) {
         while (!queue.empty()) {
@@ -48,7 +49,7 @@ namespace Kodu {
     bool KoduWorld::theNorthStarIsArtificial() const {
         return northStarIsArtifical;
     }
-
+/*
     void KoduWorld::setNorthStar(const DualCoding::Shape<DualCoding::AprilTagData>& kNorthStar,
                                  bool nsIsArtificial)
     {
@@ -57,6 +58,13 @@ namespace Kodu {
         std::cout << "\n\nNorth star location @ point " << northStar->getCentroid() << std::endl;
         std::cout << "North star " << (northStarIsArtifical ? "was artificially created" : "is real")
             << ".\n\n";
+    }
+*/
+    void KoduWorld::setNorthStarLocation(const DualCoding::Point& kNsLocation, bool nsIsArtificial) {
+        northStarLocation = kNsLocation;
+        northStarIsArtifical = nsIsArtificial;
+        std::cout << "\n\nNorth star location @ point " << northStar->getCentroid() << std::endl;
+        std::cout << "North star " << (nsIsArtificial ? "was artificially created" : "is real") << ".\n\n";
     }
 
     void KoduWorld::generateWorldBoundsPolygon() {
@@ -82,6 +90,7 @@ namespace Kodu {
         NEW_SHAPE(wBoundPolygon, DualCoding::PolygonData,
             new DualCoding::PolygonData(DualCoding::VRmixin::worldShS, worldBounds, false));
         worldBoundsPolygon = wBoundPolygon;
+        worldBoundsPolygon->setName("worldBoundsPolygon");
     }
 
 }
