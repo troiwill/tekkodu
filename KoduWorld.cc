@@ -11,7 +11,7 @@
 namespace Kodu {
 
     ScoreKeeper KoduWorld::globalScoreKeeper;
-    DualCoding::Point KoduWorld::northStarLocation;
+    DualCoding::Shape<DualCoding::PointData> KoduWorld::northStarLocation;
 
     void KoduWorld::applyGlobalScoreChanges(std::queue<ScoreChange>& queue) {
         while (!queue.empty()) {
@@ -60,10 +60,12 @@ namespace Kodu {
             << ".\n\n";
     }
 */
-    void KoduWorld::setNorthStarLocation(const DualCoding::Point& kNsLocation, bool nsIsArtificial) {
+    void KoduWorld::setNorthStarLocation(const DualCoding::Shape<DualCoding::PointData>& kNsLocation,
+        bool nsIsArtificial)
+    {
         northStarLocation = kNsLocation;
         northStarIsArtifical = nsIsArtificial;
-        std::cout << "\n\nNorth star location @ point " << northStar->getCentroid() << std::endl;
+        std::cout << "\n\nNorth star location @ point " << northStarLocation->getCentroid() << std::endl;
         std::cout << "North star " << (nsIsArtificial ? "was artificially created" : "is real") << ".\n\n";
     }
 

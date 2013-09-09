@@ -109,9 +109,9 @@ namespace Kodu {
 
         //! Helps set the speed of a particular motion type
         enum MotionRate_t {
-            RS_NORMAL               = 1L << 0,
-            RS_QUICKLY              = 1L << 1,
-            RS_SLOWLY               = 1L << 2
+            MR_NORMAL               = 1L << 0,
+            MR_QUICKLY              = 1L << 1,
+            MR_SLOWLY               = 1L << 2
         };
 
         //! The walking speed of the robot (the distance the robot's wheel travels per unit time)

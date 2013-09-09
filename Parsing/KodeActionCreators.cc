@@ -75,7 +75,7 @@ namespace Kodu {
         // checkers
         int tokenCount = 1;
         bool parsedMotionType = false;
-        bool parsedmotionRate = false;
+        bool parsedMotionRate = false;
 
         // parsing loop
         while (!mods.empty()) {

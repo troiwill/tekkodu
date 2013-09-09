@@ -146,7 +146,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     ((bounds.max[1] + bounds.min[1]) / 2.0f),// the avg of the max and min y-values
                     0)));                            // z-value; northstar is artificial, only xy matters
         // set the world northstar to the artifically created AprilTag
-        theWorld->setNorthStar(artificialNorthStar, true);
+        theWorld->setNorthStarLocation(artificialNorthStar, true);
         //}
         postStateCompletion();
     }
@@ -209,9 +209,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                std::cout << "Rule " << cRule->getRuleNumber() << " evaluate result: ";
                 if (cRule->condition->evaluate() == true) {
-                    std::cout << "yes\n";
                     // resets the action has already ran flag
                     if (cRule->condLastEvalResult == false) {
                         resetChildRulesWithOnceEnabled(cRule->getRuleNumber());
@@ -299,7 +297,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             cRule->action->setActionCanRun(false);
                     }
                 } else {
-                    std::cout << "no\n";
                     cRule->setConditionEvalResult(false); // states rule evaluated false
                     // check the condition type...
                     // if it is not a timer condition, then set the "action can run" flag to true
