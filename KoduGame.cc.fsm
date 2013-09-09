@@ -118,7 +118,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass CheckForNorthStar : StateNode : doStart {
-        //$reference KoduGame::theWorld;
+        $reference KoduGame::theWorld;
         // check if the north star was visible
         // create a vector (multiple tags may have been seen)
         /*
@@ -135,20 +135,19 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
             }
         }
-        if (!foundNS) {
-            // get 2D box bounding the world
-            BoundingBox2D bounds = theWorld->getWorldBoundsPolygon()->getBoundingBox();
-            NEW_SHAPE(artificialNorthStar, AprilTagData,
-                new AprilTagData(worldShS,                      // put the northstar in the world shape space
-                    AprilTags::TagDetection(0),                 // use AprilTag (id) 0
-                    Point(
-                        bounds.max[0],                           // the max x-value
-                        ((bounds.max[1] + bounds.min[1]) / 2.0f),// the avg of the max and min y-values
-                        0)));                            // z-value; northstar is artificial, only xy matters
-            // set the world northstar to the artifically created AprilTag
-            //theWorld->setNorthStar(artificialNorthStar, true);
-        }
         */
+        //if (!foundNS) {
+        // get 2D box bounding the world
+        BoundingBox2D bounds = theWorld->getWorldBoundsPolygon()->getBoundingBox();
+        NEW_SHAPE(artificialNorthStar, PointData,
+            new PointData(worldShS,                      // put the northstar in the world shape space
+                Point(
+                    bounds.max[0],                           // the max x-value
+                    ((bounds.max[1] + bounds.min[1]) / 2.0f),// the avg of the max and min y-values
+                    0)));                            // z-value; northstar is artificial, only xy matters
+        // set the world northstar to the artifically created AprilTag
+        theWorld->setNorthStar(artificialNorthStar, true);
+        //}
         postStateCompletion();
     }
 
