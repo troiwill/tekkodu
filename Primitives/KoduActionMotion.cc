@@ -113,11 +113,11 @@ namespace Kodu {
         return (dynamic_cast<const KoduActionMotion*>(kPrimitive) != NULL);
     }
 
-    bool KoduActionMotion::motionTypeIsMoveAction() const {
+    bool KoduActionMotion::motionTypeIsMove() const {
         return (motionType < MT_EMPTY_MOTION_TYPE);
     }
 
-    bool KoduActionMotion::motionTypeIsTurnAction() const {
+    bool KoduActionMotion::motionTypeIsTurn() const {
         return (motionType > MT_EMPTY_MOTION_TYPE);
     }
 

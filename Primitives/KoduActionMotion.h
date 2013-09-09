@@ -108,7 +108,7 @@ namespace Kodu {
         };
 
         //! Helps set the speed of a particular motion type
-        enum RateSpecifier_t {
+        enum MotionRate_t {
             RS_NORMAL               = 1L << 0,
             RS_QUICKLY              = 1L << 1,
             RS_SLOWLY               = 1L << 2
@@ -118,7 +118,7 @@ namespace Kodu {
         static const float kWalkingSpeed;
 
         //! Constructor
-        KoduActionMotion(MotionType_t type, RateSpecifier_t rate, unsigned int motionMagCount)
+        KoduActionMotion(MotionType_t type, MotionRate_t rate, unsigned int motionMagCount)
           : KoduAction("KoduActionMotion"),
             motionType(type),
             motionCmd(),
@@ -197,10 +197,10 @@ namespace Kodu {
         static bool isSameTypeAs(const KoduPrimitive*);
 
         //! Returns true if the motion type (action) is "move"
-        bool motionTypeIsMoveAction() const;
+        bool motionTypeIsMove() const;
 
         //! Returns true if the motion type (action) is "turn"
-        bool motionTypeIsTurnAction() const;
+        bool motionTypeIsTurn() const;
 
         //! Used to reinitialize certain variables (e.g. when switching to another page)
         virtual void reinitialize();

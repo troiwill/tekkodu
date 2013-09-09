@@ -89,7 +89,7 @@ namespace Kodu {
                         || KoduConditionBump::isSameTypeAs(koduRule->condition)
                         // check if the action is move (and not turn)
                         || (KoduActionMotion::isSameTypeAs(koduRule->action)
-                            && dynamic_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMoveAction())
+                            && dynamic_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMove())
                         // check if the action is grab
                         || KoduActionGrab::isSameTypeAs(koduRule->action))
                     {

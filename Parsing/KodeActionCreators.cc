@@ -68,14 +68,14 @@ namespace Kodu {
 
         // Optional modifiers
         KoduActionMotion::MotionType_t motionType;
-        KoduActionMotion::RateSpecifier_t rateSpecifier;
-        std::string tempRateSpecifier;
-        unsigned int rateSpecifierCount = 0;
+        KoduActionMotion::MotionRate_t motionRate;
+        std::string tempMotionRate;
+        unsigned int motionRateCount = 0;
 
         // checkers
         int tokenCount = 1;
         bool parsedMotionType = false;
-        bool parsedRateSpecifier = false;
+        bool parsedmotionRate = false;
 
         // parsing loop
         while (!mods.empty()) {
@@ -84,22 +84,22 @@ namespace Kodu {
                 std::string keyword = mods[0]->getKeywordData();
                 // check if the keyword is a rate specifier
                 if (keyword == "quickly" || keyword == "slowly") {
-                    if (parsedRateSpecifier) {
+                    if (parsedMotionRate) {
                         // ASSERTION: This is not the fourth rate specifier parsed
-                        PARSER_ASSERT((rateSpecifierCount <= 3),
+                        PARSER_ASSERT((motionRateCount <= 3),
                             errorMessage << "The move action can only have up to 3 rate specifiers.\n");
 
                         // ASSERTION: The user did not specify a different rate specifier
-                        PARSER_ASSERT((keyword == tempRateSpecifier),
+                        PARSER_ASSERT((keyword == tempMotionRate),
                             errorMessage << "Different types of rate specifiers cannot be used.\n"
-                            << "First type seen: " << tempRateSpecifier << "\nSecond type seen: "
+                            << "First type seen: " << tempMotionRate << "\nSecond type seen: "
                             << keyword);
                     } else {
-                        tempRateSpecifier = keyword;
-                        parsedRateSpecifier = true;
+                        tempMotionRate = keyword;
+                        parsedMotionRate = true;
                     }
                     // increment the number of rate specifiers seen
-                    rateSpecifierCount++;
+                    motionRateCount++;
                 }
                 // check if it is one of the move action's modifiers
                 else if (keyword == "wander" || keyword == "forward" || keyword == "towards") {
@@ -140,18 +140,18 @@ namespace Kodu {
         }
 
         // check if a rate specifier was specified
-        if (!parsedRateSpecifier) {
-            rateSpecifier = KoduActionMotion::RS_NORMAL;
-            rateSpecifierCount = 1;
+        if (!parsedMotionRate) {
+            motionRate = KoduActionMotion::MR_NORMAL;
+            motionRateCount = 1;
         } else {
-            if (tempRateSpecifier == "quickly")
-                rateSpecifier = KoduActionMotion::RS_QUICKLY;
+            if (tempMotionRate == "quickly")
+                motionRate = KoduActionMotion::MR_QUICKLY;
             else    
-                rateSpecifier = KoduActionMotion::RS_SLOWLY;
+                motionRate = KoduActionMotion::MR_SLOWLY;
         }
 
         // create the action
-        return (new KoduActionMotion(motionType, rateSpecifier, rateSpecifierCount));
+        return (new KoduActionMotion(motionType, motionRate, motionRateCount));
     }
 
     KoduActionPlay* Parser::KodeCreator::createPlayKode(std::vector<TokenBase*>& mods) {
@@ -390,14 +390,14 @@ namespace Kodu {
 
         // Optional modifiers
         KoduActionMotion::MotionType_t motionType;
-        KoduActionMotion::RateSpecifier_t rateSpecifier;
-        std::string tempRateSpecifier;
-        unsigned int rateSpecifierCount = 0;
+        KoduActionMotion::MotionRate_t motionRate;
+        std::string tempMotionRate;
+        unsigned int motionRateCount = 0;
 
         // checkers
         int tokenCount = 1;
         bool parsedMotionType = false;
-        bool parsedRateSpecifier = false;
+        bool parsedMotionRate = false;
 
         // parsing loop
         while (!mods.empty()) {
@@ -406,22 +406,22 @@ namespace Kodu {
                 std::string keyword = mods[0]->getKeywordData();
                 // check if the keyword is a rate specifier
                 if (keyword == "quickly" || keyword == "slowly") {
-                    if (parsedRateSpecifier) {
+                    if (parsedMotionRate) {
                         // ASSERTION: This is not the fourth rate specifier parsed
-                        PARSER_ASSERT((rateSpecifierCount <= 3),
+                        PARSER_ASSERT((motionRateCount <= 3),
                             errorMessage << "The turn action can only have up to 3 rate specifiers.\n");
 
                         // ASSERTION: The user did not specify a different rate specifier
-                        PARSER_ASSERT((keyword == tempRateSpecifier),
+                        PARSER_ASSERT((keyword == tempMotionRate),
                             errorMessage << "Different types of rate specifiers cannot be used.\n"
-                            << "First type seen: " << tempRateSpecifier << "\nSecond type seen: "
+                            << "First type seen: " << tempMotionRate << "\nSecond type seen: "
                             << keyword);
                     } else {
-                        tempRateSpecifier = keyword;
-                        parsedRateSpecifier = true;
+                        tempMotionRate = keyword;
+                        parsedMotionRate = true;
                     }
                     // increment the number of rate specifiers seen
-                    rateSpecifierCount++;
+                    motionRateCount++;
                 }
                 // check if it is one of the move action's modifiers
                 else if (keyword == "left" || keyword == "right") {
@@ -460,17 +460,17 @@ namespace Kodu {
         }
 
         // check if a rate specifier was specified
-        if (!parsedRateSpecifier) {
-            rateSpecifier = KoduActionMotion::RS_NORMAL;
-            rateSpecifierCount = 1;
+        if (!parsedMotionRate) {
+            motionRate = KoduActionMotion::MR_NORMAL;
+            motionRateCount = 1;
         } else {
-            if (tempRateSpecifier == "quickly")
-                rateSpecifier = KoduActionMotion::RS_QUICKLY;
+            if (tempMotionRate == "quickly")
+                motionRate = KoduActionMotion::MR_QUICKLY;
             else    
-                rateSpecifier = KoduActionMotion::RS_SLOWLY;
+                motionRate = KoduActionMotion::MR_SLOWLY;
         }
 
         // create the action
-        return (new KoduActionMotion(motionType, rateSpecifier, rateSpecifierCount));
+        return (new KoduActionMotion(motionType, motionRate, motionRateCount));
     }
 }
