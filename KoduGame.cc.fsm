@@ -58,16 +58,16 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         std::cout << "Kodu Game destruction complete!\n";
     }
 
-    $nodeclass InitializeGame : StateNode : doStart {
+    $nodeclass InitializeAgent : StateNode {
         $reference KoduGame::theWorld;
         $reference KoduGame::theAgent;
         $reference KoduGame::cycleCount;
-        
+
         std::cout << "Initializing Kodu Game.\n";
         cycleCount = 0;
         
         // create an instance of the Kodu World
-        theWorld = new Kodu::KoduWorld();
+        theWorld = new Kodu::KoduWorld("Arthur");
         // point the KoduAgent pointer to KoduWorld::thisAgent
         theAgent = &(theWorld->thisAgent);
 
@@ -489,7 +489,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     
     virtual void setup() {
         $statemachine {
-            startGame:  InitializeGame
+            initAgent:  InitializeAgent
 
             parser:     KoduParser
             interp:     KoduInterpreter
@@ -500,7 +500,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             lookFwd:    PointHeadFwd
             findNS:     CheckForNorthStar
             
-            startGame =C=> parser
+            initAgent =C=> parser
 
             parser =C=> SnapImage =C=> findNS
             parser =F=> findNS

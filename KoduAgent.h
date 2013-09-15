@@ -26,7 +26,7 @@ namespace Kodu {
     class KoduAgent {
     public:
         //! Constructor
-        KoduAgent(const DualCoding::Point& agentLocation, float agentOrientation)
+        KoduAgent(const std::string& kName, const DualCoding::Point& agentLocation, float agentOrientation)
           : gripperObject(),
             agentIsAttemptingGrab(false),
             targetObjectIsInGripper(false),
@@ -43,7 +43,8 @@ namespace Kodu {
             distanceSinceLastLocalization(0.0f),
             lastRecordedPosition(agentLocation),
             lastRecordedHeading(agentOrientation),
-            agentGazePolygon()
+            agentGazePolygon(),
+            name(kName)
         {
             // generate the gaze polygon
             generateGazePolygon();
@@ -75,6 +76,7 @@ namespace Kodu {
                 lastRecordedPosition = kAgent.lastRecordedPosition;
                 lastRecordedHeading = kAgent.lastRecordedHeading;
                 agentGazePolygon = kAgent.agentGazePolygon;
+                name = kAgent.name;
             }
             return *this;
         }
@@ -184,6 +186,9 @@ namespace Kodu {
         // === Gaze polygon variables === //
         //! egocentric (relative to the robot's body) "directions" to look at (they are really points)
         DualCoding::Shape<DualCoding::PolygonData> agentGazePolygon;
+
+        //! The name of the robot
+        std::string name;
     };
 }
 
