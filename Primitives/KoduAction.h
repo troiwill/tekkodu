@@ -14,6 +14,18 @@ namespace Kodu {
     //! Kodu Action (derived from Kodu Behavior)
     class KoduAction : public KoduPrimitive {
     public:
+        //! The different action types
+        enum ActionTypes {
+            AT_DO_NOTHING = 0,
+            AT_GRAB,
+            AT_MOVE,
+            AT_SWITCH_PAGE,
+            AT_PLAY,
+            AT_SAY,
+            AT_SCORING,
+            AT_TURN
+        };
+
         //! Constructor
         KoduAction(const std::string& kActionName, bool actionCanUseOnceMod = false, bool runOnce = false)
           : KoduPrimitive(kActionName),
@@ -63,6 +75,11 @@ namespace Kodu {
             actionCanRun = bVal;
         }
 
+        //! Returns the action type
+        //ActionTypes getActionType() const {
+        //    return actionType;
+        //}
+
         //! Prints the attributes for a particular behavior
         virtual void printAttrs() const {
             KoduPrimitive::printAttrs();
@@ -71,8 +88,9 @@ namespace Kodu {
         }
 
     private:
-        bool actionCanRun;       //!< states if an action can run
-        bool onceModEnabled;     //!< states if the once modifier is enabled (depends on action type too)
+        bool actionCanRun;      //!< states if an action can run
+        bool onceModEnabled;    //!< states if the once modifier is enabled (depends on action type too)
+        //ActionTypes actionType; //!< states the action type
     };
 } // end of Kodu namespace
 

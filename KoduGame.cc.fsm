@@ -246,7 +246,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         else if (Kodu::KoduActionMotion::isSameTypeAs(cRule->action)) {
                             Kodu::MotionCommand cmd =
                                 dynamic_cast<Kodu::KoduActionMotion*>(cRule->action)->getMotionCommand();
-                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand() && cmd.isValid()) {
+                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand() 
+                                && cmd.isValid())
+                            {
                                 theAgent->currMotionCmd = cmd;
                                 std::cout << "Added a motion command.\n";
                             }
@@ -425,7 +427,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                       << "Ignoring action.\n";
             postStateFailure();
         } else {
-            std::cout << "Switching to page " << theAgent->newReqdPage << " (index #" << newPageIndex << ")\n";
+            std::cout << "Switching to page " << theAgent->newReqdPage
+                      << " (index #" << newPageIndex << ")\n";
             Kodu::KoduPage* nextPage = theAgent->pages[newPageIndex];
             const int kRuleCount = nextPage->getRuleCount();
             for (int i = 0; i < kRuleCount; i++) {

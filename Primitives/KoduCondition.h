@@ -12,9 +12,17 @@ namespace Kodu {
     //! Kodu Condition (derived from Kodu Primitive)
     class KoduCondition : public KoduPrimitive {
     public:
+        enum ConditionTypes {
+            CT_ALWAYS = 0,
+            CT_BUMP,
+            CT_SCORED,
+            CT_SEE,
+            CT_TIMER
+        };
+
         //! Constructor
         KoduCondition(const std::string& kConditionName)
-            : KoduPrimitive(kConditionName)
+          : KoduPrimitive(kConditionName),
         { }
         
         //! Copy constructor

@@ -15,7 +15,8 @@ namespace Kodu {
         
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
-        if (_refdObject.isValid() && calcDistanceFromAgentToObject(_refdObject) <= kMaxDistanceAwayToSenseBump)
+        if (_refdObject.isValid()
+            && calcDistanceFromAgentToObject(_refdObject) <= kMaxDistanceAwayToSenseBump)
         {
             std::cout << "Bumped a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
             ObjectKeeper::tempObject = _refdObject;
