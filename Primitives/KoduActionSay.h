@@ -30,7 +30,7 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionSay(const std::string& kDesignator, const LiteralGenerator& kStringLiteral, bool useOnce)
-          : KoduAction("KoduActionSay", true, useOnce),
+          : KoduAction("KoduActionSay", KoduAction::AT_SAY, true, useOnce),
             designator(kDesignator),
             literalGen(kStringLiteral)//,
             // onceEnabled(useOnce)

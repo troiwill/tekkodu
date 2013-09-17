@@ -11,7 +11,7 @@ namespace Kodu {
     public:
         //! Constructor
         KoduConditionAlways()
-          : KoduCondition ("KoduConditionAlways")
+          : KoduCondition ("KoduConditionAlways", KoduCondition::CT_ALWAYS)
         { }
 
         //! Copy constructor

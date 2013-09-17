@@ -21,13 +21,15 @@ namespace Kodu {
         };
 
         //! Constructor
-        KoduCondition(const std::string& kConditionName)
+        KoduCondition(const std::string& kConditionName, ConditionTypes condType)
           : KoduPrimitive(kConditionName),
+            conditionType(condType)
         { }
         
         //! Copy constructor
         KoduCondition(const KoduCondition& kCondition)
-          : KoduPrimitive(kCondition)
+          : KoduPrimitive(kCondition),
+            conditionType(kCondition.conditionType)
         { }
 
         //! Destructor
@@ -39,6 +41,7 @@ namespace Kodu {
         KoduCondition& operator=(const KoduCondition& kCondition) {
             if (this != &kCondition) {
                 KoduPrimitive::operator=(kCondition);
+                conditionType = kCondition.conditionType;
             }
             return *this;
         }
@@ -46,15 +49,23 @@ namespace Kodu {
         //! Evaluates the event portion of the rule (implementation in derived classes)
         virtual bool evaluate() = 0;
         
-        //! Used to reinitialize certain variables during certain circumstances (e.g. switching to another page)
+        //! Used to reinitialize certain variables during, for example, switching to another page
         virtual void reinitialize() {
             // do nothing
+        }
+
+        //! Returns the condition type
+        ConditionTypes getConditionType() const {
+            return conditionType;
         }
         
         //! Prints the attributes of a particular instance
         virtual void printAttrs() const {
             KoduPrimitive::printAttrs();
         }
+
+    private:
+        ConditionTypes conditionType;       //!< the condition type
     };
 } // end of Kodu namespace
 

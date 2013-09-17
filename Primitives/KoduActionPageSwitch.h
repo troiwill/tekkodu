@@ -16,7 +16,7 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionPageSwitch(const NumericGenerator& pageNumber)
-          : KoduAction ("KoduActionPageSwitch"),
+          : KoduAction ("KoduActionPageSwitch", KoduAction::AT_PAGE_SWITCH, false, false),
             pageNumb(pageNumber)
         { }
 

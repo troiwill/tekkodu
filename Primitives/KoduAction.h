@@ -18,17 +18,18 @@ namespace Kodu {
         enum ActionTypes {
             AT_DO_NOTHING = 0,
             AT_GRAB,
-            AT_MOVE,
-            AT_SWITCH_PAGE,
+            AT_MOTION,
+            AT_PAGE_SWITCH,
             AT_PLAY,
             AT_SAY,
-            AT_SCORING,
-            AT_TURN
+            AT_SCORING
         };
 
         //! Constructor
-        KoduAction(const std::string& kActionName, bool actionCanUseOnceMod = false, bool runOnce = false)
+        KoduAction(const std::string& kActionName, ActionTypes actType, bool actionCanUseOnceMod,
+            bool runOnce)
           : KoduPrimitive(kActionName),
+            actionType(actType),
             actionCanRun(true),
             onceModEnabled(actionCanUseOnceMod && runOnce)
         { }
@@ -36,6 +37,7 @@ namespace Kodu {
         //! Copy constructor
         explicit KoduAction(const KoduAction& kAction)
           : KoduPrimitive(kAction),
+            actionType(kAction.actionType),
             actionCanRun(kAction.actionCanRun),
             onceModEnabled(kAction.onceModEnabled)
         { }
@@ -49,6 +51,7 @@ namespace Kodu {
         KoduAction& operator=(const KoduAction& kAction) {
             if (this != &kAction) {
                 KoduPrimitive::operator=(kAction);
+                actionType = kAction.actionType;
                 actionCanRun = kAction.actionCanRun;
                 onceModEnabled = kAction.onceModEnabled;
             }
@@ -76,9 +79,9 @@ namespace Kodu {
         }
 
         //! Returns the action type
-        //ActionTypes getActionType() const {
-        //    return actionType;
-        //}
+        ActionTypes getActionType() const {
+           return actionType;
+        }
 
         //! Prints the attributes for a particular behavior
         virtual void printAttrs() const {
@@ -88,9 +91,9 @@ namespace Kodu {
         }
 
     private:
+        ActionTypes actionType; //!< states the action type
         bool actionCanRun;      //!< states if an action can run
         bool onceModEnabled;    //!< states if the once modifier is enabled (depends on action type too)
-        //ActionTypes actionType; //!< states the action type
     };
 } // end of Kodu namespace
 

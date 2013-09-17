@@ -23,7 +23,7 @@ namespace Kodu {
         //! Constructor
         KoduConditionBump(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
             SearchLocation_t locationToSearch)
-          : KoduCondition("KoduConditionBump"),
+          : KoduCondition("KoduConditionBump", KoduCondition::CT_BUMP),
             notModifierEnabled(useNot),
             objType(kObjectType),
             objColor(kObjectColor),

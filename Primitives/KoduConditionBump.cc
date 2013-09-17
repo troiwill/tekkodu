@@ -29,7 +29,26 @@ namespace Kodu {
         else
             return rv;
     }
-
+/*
+    bool KoduConditionBump::agentIsNearMatchingObject() {
+        DualCoding::Shape<DualCoding::CylinderData> _refdObject;
+        // get the closest object that matches what this condition is searching for
+        _refdObject = getClosestObjectMatching(objColor, searchLocation);
+        
+        // If there is one valid remaining and it is within some distance to the agent,
+        // then the robot will react to that object
+        std::cout << "Checking if the agent is near a matching object...";
+        if (_refdObject.isValid()
+            && calcDistanceFromAgentToObject(_refdObject) <= kMaxDistanceAwayToSenseBump)
+        {
+            std::cout << "it's near!\n";
+            refdObject = _refdObject;
+        } else {
+            std::cout << "nada.\n";
+            refdObject = ObjectKeeper::invalidObject;
+        }
+    }
+*/
     const std::string& KoduConditionBump::getObjectColor() const {
         return objColor;
     }

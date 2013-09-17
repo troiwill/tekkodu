@@ -14,7 +14,7 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionGrab(bool actionIsUsingIt, bool useOnce)
-          : KoduAction("KoduActionGrab", true, useOnce),
+          : KoduAction("KoduActionGrab", KoduAction::AT_GRAB, true, useOnce),
             usingItModifier(actionIsUsingIt)
         { }
 

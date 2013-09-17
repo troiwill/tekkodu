@@ -10,7 +10,7 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionDoNothing()
-          : KoduAction("KoduActionDoNothing")
+          : KoduAction("KoduActionDoNothing", KoduAction::AT_DO_NOTHING, false, false)
         { }
 
         //! Copy constructor

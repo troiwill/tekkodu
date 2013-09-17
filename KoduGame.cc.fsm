@@ -38,6 +38,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $provide Kodu::KoduWorld* theWorld;
     $provide Kodu::KoduAgent* theAgent;
     $provide unsigned int cycleCount;
+
+    $provide ShapeRoot target;
     
     $provide GrabActuator* grabActRef;
     $provide MotionActuator* motionActRef;
@@ -58,7 +60,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         std::cout << "Kodu Game destruction complete!\n";
     }
 
-    $nodeclass InitializeAgent : StateNode {
+    $nodeclass InitializeAgent : StateNode : doStart {
         $reference KoduGame::theWorld;
         $reference KoduGame::theAgent;
         $reference KoduGame::cycleCount;
@@ -180,25 +182,29 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         virtual void doStart() {
             $reference KoduGame::cycleCount;
             $reference KoduGame::theAgent;
-            
+
+            // pointers to the current page, rule, condition, and action (respectively)
             Kodu::KoduPage* cPage;
             Kodu::KoduRule* cRule;
+            Kodu::KoduCondition* cCondition;
+            Kodu::KoduAction* cAction;
+            // check if the current page is NULL
             if ((cPage = theAgent->getCurrentPage()) == NULL) {
                 std::cerr << "!!! A NULL page was found.\n";
                 postStateFailure();
                 return;
             }
-
+            // print the current game cycle and page number
             std::cout << "========== GAME CYCLE #" << cycleCount++
                       << ", PAGE #" << cPage->getPageNumber() << "==========\n";
-            
+            // check if there are rules on this page
             const int numbOfRules = cPage->getRuleCount();
             if (numbOfRules == 0) {
                 std::cout << "Reached an empty page. Stopping interpreter...\n";
                 postStateFailure();
                 return;
             }
-
+            // iterate over all the rules of a page
             for (int i = 0; i < numbOfRules; i++) {
                 // checks if the rule returned is NULL. 
                 if ((cRule = cPage->getRuleInPos(i)) == NULL) {
@@ -207,113 +213,165 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     postStateFailure();
                     return;
                 }
-
+                
+                // the parent ID and rule ID of the current rule (respectively)
+                const unsigned int kParentId = cRule->getParentNumber();
+                const unsigned int kRuleId = cRule->getRuleNumber();
+                
+                // point to the current condition and action
+                cCondition = cRule->condition;
+                cAction = cRule->action;
+                
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                if (cRule->condition->evaluate() == true) {
+                if (cCondition->evaluate() == true) {
                     // resets the action has already ran flag
                     if (cRule->condLastEvalResult == false) {
-                        resetChildRulesWithOnceEnabled(cRule->getRuleNumber());
+                        resetChildRulesWithOnceEnabled(kRuleId);
                     }
+                    
                     // states condition evaluated true (no matter if action can execute or not)
                     cRule->setConditionEvalResult(true);
+                    
                     // check if this rule has a parent rule and if it's condition evaluated true
-                    if (cRule->isIndented()
-                        && (cPage->getRule(cRule->getParentNumber())->condLastEvalResult == false))
+                    // OR if the action cannot run
+                    if ((cRule->isIndented() && cPage->getRule(kParentId)->condLastEvalResult == false)
+                        || (!cAction->canRun()))
                     {
                         continue;
                     }
-                    // check if the action can run
-                    if (cRule->action->canRun()) {
+                    
+                    // check if this action:
+                    // 1) [implicit] can use the once modifier, and
+                    // 2) has the once modifier enabled
+                    if (cAction->onceModIsEnabled())
+                        cAction->setActionCanRun(false);
+                    
+                    // check the action type
+                    switch(cAction->getActionType()) {
                         // Kodu Action Do Nothing
-                        if (Kodu::KoduActionDoNothing::isSameTypeAs(cRule->action)) {
-                            std::cout << "Do nothing...\n";
+                        case Kodu::KoduAction::AT_DO_NOTHING:
+                        {
+                            std::cout << "Do nothing.\n";
+                            break;
                         }
 
                         // Kodu Action Grab
-                        else if (Kodu::KoduActionGrab::isSameTypeAs(cRule->action)) {
+                        case Kodu::KoduAction::AT_GRAB:
+                        {
+                            // make sure the agent is not walking
                             if (!theAgent->isWalking()) {
+                                // get the target object
                                 ShapeRoot targetObject =
-                                    dynamic_cast<Kodu::KoduActionGrab*>(cRule->action)->getTargetObject();
-                                if (targetObject.isValid() && (targetObject != theAgent->gripperObject)) {
+                                    dynamic_cast<Kodu::KoduActionGrab*>(cAction)->getTargetObject();
+                                // make sure the target object is:
+                                // 1) valid, and
+                                // 2) the target object is not the same as the one in the gripper now
+                                if (targetObject.isValid() && targetObject != theAgent->gripperObject)
+                                {
                                     theAgent->gripperObject = targetObject;
-                                    std::cout << "Selected an object @ " << targetObject->getCentroid()
+                                    std::cout << "Selected an object " << targetObject
                                               << " to be grabbed.\n";
                                 }
                             }
+                            break;
                         }
 
                         // Kodu Action Motion
-                        else if (Kodu::KoduActionMotion::isSameTypeAs(cRule->action)) {
+                        case Kodu::KoduAction::AT_MOTION:
+                        {
+                            // get the current motion command
                             Kodu::MotionCommand cmd =
-                                dynamic_cast<Kodu::KoduActionMotion*>(cRule->action)->getMotionCommand();
-                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand() 
+                                dynamic_cast<Kodu::KoduActionMotion*>(cAction)->getMotionCommand();
+                            // make sure:
+                            // 1) the agent is not walking
+                            // 2) the agent does not have a motion command
+                            // 3) the "current" motion command (cmd) is valid
+                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand()
                                 && cmd.isValid())
                             {
                                 theAgent->currMotionCmd = cmd;
                                 std::cout << "Added a motion command.\n";
                             }
+                            break;
                         }
 
                         // Kodu Action Page Switch
-                        else if (Kodu::KoduActionPageSwitch::isSameTypeAs(cRule->action)) {
+                        case Kodu::KoduAction::AT_PAGE_SWITCH:
+                        {
+                            // get the new requested page number (agent will switch to it immediately)
                             theAgent->newReqdPage =
-                                dynamic_cast<Kodu::KoduActionPageSwitch*>(cRule->action)->getPageNumber();
+                                dynamic_cast<Kodu::KoduActionPageSwitch*>(cAction)->getPageNumber();
                             std::cout << "Switching to another page!\n";
                             break;
                         }
 
                         // Kodu Action Play
-                        else if (Kodu::KoduActionPlay::isSameTypeAs(cRule->action)) {
+                        case Kodu::KoduAction::AT_PLAY:
+                        {
+                            // get the sound file
                             std::string soundFile =
-                                dynamic_cast<Kodu::KoduActionPlay*>(cRule->action)->getSoundFile();
+                                dynamic_cast<Kodu::KoduActionPlay*>(cAction)->getSoundFile();
+                            // add the sound file to the play queue
                             theAgent->playQueue.push(soundFile);
                             std::cout << "Added the sound file \"" << soundFile << "\".\n";
+                            break;
                         }
 
                         // Kodu Action Say
-                        else if (Kodu::KoduActionSay::isSameTypeAs(cRule->action)
-                                 && (!theAgent->hasTextToSay()))
+                        case Kodu::KoduAction::AT_SAY:
                         {
-                            theAgent->stringToSpeak =
-                                dynamic_cast<Kodu::KoduActionSay*>(cRule->action)->getStringToSpeak();
-                            std::cout << "Added literal string: \"" << theAgent->stringToSpeak << "\".\n";
+                            // make sure the agent does not have anything to say first
+                            if (!theAgent->hasTextToSay()) {
+                                // give the string to the agent
+                                theAgent->stringToSpeak =
+                                    dynamic_cast<Kodu::KoduActionSay*>(cAction)->getStringToSpeak();
+                                std::cout << "Added literal string: \""
+                                          << theAgent->stringToSpeak << "\".\n";
+                            }
+                            break;
                         }
 
                         // Kodu Action Score
-                        else if (Kodu::KoduActionScore::isSameTypeAs(cRule->action)) {
+                        case Kodu::KoduAction::AT_SCORING:
+                        {
+                            // add the score change to the score queue
                             theAgent->scoreQueue.push(
-                                dynamic_cast<Kodu::KoduActionScore*>(cRule->action)->getScoreChange());
+                                dynamic_cast<Kodu::KoduActionScore*>(cAction)->getScoreChange());
                             std::cout << "Added a score action type.\n";
+                            break;
                         }
 
-                        // something wrong has happened, but should never happen
-                        else {
+                        default:
+                        {
                             std::cerr << "Unrecognized action: \""
-                                      << cRule->action->getPrimitiveType() << "\"\n";
+                                  << cAction->getPrimitiveType() << "\"\n";
+                            break;
                         }
-
-                        // check if this action:
-                        // 1) [implicit] can use the once modifier, and
-                        // 2) has the once modifier enabled
-                        if (cRule->action->onceModIsEnabled())
-                            cRule->action->setActionCanRun(false);
                     }
+                    // check if the agent needs to switch pages
+                    if (theAgent->hasNewPageNumber())
+                        break;
                 } else {
-                    cRule->setConditionEvalResult(false); // states rule evaluated false
+                    // states rule evaluated false
+                    cRule->setConditionEvalResult(false);
                     // check the condition type...
                     // if it is not a timer condition, then set the "action can run" flag to true
-                    if (!Kodu::KoduConditionTimer::isSameTypeAs(cRule->condition)) {
-                        cRule->action->setActionCanRun(true);
+                    if (!cCondition->getConditionType() != Kodu::KoduCondition::CT_TIMER) {
+                        cAction->setActionCanRun(true);
                     }
                 }
                 // invalidate object
                 Kodu::ObjectKeeper::isValid = false;
+                cCondition = NULL;
+                cAction = NULL;
             }
             cPage = NULL;
             cRule = NULL;
             postStateCompletion();
         }
     } // end of Kodu Interpreter
+
+    //$nodeclass BumpDetector 
     
     //! Kodu Action Runner
     $nodeclass KoduActionRunner : StateNode : doStart {

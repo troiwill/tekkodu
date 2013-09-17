@@ -23,7 +23,7 @@ namespace Kodu {
     public: 
         //! Constructor
         KoduConditionTimer(bool useNot, const NumericGenerator& kNumericGen)
-          : KoduCondition("KoduConditionTimer"),
+          : KoduCondition("KoduConditionTimer", KoduCondition::CT_TIMER),
             numericGen(kNumericGen),
             timerThreshold(0.0f),
             notModifierEnabled(useNot),

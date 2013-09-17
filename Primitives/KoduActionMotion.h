@@ -119,7 +119,7 @@ namespace Kodu {
 
         //! Constructor
         KoduActionMotion(MotionType_t type, MotionRate_t rate, unsigned int motionMagCount)
-          : KoduAction("KoduActionMotion"),
+          : KoduAction("KoduActionMotion", KoduAction::AT_MOTION, false, false),
             motionType(type),
             motionCmd(),
             angleGen(0,0),

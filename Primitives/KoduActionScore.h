@@ -35,7 +35,7 @@ namespace Kodu {
         //! Constructor
         KoduActionScore(ScoringType_t scoreOpType, const NumericGenerator& kNumericGen,
             const std::string& kDesignator, bool useOnce)
-          : KoduAction("KoduActionScore", true, useOnce),
+          : KoduAction("KoduActionScore", KoduAction::AT_SCORING, true, useOnce),
             type(scoreOpType),
             numericGen(kNumericGen),
             designator(kDesignator)

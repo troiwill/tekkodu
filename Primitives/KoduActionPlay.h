@@ -20,7 +20,7 @@ namespace Kodu {
     public:
         //! Constructor
         KoduActionPlay(const LiteralGenerator& kSoundFile, bool useOnce)
-          : KoduAction ("KoduActionPlay", true, useOnce),
+          : KoduAction ("KoduActionPlay", KoduAction::AT_PLAY, true, useOnce),
             soundFile(kSoundFile)//,
             // onceModifierEnabled(useOnce)
         { }

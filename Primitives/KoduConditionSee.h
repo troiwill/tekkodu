@@ -17,7 +17,7 @@ namespace Kodu {
         //! Constructor
         KoduConditionSee(bool useNot, const std::string& kObjectType, const std::string& kObjectColor,
             SearchLocation_t locationToSearch)
-          : KoduCondition("KoduConditionSee"),
+          : KoduCondition("KoduConditionSee", KoduCondition::CT_SEE),
             notModifierEnabled(useNot),
             objType(kObjectType),
             objColor(kObjectColor),

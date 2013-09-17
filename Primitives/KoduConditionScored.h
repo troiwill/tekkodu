@@ -34,7 +34,7 @@ namespace Kodu {
         //! Constructor
         KoduConditionScored(bool useNot, CompareType_t compType, const NumericGenerator& kNumericGen, 
             const std::string& kDesignator, bool numericModWasSpecified)
-          : KoduCondition ("KoduConditionScored"),
+          : KoduCondition ("KoduConditionScored", KoduCondition::CT_SCORED),
             notModifierEnabled(useNot),
             type(compType),
             numericGen(kNumericGen),
