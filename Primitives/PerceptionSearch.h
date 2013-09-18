@@ -88,121 +88,38 @@ namespace Kodu {
     PERCEPTION_SEARCH(CloseBy);
     PERCEPTION_SEARCH(FarAwayFrom);
 
-    //! Calculate the bearing from the agent's current position and orientation to a specified point
+    //! Calculate the bearing from the agent's position and orientation to a specified point
     inline
-    AngSignPi calcBearingFromAgentToPoint(const DualCoding::Point& kPoint) {
-        // calculate the bearing between some point "kPoint" and the agent's position ==> theta = arctan(dy/dx)
-        float bearing2ThisPoint = (kPoint - DualCoding::VRmixin::theAgent->getCentroid()).atanYX();
-        // subtract the agent's orientation (heading) from the bearing to get the point's angle
-        // relative ot the agent
-        AngSignPi dtheta = bearing2ThisPoint - DualCoding::VRmixin::theAgent->getOrientation();
-        return dtheta;
-    }
+    AngSignPi bearingFromAgentToPoint(const DualCoding::Point&);
 
-    //! Calcaulate the bearing from the agent's current position and orientation to a specified shape/object
+    //! Calcaulate the bearing from the agent's position and orientation to a specified shape/object
     inline
-    AngSignPi calcBearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
-        return calcBearingFromAgentToPoint(kShape->getCentroid());
-    }
+    AngSignPi bearingFromAgentToObject(const DualCoding::ShapeRoot&);
 
+    //! Calculates the distance between the agent and a specified point
     inline
-    float calcDistanceFromAgentToPoint(const DualCoding::Point& kPoint) {
-        // get the agent's point
-        DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
-        // calculate the differences in the shape's and agent's positions
-        float dx = kPoint.coordX() - agentPoint.coordX();
-        float dy = kPoint.coordY() - agentPoint.coordY();
-        // return the distance
-        return sqrt((dx * dx) + (dy * dy));
-    }
+    float distanceFromAgentToPoint(const DualCoding::Point&);
 
     //! Calculates the distance between the agent and a specified shape/object
     inline
-    float calcDistanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
-        return calcDistanceFromAgentToPoint(kShape->getCentroid());
-    }
+    float distanceFromAgentToObject(const DualCoding::ShapeRoot&);
 
     //! Returns the closest shape/object to the agent
     template<typename Type>
-    Type getClosestObject(const std::vector<Type>& kObjects)
-    {
-        const std::size_t kSize = kObjects.size();
-        // if the vector's size is zero, return an invalid shape
-        if (kSize == 0) {
-            return Type();
-        }
-
-        // else if the vector's size is one, return the first element (the only shape in the vector)
-        else if (kSize == 1) {
-            return kObjects[0];
-        }
-
-        // else iterate over the vector and find the closest shape
-        else {
-            Type nearestObject = kObjects[0];
-            float nearestObjectDist = calcDistanceFromAgentToObject(nearestObject);
-            
-            // iterate over the remainder of the objects
-            for (std::size_t index = 1; index < kSize; index++) {
-                float currentObjectDist = calcDistanceFromAgentToObject(kObjects[index]);
-                if (currentObjectDist < nearestObjectDist) {
-                    nearestObjectDist = currentObjectDist;
-                    nearestObject = kObjects[index];
-                }
-            }
-            return nearestObject;
-        }
-    }
+    Type getClosestObject(const std::vector<Type>&);
 
     //! Returns the objects located in the specified region(s) relative to the agent orientation
     template<typename Type>
-    std::vector<Type> getObjectsLocated(const std::vector<Type>& kObjects, SearchLocation_t location) {
-        // copy the objects to result
-        std::vector<Type> result = kObjects;
-        std::cout << "Checking map for objects:";
-        
-        // test if the search location should be limited to the front or back
-        if (location & SL_IN_FRONT) {
-            std::cout << " [in front]";
-            result = DualCoding::subset(result, IsInFrontAgent());
-        } else if (location & SL_BEHIND) {
-            std::cout << " [behind]";
-            result = DualCoding::subset(result, IsBehindAgent());
-        }
-            
-        // test if the search location should be limited to the left or right sides
-        if (location & SL_TO_LEFT) {
-            std::cout << " [to the left]";
-            result = DualCoding::subset(result, IsLeftOfAgent());
-        } else if (location & SL_TO_RIGHT) {
-            std::cout << " [to the right]";
-            result = DualCoding::subset(result, IsRightOfAgent());
-        }
-
-        // test if the search location is limited to "close by" or "far away (from)" the agent
-        if (location & SL_CLOSE_BY) {
-            std::cout << " [close by]";
-            result = DualCoding::subset(result, IsCloseByAgent());
-        }
-        else if (location & SL_FAR_AWAY) {
-            std::cout << " [far away]";
-            result = DualCoding::subset(result, IsFarAwayFromAgent());
-        }
-        std::cout << std::endl;
-        return result;
-    }
+    std::vector<Type> getObjectsLocated(const std::vector<Type>&, SearchLocation_t);
 
     //! Returns the objects that are a specified color
     template<typename Type>
     inline
-    std::vector<Type> getObjectsWithColor(const std::vector<Type>& kObjects,
-                                          const std::string& color)
-    {
-        return DualCoding::subset(kObjects, DualCoding::IsColor(color));
-    }
+    std::vector<Type> getObjectsWithColor(const std::vector<Type>&, const std::string&);
 
     //! Returns the closest object that matches the specified criteria
-    DualCoding::Shape<DualCoding::CylinderData> getClosestObjectMatching(const std::string&, SearchLocation_t);
+    DualCoding::Shape<DualCoding::CylinderData>
+    getClosestObjectMatching(const std::string&, SearchLocation_t);
 }
 
 #endif // PERCEPTION_SEARCH_H_
