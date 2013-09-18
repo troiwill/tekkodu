@@ -227,9 +227,13 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 // point to the current condition and action
                 cCondition = cRule->condition;
                 cAction = cRule->action;
+
+                if (!cCondition->canEvaluate()) {
+                    continue;
+                }
                 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                if (cCondition->canEvaluate() && cCondition->evaluate() == true) {
+                if (cCondition->evaluate() == true) {
                     // resets the action has already ran flag
                     if (cRule->condLastEvalResult == false) {
                         resetChildRulesWithOnceEnabled(kRuleId);
@@ -366,17 +370,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     // to detect the bump
                     if (cCondition->getConditionType() == Kodu::KoduCondition::CT_BUMP) {
                         Kodu::KoduConditionBump* bmp = dynamic_cast<Kodu::KoduConditionBump*>(cCondition);
-                        //$reference KoduGame::currTarget;
-                        //ShapeRoot& bmpTarget = bmp->getTargetObject();
-                        /*
-                        if (bmp->agentIsNearMatchingObject() && !currTarget.isValid()
-                            && bmpTarget != currTarget && !theAgent->isWalking())
-                        {
-                            currTarget = bmpTarget;
-                            hasNewTargetToLookAt = true;
-                        }
-                        bmp = NULL;
-                        */
                         if (bmp->agentIsNearMatchingObject() && !theAgent->isWalking()) {
                             bmp->disallowEvaluate();
                             theAgent->bmpDetector.push(bmp);
@@ -411,11 +404,11 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         if (tag.isValid()) {
             std::cout << "found something!\n";
             theAgent->bmpDetector.front()->setVisualBumpDetection(true);
+            theAgent->bmpDetector.front()->allowEvaluate();
         } else {
             std::cout << "nada.\n";
             theAgent->bmpDetector.front()->setVisualBumpDetection(false);
         }
-        theAgent->bmpDetector.front()->allowEvaluate();
         theAgent->bmpDetector.pop();
         postStateCompletion();
     }
@@ -509,13 +502,14 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         pReq.turnSpeed = newCmd.getTurnSpeed();
         pReq.collisionAction = collisionIgnore;
         pilotreq = pReq;
-        newCmd.invalidate();
+        //newCmd.invalidate();
         theAgent->startMonitoringWalk();
     }
 
     $nodeclass CompleteMotionActuator : StateNode : doStart {
         $reference KoduGame::theAgent;
         theAgent->stopMonitoringWalk();
+        theAgent->currMotionCmd.invalidate();
         std::cout << "Motion action complete.\n";
         postStateCompletion();
     }
@@ -602,6 +596,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             parser:     KoduParser
             interp:     KoduInterpreter
             runner:     KoduActionRunner
+            bmpDetect:  BumpDetector
+            bmpResult:  BumpDetectResults
 
             endState:   StateNode
             
@@ -618,8 +614,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             //interp =C=> runner
             //interp =F=> endState
 
-            interp =S<bool>(true)=> BumpDetector =C=> BumpDetectResults =C=> endState
+            interp =S<bool>(true)=> { bmpDetect, runner }
             interp =S<bool>(false)=> runner
+            bmpDetect =C=> bmpResult
 
             runner =T(150)=> interp
             
