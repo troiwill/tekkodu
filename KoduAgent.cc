@@ -31,7 +31,7 @@ namespace Kodu {
     /// ================================ Motion functions ================================ ///
     bool KoduAgent::bodyHasMoved() {
         return ((calcDistanceFromAgentToPoint(lastRecordedPosition) > 50.0f)
-                || (std::abs(lastRecordedHeading - DualCoding::VRmixin::theAgent->getOrientation()) > 5.0f));
+            || (std::abs(lastRecordedHeading - DualCoding::VRmixin::theAgent->getOrientation()) > 5.0f));
     }
 
     bool KoduAgent::hasMotionCommand() const {

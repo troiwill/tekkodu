@@ -23,13 +23,15 @@ namespace Kodu {
         //! Constructor
         KoduCondition(const std::string& kConditionName, ConditionTypes condType)
           : KoduPrimitive(kConditionName),
-            conditionType(condType)
+            conditionType(condType),
+            canEvaluateCondition(true)
         { }
         
         //! Copy constructor
         KoduCondition(const KoduCondition& kCondition)
           : KoduPrimitive(kCondition),
-            conditionType(kCondition.conditionType)
+            conditionType(kCondition.conditionType),
+            canEvaluateCondition(kCondition.canEvaluateCondition)
         { }
 
         //! Destructor
@@ -42,6 +44,7 @@ namespace Kodu {
             if (this != &kCondition) {
                 KoduPrimitive::operator=(kCondition);
                 conditionType = kCondition.conditionType;
+                canEvaluateCondition = kCondition.canEvaluateCondition;
             }
             return *this;
         }
@@ -64,8 +67,23 @@ namespace Kodu {
             KoduPrimitive::printAttrs();
         }
 
+
+        bool canEvaluate() const {
+            return canEvaluateCondition;
+        }
+
+        void disallowEvaluate() {
+            canEvaluateCondition = false;
+        }
+
+        void allowEvaluate() {
+            canEvaluateCondition = true;
+        }
+
     private:
         ConditionTypes conditionType;       //!< the condition type
+
+        bool canEvaluateCondition;
     };
 } // end of Kodu namespace
 
