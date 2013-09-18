@@ -55,6 +55,7 @@ namespace Kodu {
         //! Used to reinitialize certain variables during, for example, switching to another page
         virtual void reinitialize() {
             // do nothing
+            canEvaluateCondition = true;
         }
 
         //! Returns the condition type
