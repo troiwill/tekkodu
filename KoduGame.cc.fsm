@@ -249,8 +249,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     // check if this action:
                     // 1) [implicit] can use the once modifier, and
                     // 2) has the once modifier enabled
-                    if (cAction->onceModIsEnabled())
+                    if (cAction->onceModIsEnabled()) {
                         cAction->setActionCanRun(false);
+                    }
                     
                     // check the action type
                     switch(cAction->getActionType()) {
@@ -291,8 +292,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             // 1) the agent is not walking
                             // 2) the agent does not have a motion command
                             // 3) the "current" motion command (cmd) is valid
-                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand()
-                                && cmd.isValid())
+                            if (!theAgent->isWalking() && !theAgent->hasMotionCommand() && cmd.isValid())
                             {
                                 theAgent->currMotionCmd = cmd;
                                 std::cout << "Added a motion command.\n";
