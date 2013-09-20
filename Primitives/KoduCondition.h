@@ -23,15 +23,13 @@ namespace Kodu {
         //! Constructor
         KoduCondition(const std::string& kConditionName, ConditionTypes condType)
           : KoduPrimitive(kConditionName),
-            conditionType(condType),
-            canEvaluateCondition(true)
+            conditionType(condType)
         { }
         
         //! Copy constructor
         KoduCondition(const KoduCondition& kCondition)
           : KoduPrimitive(kCondition),
-            conditionType(kCondition.conditionType),
-            canEvaluateCondition(kCondition.canEvaluateCondition)
+            conditionType(kCondition.conditionType)
         { }
 
         //! Destructor
@@ -44,7 +42,6 @@ namespace Kodu {
             if (this != &kCondition) {
                 KoduPrimitive::operator=(kCondition);
                 conditionType = kCondition.conditionType;
-                canEvaluateCondition = kCondition.canEvaluateCondition;
             }
             return *this;
         }
@@ -52,10 +49,13 @@ namespace Kodu {
         //! Evaluates the event portion of the rule (implementation in derived classes)
         virtual bool evaluate() = 0;
         
+        bool canEvaluate() const {
+            return KoduPrimitive::agentCanUsePrimitive();
+        }
+
         //! Used to reinitialize certain variables during, for example, switching to another page
         virtual void reinitialize() {
-            // do nothing
-            canEvaluateCondition = true;
+            KoduPrimitive::reinitialize();
         }
 
         //! Returns the condition type
@@ -68,23 +68,8 @@ namespace Kodu {
             KoduPrimitive::printAttrs();
         }
 
-
-        bool canEvaluate() const {
-            return canEvaluateCondition;
-        }
-
-        void disallowEvaluate() {
-            canEvaluateCondition = false;
-        }
-
-        void allowEvaluate() {
-            canEvaluateCondition = true;
-        }
-
     private:
         ConditionTypes conditionType;       //!< the condition type
-
-        bool canEvaluateCondition;
     };
 } // end of Kodu namespace
 
