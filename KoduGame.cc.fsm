@@ -39,8 +39,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $provide Kodu::KoduAgent* theAgent;
     $provide unsigned int cycleCount;
 
-    $provide ShapeRoot currTarget;
-    
     $provide GrabActuator* grabActRef;
     $provide MotionActuator* motionActRef;
     $provide PageSwitchActuator* pageSwitchActRef;
