@@ -11,7 +11,7 @@ namespace Kodu {
         // 1) the agent visually detected the bump,
         // 2) the referenced object (the object the bump condition will react to) is valid
         // 3) the agent has not moved anywhere (translated the body in the x-direction)
-        bool rv = (agentVisuallyDetectedBump && refdObject.isValid()
+        bool rv = (visuallyDetectedBump && refdObject.isValid()
             && calcDistanceFromAgentToPoint(agentLastPosAfterDetection) <= kMaxDistanceAwayToSenseBump);
         
         // if the not modifier is enabled, negate the value of the return value (rv)
@@ -45,9 +45,9 @@ namespace Kodu {
     }
 
     void KoduConditionBump::setVisualBumpDetection(bool bval) {
-        agentVisuallyDetectedBump = bval;
+        visuallyDetectedBump = bval;
         // check if the agent visually detected the bump
-        if (agentVisuallyDetectedBump) {
+        if (visuallyDetectedBump) {
             // if it did, note the last position the robot was at when it visually detected the object
             agentLastPosAfterDetection = DualCoding::VRmixin::theAgent->getCentroid();
             ObjectKeeper::tempObject = refdObject;

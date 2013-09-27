@@ -30,7 +30,7 @@ namespace Kodu {
             searchLocation(locationToSearch),
             refdObject(),
             agentLastPosAfterDetection(),
-            agentVisuallyDetectedBump(false)
+            visuallyDetectedBump(false)
         { }
 
         //! Copy constructor
@@ -42,7 +42,7 @@ namespace Kodu {
             searchLocation(kCondition.searchLocation),
             refdObject(kCondition.refdObject),
             agentLastPosAfterDetection(kCondition.agentLastPosAfterDetection),
-            agentVisuallyDetectedBump(kCondition.agentVisuallyDetectedBump)
+            visuallyDetectedBump(kCondition.visuallyDetectedBump)
         { }
 
         //! Destructor
@@ -60,7 +60,7 @@ namespace Kodu {
                 searchLocation = kCondition.searchLocation;
                 refdObject = kCondition.refdObject;
                 agentLastPosAfterDetection = kCondition.agentLastPosAfterDetection;
-                agentVisuallyDetectedBump = kCondition.agentVisuallyDetectedBump;
+                visuallyDetectedBump = kCondition.visuallyDetectedBump;
             }
             return *this;
         }
@@ -97,7 +97,7 @@ namespace Kodu {
         SearchLocation_t searchLocation;
         DualCoding::Shape<DualCoding::CylinderData> refdObject;
         DualCoding::Point agentLastPosAfterDetection;
-        bool agentVisuallyDetectedBump;
+        bool visuallyDetectedBump;
     };
 }
 
