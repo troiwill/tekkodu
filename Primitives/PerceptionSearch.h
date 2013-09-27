@@ -65,6 +65,21 @@ namespace Kodu {
         float minAcceptableShapeArea;
     };
 
+    class IsMatchForTargetObject : public DualCoding::UnaryShapeRootPred {
+    public:
+        IsMatchForTargetObject(const DualCoding::ShapeRoot& kTargetObject)
+          : DualCoding::UnaryShapeRootPred(),
+            targetObject(kTargetObject)
+        { }
+
+        ~IsMatchForTargetObject() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+
+    private:
+        DualCoding::ShapeRoot targetObject;
+    };
+
     // Assumes the "Agent" data is always valid
 #define PERCEPTION_SEARCH(Dir)                                                  \
     class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
@@ -90,19 +105,39 @@ namespace Kodu {
 
     //! Calculate the bearing from the agent's position and orientation to a specified point
     inline
-    AngSignPi bearingFromAgentToPoint(const DualCoding::Point&);
+    AngSignPi bearingFromAgentToPoint(const DualCoding::Point& kPoint) {
+        // calculate the bearing between some point "kPoint" and the agent's position
+        // theta = arctan(dy/dx)
+        float bearing2ThisPoint = (kPoint - DualCoding::VRmixin::theAgent->getCentroid()).atanYX();
+        // subtract the agent's orientation (heading) from the bearing to get the point's angle
+        // relative ot the agent
+        AngSignPi dtheta = bearing2ThisPoint - DualCoding::VRmixin::theAgent->getOrientation();
+        return dtheta;
+    }
 
     //! Calcaulate the bearing from the agent's position and orientation to a specified shape/object
     inline
-    AngSignPi bearingFromAgentToObject(const DualCoding::ShapeRoot&);
+    AngSignPi bearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
+        return bearingFromAgentToPoint(kShape->getCentroid());
+    }
 
     //! Calculates the distance between the agent and a specified point
     inline
-    float distanceFromAgentToPoint(const DualCoding::Point&);
+    float distanceFromAgentToPoint(const DualCoding::Point& kPoint) {
+        // get the agent's point
+        DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
+        // calculate the differences in the shape's and agent's positions
+        float dx = kPoint.coordX() - agentPoint.coordX();
+        float dy = kPoint.coordY() - agentPoint.coordY();
+        // return the distance
+        return sqrt((dx * dx) + (dy * dy));
+    }
 
     //! Calculates the distance between the agent and a specified shape/object
     inline
-    float distanceFromAgentToObject(const DualCoding::ShapeRoot&);
+    float distanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
+        return distanceFromAgentToPoint(kShape->getCentroid());
+    }
 
     //! Returns the closest shape/object to the agent
     template<typename Type>
@@ -115,7 +150,9 @@ namespace Kodu {
     //! Returns the objects that are a specified color
     template<typename Type>
     inline
-    std::vector<Type> getObjectsWithColor(const std::vector<Type>&, const std::string&);
+    std::vector<Type> getObjectsWithColor(const std::vector<Type>& kObjects, const std::string& color) {
+        return DualCoding::subset(kObjects, DualCoding::IsColor(color));
+    }
 
     //! Returns the closest object that matches the specified criteria
     DualCoding::Shape<DualCoding::CylinderData>
