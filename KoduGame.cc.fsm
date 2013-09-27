@@ -183,21 +183,21 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             bool hasNewTargetToLookAt = false;
 
             // pointers to the current page, rule, condition, and action (respectively)
-            Kodu::KoduPage* cPage;
-            Kodu::KoduRule* cRule;
-            Kodu::KoduCondition* cCondition;
-            Kodu::KoduAction* cAction;
+            Kodu::KoduPage* page;
+            Kodu::KoduRule* rule;
+            Kodu::KoduCondition* cond;
+            Kodu::KoduAction* act;
             // check if the current page is NULL
-            if ((cPage = theAgent->getCurrentPage()) == NULL) {
+            if ((page = theAgent->getCurrentPage()) == NULL) {
                 std::cerr << "!!! A NULL page was found.\n";
                 postStateFailure();
                 return;
             }
             // print the current game cycle and page number
             std::cout << "========== GAME CYCLE #" << cycleCount++
-                      << ", PAGE #" << cPage->getPageNumber() << "==========\n";
+                      << ", PAGE #" << page->getPageNumber() << "==========\n";
             // check if there are rules on this page
-            const int numbOfRules = cPage->getRuleCount();
+            const int numbOfRules = page->getRuleCount();
             if (numbOfRules == 0) {
                 std::cout << "Reached an empty page. Stopping interpreter...\n";
                 postStateFailure();
@@ -206,36 +206,34 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             // iterate over all the rules of a page
             for (int i = 0; i < numbOfRules; i++) {
                 // checks if the rule returned is NULL. 
-                if ((cRule = cPage->getRuleInPos(i)) == NULL) {
+                if ((rule = page->getRuleInPos(i)) == NULL) {
                     std::cerr << "!!! A NULL rule was found. Tried accessing Page["
-                              << (cPage->getPageNumber() - 1) << "], Rule[" << i << "]\n";
+                              << (page->getPageNumber() - 1) << "], Rule[" << i << "]\n";
                     postStateFailure();
                     return;
                 }
                 
                 // the parent ID and rule ID of the current rule (respectively)
-                const unsigned int kParentId = cRule->getParentNumber();
-                const unsigned int kRuleId = cRule->getRuleNumber();
+                const unsigned int kParentId = rule->getParentNumber();
+                const unsigned int kRuleId = rule->getRuleNumber();
 
                 // check if this rule has parent rule and if its condition evaluated true
-                if (cRule->isIndented() && cPage->getRule(kParentId)->condLastEvalResult == false) {
-                    cRule->condLastEvalResult = false;
+                if (rule->isIndented() && page->getRule(kParentId)->condLastEvalResult == false) {
+                    rule->condLastEvalResult = false;
                     continue;
                 }
                 
                 // point to the current condition and action
-                cCondition = cRule->condition;
-                cAction = cRule->action;
+                cond = rule->condition;
+                act = rule->action;
 
                 // check if the agent can evaluate the condition
-                if (!cCondition->agentCanUsePrimitive()) {
+                if (!cond->agentCanUsePrimitive()) {
                     // check if the condition is a Bump condition and, if so, that the agent is no
                     // longer near the object it was supposed to perceive
-                    if (cCondition->getConditionType() == Kodu::KoduCondition::CT_BUMP
-                        && !(static_cast<Kodu::KoduConditionBump*>(cCondition)->
-                            agentIsNearMatchingObject()))
-                    {
-                        cCondition->setAgentCanUsePrimitive(true);
+                    if (cond->getConditionType() == Kodu::KoduCondition::CT_BUMP
+                        && !(static_cast<Kodu::KoduConditionBump*>(cond)->agentIsNearMatchingObject())) {
+                        cond->setAgentCanUsePrimitive(true);
                     }
                     // else continue onto the next rule
                     else {
@@ -244,28 +242,28 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
                 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                if (cCondition->evaluate() == true) {
+                if (cond->evaluate() == true) {
                     // resets the action has already ran flag
-                    if (cRule->condLastEvalResult == false) {
+                    if (rule->condLastEvalResult == false) {
                         resetChildRulesWithOnceEnabled(kRuleId);
                     }
                     
                     // states condition evaluated true (no matter if action can execute or not)
-                    cRule->setConditionEvalResult(true);
+                    rule->setConditionEvalResult(true);
                     
                     // check if the action cannot run
-                    if (!(cAction->agentCanUsePrimitive())) {
+                    if (!(act->agentCanUsePrimitive())) {
                         continue;
                     }
                     // check if this action:
                     // 1) [implicit] can use the once modifier, and
                     // 2) has the once modifier enabled
-                    if (cAction->onceModIsEnabled()) {
-                        cAction->setAgentCanUsePrimitive(false);
+                    if (act->onceModIsEnabled()) {
+                        act->setAgentCanUsePrimitive(false);
                     }
                     
                     // check the action type
-                    switch(cAction->getActionType()) {
+                    switch(act->getActionType()) {
                         // Kodu Action Do Nothing
                         case Kodu::KoduAction::AT_DO_NOTHING:
                         {
@@ -280,7 +278,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             if (!theAgent->isWalking()) {
                                 // get the target object
                                 ShapeRoot targetObject =
-                                    static_cast<Kodu::KoduActionGrab*>(cAction)->getTargetObject();
+                                    static_cast<Kodu::KoduActionGrab*>(act)->getTargetObject();
                                 // make sure the target object is:
                                 // 1) valid, and
                                 // 2) the target object is not the same as the one in the gripper now
@@ -298,7 +296,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         {
                             // get the current motion command
                             Kodu::MotionCommand cmd =
-                                static_cast<Kodu::KoduActionMotion*>(cAction)->getMotionCommand();
+                                static_cast<Kodu::KoduActionMotion*>(act)->getMotionCommand();
                             // make sure:
                             // 1) the agent is not walking
                             // 2) the agent does not have a motion command
@@ -316,7 +314,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         {
                             // get the new requested page number (agent will switch to it immediately)
                             theAgent->newReqdPage =
-                                static_cast<Kodu::KoduActionPageSwitch*>(cAction)->getPageNumber();
+                                static_cast<Kodu::KoduActionPageSwitch*>(act)->getPageNumber();
                             std::cout << "Switching to another page!\n";
                             break;
                         }
@@ -326,7 +324,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         {
                             // get the sound file
                             std::string soundFile =
-                                static_cast<Kodu::KoduActionPlay*>(cAction)->getSoundFile();
+                                static_cast<Kodu::KoduActionPlay*>(act)->getSoundFile();
                             // add the sound file to the play queue
                             theAgent->playQueue.push(soundFile);
                             std::cout << "Added the sound file \"" << soundFile << "\".\n";
@@ -340,7 +338,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             if (!theAgent->hasTextToSay()) {
                                 // give the string to the agent
                                 theAgent->stringToSpeak =
-                                    static_cast<Kodu::KoduActionSay*>(cAction)->getStringToSpeak();
+                                    static_cast<Kodu::KoduActionSay*>(act)->getStringToSpeak();
                                 std::cout << "Added literal string: \""
                                           << theAgent->stringToSpeak << "\".\n";
                             }
@@ -352,7 +350,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         {
                             // add the score change to the score queue
                             theAgent->scoreQueue.push(
-                                static_cast<Kodu::KoduActionScore*>(cAction)->getScoreChange());
+                                static_cast<Kodu::KoduActionScore*>(act)->getScoreChange());
                             std::cout << "Added a score action type.\n";
                             break;
                         }
@@ -360,7 +358,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         default:
                         {
                             std::cerr << "Unrecognized action: \""
-                                  << cAction->getPrimitiveType() << "\"\n";
+                                  << act->getPrimitiveType() << "\"\n";
                             break;
                         }
                     }
@@ -369,18 +367,18 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         break;
                 } else {
                     // states rule evaluated false
-                    cRule->setConditionEvalResult(false);
+                    rule->setConditionEvalResult(false);
                     // check the condition type...
                     // if it is not a timer condition, then set the "action can run" flag to true
-                    if (!cCondition->getConditionType() != Kodu::KoduCondition::CT_TIMER) {
-                        cAction->setAgentCanUsePrimitive(true);
+                    if (!cond->getConditionType() != Kodu::KoduCondition::CT_TIMER) {
+                        act->setAgentCanUsePrimitive(true);
                     }
                     // check if the condition is type KoduConditionBump
                     // if it is, then check if the condition thinks the agent is near a particular object
                     // if the agent is near a (particular) object, the interpreter should tell the robot
                     // to detect the bump
-                    if (cCondition->getConditionType() == Kodu::KoduCondition::CT_BUMP) {
-                        Kodu::KoduConditionBump* bmp = static_cast<Kodu::KoduConditionBump*>(cCondition);
+                    if (cond->getConditionType() == Kodu::KoduCondition::CT_BUMP) {
+                        Kodu::KoduConditionBump* bmp = static_cast<Kodu::KoduConditionBump*>(cond);
                         if (bmp->agentIsNearMatchingObject() && !theAgent->isWalking()) {
                             bmp->setAgentCanUsePrimitive(false);
                             theAgent->bmpDetector.push(bmp);
@@ -391,12 +389,11 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
                 // invalidate object
                 Kodu::ObjectKeeper::isValid = false;
-                cCondition = NULL;
-                cAction = NULL;
+                cond = NULL;
+                act = NULL;
             }
-            cPage = NULL;
-            cRule = NULL;
-            //if (hasNewTargetToLookAt)
+            page = NULL;
+            rule = NULL;
             postStateSignal<bool>(hasNewTargetToLookAt);
             //postStateCompletion();
         }

@@ -30,8 +30,8 @@ namespace Kodu {
 
     /// ================================ Motion functions ================================ ///
     bool KoduAgent::bodyHasMoved() {
-        return ((calcDistanceFromAgentToPoint(lastRecordedPosition) > 50.0f)
-            || (std::abs(lastRecordedHeading - DualCoding::VRmixin::theAgent->getOrientation()) > 5.0f));
+        return ((lastRecordedPosition != DualCoding::VRmixin::theAgent->getCentroid())
+            || (lastRecordedHeading != DualCoding::VRmixin::theAgent->getOrientation()));
     }
 
     bool KoduAgent::hasMotionCommand() const {
@@ -151,8 +151,8 @@ namespace Kodu {
         }
         // create a polygon search area
         NEW_SHAPE(gazePolygon, DualCoding::PolygonData,
-            new DualCoding::PolygonData(DualCoding::VRmixin::worldShS, gazePoints, false));
-        // make sure the polygon is not an obstacle (in the worldShS) nor viewable (in the world view)
+            new DualCoding::PolygonData(DualCoding::VRmixin::localShS, gazePoints, false));
+        // make sure the polygon is not an obstacle (in the localShS) nor viewable (in the local view)
         gazePolygon->setObstacle(false);
         gazePolygon->setViewable(false);
         // assign gazePolygon to agentaGzePoints

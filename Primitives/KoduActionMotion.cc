@@ -1,4 +1,5 @@
 #include "Kodu/Primitives/KoduActionMotion.h"
+#include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/Primitives/PerceptionSearch.h"
 
 #include "DualCoding/VRmixin.h"
@@ -10,7 +11,6 @@ namespace Kodu {
             && turnSpeed == kCommand.turnSpeed
             && dx == kCommand.dx
             && da == kCommand.da);
-            //&& kCommand1.cmdValid == kCommand2.cmdValid);
     }
 
     bool MotionCommand::operator!=(const MotionCommand& kCommand) {
@@ -72,16 +72,16 @@ namespace Kodu {
             case MT_MOVE_TOWARDS:
             {
                 if (ObjectKeeper::isValid) {
-                    if (calcDistanceFromAgentToObject(ObjectKeeper::tempObject) > 400) {
+                    if (distanceFromAgentToObject(ObjectKeeper::tempObject)
+                        > KoduConditionBump::kMaxDistanceAwayToSenseBump)
+                    {
                         motionCmd.targetObject = ObjectKeeper::tempObject;
-                    } else {
-                        motionCmd.targetObject = ObjectKeeper::invalidObject;
-                        motionCmd.cmdValid = false;
+                        break;
                     }
-                } else {
-                    motionCmd.targetObject = ObjectKeeper::invalidObject;
-                    motionCmd.cmdValid = false;
                 }
+                motionCmd.targetObject = ObjectKeeper::invalidObject;
+                motionCmd.cmdValid = false;
+                break;
             }
 
             // to prevent compiler warnings

@@ -12,7 +12,7 @@ namespace Kodu {
         // 2) the referenced object (the object the bump condition will react to) is valid
         // 3) the agent has not moved anywhere (translated the body in the x-direction)
         bool rv = (visuallyDetectedBump && refdObject.isValid()
-            && calcDistanceFromAgentToPoint(agentLastPosAfterDetection) <= kMaxDistanceAwayToSenseBump);
+            && distanceFromAgentToPoint(agentLastPosAfterDetection) <= kMaxDistanceAwayToSenseBump);
         
         // if the not modifier is enabled, negate the value of the return value (rv)
         if (notModifierEnabled)
@@ -33,7 +33,7 @@ namespace Kodu {
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
         std::cout << "Checking if the agent is near a matching object...";
-        if (obj.isValid() && calcDistanceFromAgentToObject(obj) <= kMaxDistanceAwayToSenseBump) {
+        if (obj.isValid() && distanceFromAgentToObject(obj) <= kMaxDistanceAwayToSenseBump) {
             std::cout << "it's near!\n";
             refdObject = obj;
             return true;
