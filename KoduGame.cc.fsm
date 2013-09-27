@@ -168,7 +168,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 // if it is, set actionCanRun flag to true
                 // else break--this rule has no more child actions
                 if (rule->getParentNumber() == kParentRuleNumer)
-                    rule->action->setActionCanRun(true);
+                    rule->action->setAgentCanUsePrimitive(true);
                 else
                     break;
             }
@@ -227,8 +227,20 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 cCondition = cRule->condition;
                 cAction = cRule->action;
 
+                // check if the agent can evaluate the condition
                 if (!cCondition->agentCanUsePrimitive()) {
-                    continue;
+                    // check if the condition is a Bump condition and, if so, that the agent is no
+                    // longer near the object it was supposed to perceive
+                    if (cCondition->getConditionType() == Kodu::KoduCondition::CT_BUMP
+                        && !(static_cast<Kodu::KoduConditionBump*>(cCondition)->
+                            agentIsNearMatchingObject()))
+                    {
+                        cCondition->setAgentCanUsePrimitive(true);
+                    }
+                    // else continue onto the next rule
+                    else {
+                        continue;
+                    }
                 }
                 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
