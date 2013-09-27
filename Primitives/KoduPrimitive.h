@@ -2,7 +2,7 @@
 #define KODU_PRIMITIVE_H_
 
 // Tekkodu Library
-#include "General/GeneralMacros.h"
+#include "Kodu/General/GeneralMacros.h"
 
 // C++ Library
 #include <iostream>
