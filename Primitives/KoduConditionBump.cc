@@ -7,48 +7,53 @@ namespace Kodu {
     const int KoduConditionBump::kMaxDistanceAwayToSenseBump = 275; // millimeters
 
     bool KoduConditionBump::evaluate() {
-        bool rv = false;
-        DualCoding::Shape<DualCoding::CylinderData> _refdObject;
+        // check the following:
+        // 1) the agent visually detected the bump,
+        // 2) the referenced object (the object the bump condition will react to) is valid
+        // 3) the agent has not moved anywhere (translated the body in the x-direction)
+        bool rv = (visuallyDetectedBump && refdObject.isValid()
+            && calcDistanceFromAgentToPoint(agentLastPosAfterDetection) <= kMaxDistanceAwayToSenseBump);
         
-        // get the closest object that matches what this condition is searching for
-        _refdObject = getClosestObjectMatching(objColor, searchLocation);
-        
-        // If there is one valid remaining and it is within some distance to the agent,
-        // then the robot will react to that object
-        if (_refdObject.isValid()
-            && calcDistanceFromAgentToObject(_refdObject) <= kMaxDistanceAwayToSenseBump)
-        {
-            std::cout << "Bumped a(n) " << getObjectColor() << " " << getObjectType() << "!\n";
-            ObjectKeeper::tempObject = _refdObject;
-            ObjectKeeper::isValid = true;
-            rv = true;
-        }
-        
+        // if the not modifier is enabled, negate the value of the return value (rv)
         if (notModifierEnabled)
-            return (!rv);
-        else
-            return rv;
+            rv = !rv;
+
+        // 
+        if ((ObjectKeeper::isValid = rv) == true)
+            ObjectKeeper::tempObject = refdObject;
+
+        return rv;
     }
-/*
+
     bool KoduConditionBump::agentIsNearMatchingObject() {
-        DualCoding::Shape<DualCoding::CylinderData> _refdObject;
+        DualCoding::Shape<DualCoding::CylinderData> obj;
         // get the closest object that matches what this condition is searching for
-        _refdObject = getClosestObjectMatching(objColor, searchLocation);
+        obj = getClosestObjectMatching(objColor, searchLocation);
         
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
         std::cout << "Checking if the agent is near a matching object...";
-        if (_refdObject.isValid()
-            && calcDistanceFromAgentToObject(_refdObject) <= kMaxDistanceAwayToSenseBump)
-        {
+        if (obj.isValid() && calcDistanceFromAgentToObject(obj) <= kMaxDistanceAwayToSenseBump) {
             std::cout << "it's near!\n";
-            refdObject = _refdObject;
+            refdObject = obj;
+            return true;
         } else {
             std::cout << "nada.\n";
             refdObject = ObjectKeeper::invalidObject;
+            return false;
         }
     }
-*/
+
+    void KoduConditionBump::setVisualBumpDetection(bool bval) {
+        visuallyDetectedBump = bval;
+        // check if the agent visually detected the bump
+        if (visuallyDetectedBump) {
+            // if it did, note the last position the robot was at when it visually detected the object
+            agentLastPosAfterDetection = DualCoding::VRmixin::theAgent->getCentroid();
+            ObjectKeeper::tempObject = refdObject;
+        }
+    }
+
     const std::string& KoduConditionBump::getObjectColor() const {
         return objColor;
     }

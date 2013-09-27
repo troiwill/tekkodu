@@ -83,7 +83,6 @@ namespace Kodu {
         ScoringType_t type;             //!< States whether a score is incremented, decremented, or set
         NumericGenerator numericGen;    //!< Generates a numeric value
         std::string designator;         //!< The score designator
-        // bool onceEnabled;            
     };
 }
 

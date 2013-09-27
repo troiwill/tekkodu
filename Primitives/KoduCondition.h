@@ -49,9 +49,13 @@ namespace Kodu {
         //! Evaluates the event portion of the rule (implementation in derived classes)
         virtual bool evaluate() = 0;
         
+        bool canEvaluate() const {
+            return KoduPrimitive::agentCanUsePrimitive();
+        }
+
         //! Used to reinitialize certain variables during, for example, switching to another page
         virtual void reinitialize() {
-            // do nothing
+            KoduPrimitive::reinitialize();
         }
 
         //! Returns the condition type

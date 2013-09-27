@@ -8,6 +8,8 @@
 #include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Primitives/KoduActionMotion.h"
 
+#include "Kodu/Primitives/KoduConditionBump.h"
+
 // Tekkotsu Library
 #include "DualCoding/Point.h"
 #include "DualCoding/PolygonData.h"
@@ -26,7 +28,8 @@ namespace Kodu {
     class KoduAgent {
     public:
         //! Constructor
-        KoduAgent(const std::string& kName, const DualCoding::Point& agentLocation, float agentOrientation)
+        KoduAgent(const std::string& kName, const DualCoding::Point& agentLocation,
+            float agentOrientation)
           : gripperObject(),
             agentIsAttemptingGrab(false),
             targetObjectIsInGripper(false),
@@ -38,6 +41,9 @@ namespace Kodu {
             scoreQueue(),
             stringToSpeak(""),
             playQueue(),
+
+            bmpDetector(),
+
             walkStartTime(0),
             totalApproxDistanceTravelled(0.0f),
             distanceSinceLastLocalization(0.0f),
@@ -70,6 +76,9 @@ namespace Kodu {
                 scoreQueue = kAgent.scoreQueue;
                 stringToSpeak = kAgent.stringToSpeak;
                 playQueue = kAgent.playQueue;
+
+                bmpDetector = kAgent.bmpDetector;
+
                 walkStartTime = kAgent.walkStartTime;
                 totalApproxDistanceTravelled = kAgent.totalApproxDistanceTravelled;
                 distanceSinceLastLocalization = kAgent.distanceSinceLastLocalization;
@@ -153,7 +162,7 @@ namespace Kodu {
         // === Grasp variables === //
         DualCoding::ShapeRoot gripperObject;//!< The object the agent is holding/will be holding
         bool agentIsAttemptingGrab;     //!< (flag) States if the agent is attempting to grab an object
-        bool targetObjectIsInGripper;   //!< (flag) States if the grab action's target object is in the gripper
+        bool targetObjectIsInGripper;   //!< (flag) States if the target object is in the gripper
 
         // === Motion variables === //
         //! The mininum travelling distance (including turns) to consider performing localization
@@ -174,12 +183,16 @@ namespace Kodu {
         
         // === Sound variables === //
         std::queue<std::string> playQueue;  //!< The queue of sound files the agent wants to play
+
+
+        std::queue<KoduConditionBump*> bmpDetector;
+
         
     private: //// ================= The Private Agent Variables ================= ////
         // === Motion variables === //
         unsigned int walkStartTime;         //!< The time (in milliseconds) the agent started walking
         float totalApproxDistanceTravelled; //!< The total approx. distance travelled (including turns)
-        float distanceSinceLastLocalization;//!< The (approx.) distance travelled since the last localization
+        float distanceSinceLastLocalization;//!< The distance travelled since the last localization
         DualCoding::Point lastRecordedPosition; //!< The approx. position the agent was at before it moved
         float lastRecordedHeading;
         

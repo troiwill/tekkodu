@@ -30,7 +30,6 @@ namespace Kodu {
             bool runOnce)
           : KoduPrimitive(kActionName),
             actionType(actType),
-            actionCanRun(true),
             onceModEnabled(actionCanUseOnceMod && runOnce)
         { }
         
@@ -38,7 +37,6 @@ namespace Kodu {
         explicit KoduAction(const KoduAction& kAction)
           : KoduPrimitive(kAction),
             actionType(kAction.actionType),
-            actionCanRun(kAction.actionCanRun),
             onceModEnabled(kAction.onceModEnabled)
         { }
 
@@ -52,7 +50,6 @@ namespace Kodu {
             if (this != &kAction) {
                 KoduPrimitive::operator=(kAction);
                 actionType = kAction.actionType;
-                actionCanRun = kAction.actionCanRun;
                 onceModEnabled = kAction.onceModEnabled;
             }
             return *this;
@@ -60,7 +57,7 @@ namespace Kodu {
 
         //! Returns whether or not the action can ran
         bool canRun() const {
-            return actionCanRun;
+            return KoduPrimitive::agentCanUsePrimitive();
         }
 
         //! Checks if the once modifier is enabled
@@ -69,15 +66,15 @@ namespace Kodu {
         }
 
         //! Used to reinitialize certain variables (e.g. when switching to another page)
-        void reinitialize() {
-            actionCanRun = false;
+        virtual void reinitialize() {
+            KoduPrimitive::reinitialize();
         }
-
+/*
         //! Sets the action can run variable
         void setActionCanRun(bool bVal) {
             actionCanRun = bVal;
         }
-
+*/
         //! Returns the action type
         ActionTypes getActionType() const {
            return actionType;
@@ -86,13 +83,11 @@ namespace Kodu {
         //! Prints the attributes for a particular behavior
         virtual void printAttrs() const {
             KoduPrimitive::printAttrs();
-            PRINT_ATTRS("Action can ran", actionCanRun);
             PRINT_ATTRS("Once modifier enabled", onceModEnabled);
         }
 
     private:
         ActionTypes actionType; //!< states the action type
-        bool actionCanRun;      //!< states if an action can run
         bool onceModEnabled;    //!< states if the once modifier is enabled (depends on action type too)
     };
 } // end of Kodu namespace

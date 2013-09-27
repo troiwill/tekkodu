@@ -28,7 +28,9 @@ namespace Kodu {
             objType(kObjectType),
             objColor(kObjectColor),
             searchLocation(locationToSearch),
-            refdObject()
+            refdObject(),
+            agentLastPosAfterDetection(),
+            visuallyDetectedBump(false)
         { }
 
         //! Copy constructor
@@ -38,7 +40,9 @@ namespace Kodu {
             objType(kCondition.objType),
             objColor(kCondition.objColor),
             searchLocation(kCondition.searchLocation),
-            refdObject(kCondition.refdObject)
+            refdObject(kCondition.refdObject),
+            agentLastPosAfterDetection(kCondition.agentLastPosAfterDetection),
+            visuallyDetectedBump(kCondition.visuallyDetectedBump)
         { }
 
         //! Destructor
@@ -55,6 +59,8 @@ namespace Kodu {
                 objColor = kCondition.objColor;
                 searchLocation = kCondition.searchLocation;
                 refdObject = kCondition.refdObject;
+                agentLastPosAfterDetection = kCondition.agentLastPosAfterDetection;
+                visuallyDetectedBump = kCondition.visuallyDetectedBump;
             }
             return *this;
         }
@@ -80,12 +86,18 @@ namespace Kodu {
         //! Prints the attributes of a particular instance
         virtual void printAttrs() const;
 
+        bool agentIsNearMatchingObject();
+
+        void setVisualBumpDetection(bool);
+
     private:
         bool notModifierEnabled;
         std::string objType;
         std::string objColor;
         SearchLocation_t searchLocation;
         DualCoding::Shape<DualCoding::CylinderData> refdObject;
+        DualCoding::Point agentLastPosAfterDetection;
+        bool visuallyDetectedBump;
     };
 }
 
