@@ -40,7 +40,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $provide unsigned int cycleCount;
 
     $provide GrabActuator* grabActRef;
-    $provide MotionActuator* motionActRef;
+    //$provide MotionActuator* motionActRef;
+
+    $provide MotionActionRunner* motionActRef;
+
     $provide PageSwitchActuator* pageSwitchActRef;
     $provide PlayActuator* playActRef;
     $provide SayActuator* sayActRef;
@@ -491,6 +494,151 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // end of Grab
 
 // Motion 
+    $nodeclass MotionActionRunner : StateNode {
+
+        $nodeclass MotionStart : PilotNode {
+
+            bool agentCanUseSimpleMotion(const int kTargetId) {
+                std::cout << "checking if agent can do simple motion...\n";
+                // gather all the shapes in the world shape space
+                NEW_SHAPEROOTVEC(worldShapes, worldShS);
+
+                // import them to the local shape space (if it is a cylinder) and get the target object
+                ShapeRoot lclTarget;
+                std::vector<ShapeRoot> lclCylinders;
+                for (std::size_t i = 0; i < worldShapes.size(); i++) {
+                    if (worldShapes[i]->getType() == cylinderDataType) {
+                        lclCylinders.push_back(VRmixin::mapBuilder->importWorldToLocal(worldShapes[i]));
+                        if (worldShapes[i]->getId() == kTargetId) {
+                            lclTarget = lclCylinders.back();
+                        }
+                    }
+                }
+
+                // make sure the target shape is valid (should never be invalid)
+                if (!lclTarget.isValid()) {
+                    std::cout << "local target shape was not found... cannot do simple motion\n";
+                    return false;
+                }
+
+                // get the centroid of the target and the agent's base offset
+                const Point& targetPt = lclTarget->getCentroid();
+                //const Point& agentPt = VRmixin::theAgent->getCentroid();
+                const float agentBaseOffset = VRmixin::theAgent->getBoundingBoxOffset()[0];
+
+                // calculate points for the pre-image polygon (rectangle)
+                const float length = targetPt.xyDistanceFrom(Point(0, 0, 0, egocentric));
+                const float halfWidth = agentBaseOffset * 0.85f;
+                std::vector<Point> preImagePoly;
+                preImagePoly.push_back(Point(length,  halfWidth, 0, egocentric));   // top left point
+                preImagePoly.push_back(Point(length, -halfWidth, 0, egocentric));   // top right point
+                preImagePoly.push_back(Point(     0, -halfWidth, 0, egocentric));   // bottom right point
+                preImagePoly.push_back(Point(     0,  halfWidth, 0, egocentric));   // bottom left point
+
+                // create the transformed polygon
+                AngSignPi dtheta = lclTarget->getCentroid().atanYX();
+                std::vector<Point> transPoly;
+                for (std::size_t i = 0; i < preImagePoly.size(); i++) {
+                    // calculate the transformed x coordinate ==> x' = (x * cos(theta)) - (y * sin(theta))
+                    float xPrime = (preImagePoly[i].coordX() * cos(dtheta))
+                                    - (preImagePoly[i].coordY() * sin(dtheta));
+                    
+                    // calculate the transformed y coordinate ==> y' = (y * cos(theta)) + (x * sin(theta))
+                    float yPrime = (preImagePoly[i].coordY() * cos(dtheta))
+                                    + (preImagePoly[i].coordX() * sin(dtheta));
+
+                    // add the xy pair to the point vector
+                    transPoly.push_back(Point(xPrime, yPrime, 0, egocentric));
+                }
+                // close the polygon
+                transPoly.push_back(transPoly[0]);
+
+                // put the polygon in the local shape space
+                NEW_SHAPE(simpleMotionBox, PolygonData, new PolygonData(localShS, transPoly, true));
+                //simpleMotionBox->setObstacle(false);
+                simpleMotionBox->setViewable(true);
+
+                // iterate over all shapes in the local shape vector
+                const std::size_t kNumbOfCorners = 4;
+                for (std::size_t i = 0; i < lclCylinders.size(); i++) {
+                    // if the current shape is the target skip it
+                    if (lclCylinders[i]->getId() == lclTarget->getId())
+                        continue;
+                    // create four corners of the shape
+                    BoundingBox2D box = lclCylinders[i]->getBoundingBox();
+
+                    Point shapeCorners[kNumbOfCorners] = {
+                        Point(box.max[0], box.max[1], 0, egocentric),
+                        Point(box.max[0], box.min[1], 0, egocentric),
+                        Point(box.min[0], box.min[1], 0, egocentric),
+                        Point(box.min[0], box.max[1], 0, egocentric)
+                    };
+                    // check if any of them are inside or "on" the simple motion box
+                    for (std::size_t j = 0; j < kNumbOfCorners; j++) {
+                        if (simpleMotionBox->isInside(shapeCorners[j])) {
+                            std::cout << "shape " << lclCylinders[i] << " is inside the motion box... ";
+                            std::cout << "reverting to goToShape Pilot request.\n";
+                            return false;
+                        }
+                    }
+                }
+                std::cout << "agent can successfully walk to shape " << lclTarget << std::endl;
+                return true;
+            }
+
+            virtual void doStart() {
+                $reference KoduGame::theAgent;
+                PilotRequest pReq(PilotTypes::noRequest);
+                // get the current motion command
+                Kodu::MotionCommand& newCmd = theAgent->currMotionCmd;
+                if (newCmd.targetObjectIsValid()) {
+                    if (agentCanUseSimpleMotion(newCmd.getTargetObject()->getId())) {
+                        std::cout << "perform simple motion!\n";
+                        ShapeRoot target = newCmd.getTargetObject();
+                        ShapeRoot lclTarget = VRmixin::mapBuilder->importWorldToLocal(target);
+                        pReq.requestType = PilotTypes::walk;
+                        pReq.da = AngSignPi(lclTarget->getCentroid().atanYX());
+                        float dist = lclTarget->getCentroid().xyDistanceFrom(Point(0, 0, 0, egocentric));
+                        pReq.dx = dist - Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump - 60;
+                        std::cout << "turning " << pReq.da << " rads; walking " << pReq.dx << " mm\n";
+                    } else {
+                        pReq.requestType = PilotTypes::goToShape;
+                        ShapeRoot target = newCmd.getTargetObject();
+                        target->setObstacle(false);
+                        std::cout << "Target Location: " << target->getCentroid() << std::endl;
+                        pReq.targetShape = target;
+                        pReq.baseOffset =
+                            fmat::pack(Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump - 60, 0, 0);
+                    }
+                } else {
+                    pReq.requestType = PilotTypes::walk;
+                    pReq.da = AngSignPi(newCmd.getTurningAngle());
+                    pReq.dx = newCmd.getDistanceToTravel();
+                }
+                pReq.forwardSpeed = newCmd.getForwardSpeed();
+                pReq.turnSpeed = newCmd.getTurnSpeed();
+                pReq.collisionAction = collisionIgnore;
+                pilotreq = pReq;
+                //newCmd.invalidate();
+                theAgent->startMonitoringWalk();
+            }
+        }
+
+        $nodeclass MotionEnd : StateNode : doStart {
+            $reference KoduGame::theAgent;
+            theAgent->stopMonitoringWalk();
+            theAgent->currMotionCmd.invalidate();
+            std::cout << "Motion action complete.\n";
+            postParentCompletion();
+        }
+
+        $setupmachine {
+            mStart:     MotionStart
+            mEnd:       MotionEnd
+
+            mStart =C=> mEnd
+        }
+    }
 
     $nodeclass MotionActuator : PilotNode : doStart {
         $reference KoduGame::theAgent;
@@ -639,10 +787,13 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             grabAct =GRASP=> failGrabAct =C=> endState
 
             // motion actuator
-            motionAct:      MotionActuator
-            compMotionAct:  CompleteMotionActuator
+            //motionAct:      MotionActuator
+            //compMotionAct:  CompleteMotionActuator
+            
+            //motionAct =PILOT=> compMotionAct =C=> endState
+            motionAct:      MotionActionRunner
 
-            motionAct =PILOT=> compMotionAct =C=> endState
+            motionAct =C=> endState
 
             // speech actuator
             sayAct:     SayActuator
