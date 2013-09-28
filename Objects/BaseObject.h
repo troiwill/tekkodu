@@ -56,19 +56,22 @@ namespace Kodu {
         //! Returns the object's type
         const std::string& getType() const;
 
-        //! Returns if an object is a landmark or not
+        //! Returns true if an object is a landmark or not
         bool isLandmark() const;
 
-        //! Returns whether or not an object is movable
+        //! Returns true if an object is movable
         bool isMovable() const;
 
-        //! 
+        //! Returns true if an object can move throughout the environment (autonomously)
+        bool hasMobility() const;
+
+        //! Returns true if the agent found an object that met the search criteria (color, type, etc)
         bool foundValidMatch() const;
 
         //! Returns the object that matches the description
         virtual const DualCoding::ShapeRoot& getMatchingObject() const;
 
-        //! Sets the
+        //! Stores the object that matches the search criteria
         virtual void setMatchingObject(const DualCoding::ShapeRoot&);
 
     protected:
