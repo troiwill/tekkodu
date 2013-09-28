@@ -2,39 +2,32 @@
 
 namespace Kodu {
 
-    template<class ShapeType>
-    const std::string& BaseObject<ShapeType>::getColor() const {
+    const std::string& BaseObject::getColor() const {
         return objectColor;
     }
 
-    template<class ShapeType>
-    const std::string& BaseObject<ShapeType>::getType() const {
+    const std::string& BaseObject::getType() const {
         return objectType;
     }
 
-    template<class ShapeType>
-    bool BaseObject<ShapeType>::isLandmark() const {
+    bool BaseObject::isLandmark() const {
         return objectIsLandmark;
     }
 
-    template<class ShapeType>
-    bool BaseObject<ShapeType>::isMovable() const {
+    bool BaseObject::isMovable() const {
         // landmark objects should not be movable
         return (!isLandmark());
     }
 
-    template<class ShapeType>
-    bool BaseObject<ShapeType>::foundValidMatch() const {
+    bool BaseObject::foundValidMatch() const {
         return matchingObject.isValid();
     }
 
-    template<class ShapeType>
-    const ShapeType& BaseObject<ShapeType>::getMatchingObject() const {
+    const DualCoding::ShapeRoot& BaseObject::getMatchingObject() const {
         return matchingObject;
     }
 
-    template<class ShapeType>
-    void BaseObject<ShapeType>::setMatchingObject(const ShapeType& kShape) {
+    void BaseObject::setMatchingObject(const DualCoding::ShapeRoot& kShape) {
         matchingObject = kShape;
     }
 }

@@ -11,12 +11,11 @@
 #include <string>
 
 namespace Kodu {
-    //! Base Object template class
-    template<class ShapeType>
+    //! Base Object class
     class BaseObject {
     public:
         //! Constructor
-        BaseObject<ShapeType>(const std::string& kObjectColor, const std::string& kObjectType,
+        BaseObject(const std::string& kObjectColor, const std::string& kObjectType,
             SearchLocation_t locationsToSearch, bool canBeLandmark)
           : objectColor(kObjectColor),
             objectType(kObjectType),
@@ -26,7 +25,7 @@ namespace Kodu {
         { }
 
         //! Copy constructor
-        BaseObject<ShapeType>(const BaseObject<ShapeType>& kObject)
+        BaseObject(const BaseObject& kObject)
           : objectColor(kObject.objectColor),
             objectType(kObject.objectType),
             searchLocations(kObject.searchLocations),
@@ -35,12 +34,12 @@ namespace Kodu {
         { }
 
         //! Destructor
-        virtual ~BaseObject<ShapeType>() {
+        virtual ~BaseObject() {
             // no explicit implementation
         }
 
         //! Assignment operator
-        BaseObject<ShapeType>& operator=(const BaseObject<ShapeType>& kObject) {
+        BaseObject& operator=(const BaseObject& kObject) {
             if (this != &kObject) {
                 objectColor = kObject.objectColor;
                 objectType = kObject.objectType;
@@ -67,20 +66,17 @@ namespace Kodu {
         bool foundValidMatch() const;
 
         //! Returns the object that matches the description
-        virtual const ShapeType& getMatchingObject() const;
+        virtual const DualCoding::ShapeRoot& getMatchingObject() const;
 
         //! Sets the
-        virtual void setMatchingObject(const ShapeType&);
-
-        //! Returns whether the parameter is the same type as the calling class
-        static bool isSameTypeAs(const BaseObject<ShapeType>*);
+        virtual void setMatchingObject(const DualCoding::ShapeRoot&);
 
     protected:
         std::string objectColor;            //!< the object's color
         std::string objectType;             //!< the object's type (e.g. tree, rock, apple)
-        SearchLocation_t searchLocations;   //!< the locations relative to the perceiver to search for an object
+        SearchLocation_t searchLocations;   //!< the locations the perceiver should search for an object
         bool objectIsLandmark;              //!< can "this" object be used as a landmark
-        ShapeType matchingObject;           //!< the object that matches search criteria (color, type, etc)
+        DualCoding::ShapeRoot matchingObject; //!< the object that matches search criteria
     };
 }
 
