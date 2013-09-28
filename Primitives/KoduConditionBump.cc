@@ -11,8 +11,10 @@ namespace Kodu {
         // 1) the agent visually detected the bump,
         // 2) the referenced object (the object the bump condition will react to) is valid
         // 3) the agent has not moved anywhere (translated the body in the x-direction)
+        //    (3) assumes that the agent's centroid measurement is correct.
+        static float const kMaxDistAgentCanMoveAway = 20.0f;
         bool rv = (visuallyDetectedBump && refdObject.isValid()
-            && distanceFromAgentToPoint(agentLastPosAfterDetection) <= kMaxDistanceAwayToSenseBump);
+            && distanceFromAgentToPoint(agentLastPosAfterDetection) <= kMaxDistAgentCanMoveAway);
         
         // if the not modifier is enabled, negate the value of the return value (rv)
         if (notModifierEnabled)
