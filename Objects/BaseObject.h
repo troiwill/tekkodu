@@ -69,10 +69,10 @@ namespace Kodu {
         bool foundValidMatch() const;
 
         //! Returns the object that matches the description
-        virtual const DualCoding::ShapeRoot& getMatchingObject() const;
+        const DualCoding::ShapeRoot& getMatchingObject() const;
 
         //! Stores the object that matches the search criteria
-        virtual void setMatchingObject(const DualCoding::ShapeRoot&);
+        void setMatchingObject(const DualCoding::ShapeRoot&);
 
     protected:
         std::string objectColor;            //!< the object's color
