@@ -42,7 +42,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $provide GrabActuator* grabActRef;
     //$provide MotionActuator* motionActRef;
 
-    $provide MotionActionRunner* motionActRef;
+    $provide MotionActionHandler* motionActRef;
 
     $provide PageSwitchActuator* pageSwitchActRef;
     $provide PlayActuator* playActRef;
@@ -455,7 +455,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             scoreActRef->start();
     }
 
-// ================================ Actuators ========================================= //
+// ================================ Action Handlers ========================================= //
 
 // Grab
 
@@ -494,10 +494,25 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // end of Grab
 
 // Motion 
-    $nodeclass MotionActionRunner : StateNode {
+    $nodeclass MotionActionHandler : StateNode {
 
         $nodeclass MotionStart : PilotNode {
 
+            /**
+             * If the agent is walking towards a shape, it should first check if it can "simply" turn
+             * towards the object and walk straight to it. This function tests that by drawing a
+             * rectangle from the robot to the target shape. If any shape is in the rectangle
+             * (except for the target and the agent itself), then the agent must revert to the goToShape
+             * Pilot request. Otherwise, it can use simple motion.
+             *
+             * ASSUMPTIONS:
+             * - The only shapes in the environment are cylinders/canisters. This function does not
+             *   assume that there are other things such as walls or other agents (robots) in the
+             *   environment.
+             *
+             * - The environment is static. That is, there is only one robot in the environment and
+             *   it is the only mobile thing in the environment.
+            **/
             bool agentCanUseSimpleMotion(const int kTargetId) {
                 std::cout << "checking if agent can do simple motion...\n";
                 // gather all the shapes in the world shape space
@@ -506,6 +521,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 // import them to the local shape space (if it is a cylinder) and get the target object
                 ShapeRoot lclTarget;
                 std::vector<ShapeRoot> lclCylinders;
+                std::cout << "importing shapes from world to local...\n";
                 for (std::size_t i = 0; i < worldShapes.size(); i++) {
                     if (worldShapes[i]->getType() == cylinderDataType) {
                         lclCylinders.push_back(VRmixin::mapBuilder->importWorldToLocal(worldShapes[i]));
@@ -526,8 +542,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 //const Point& agentPt = VRmixin::theAgent->getCentroid();
                 const float agentBaseOffset = VRmixin::theAgent->getBoundingBoxOffset()[0];
 
-                // calculate points for the pre-image polygon (rectangle)
+                // calculate points for the pre-image polygon (rectangle/box)
+                // length (of box) = the distance from the robot's centroid to the target's centroid
                 const float length = targetPt.xyDistanceFrom(Point(0, 0, 0, egocentric));
+                // halfWidth (of box) = the inflated diameter of the robot
                 const float halfWidth = agentBaseOffset * 0.85f;
                 std::vector<Point> preImagePoly;
                 preImagePoly.push_back(Point(length,  halfWidth, 0, egocentric));   // top left point
@@ -561,17 +579,17 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 // iterate over all shapes in the local shape vector
                 const std::size_t kNumbOfCorners = 4;
                 for (std::size_t i = 0; i < lclCylinders.size(); i++) {
-                    // if the current shape is the target skip it
+                    // if the current shape is the target, skip it
                     if (lclCylinders[i]->getId() == lclTarget->getId())
                         continue;
-                    // create four corners of the shape
+                    // create the four corners of the shape
                     BoundingBox2D box = lclCylinders[i]->getBoundingBox();
 
                     Point shapeCorners[kNumbOfCorners] = {
-                        Point(box.max[0], box.max[1], 0, egocentric),
-                        Point(box.max[0], box.min[1], 0, egocentric),
-                        Point(box.min[0], box.min[1], 0, egocentric),
-                        Point(box.min[0], box.max[1], 0, egocentric)
+                        Point(box.max[0], box.max[1], 0, egocentric),   // top left
+                        Point(box.max[0], box.min[1], 0, egocentric),   // top right
+                        Point(box.min[0], box.min[1], 0, egocentric),   // bottom right
+                        Point(box.min[0], box.max[1], 0, egocentric)    // bottom left
                     };
                     // check if any of them are inside or "on" the simple motion box
                     for (std::size_t j = 0; j < kNumbOfCorners; j++) {
@@ -582,7 +600,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         }
                     }
                 }
-                std::cout << "agent can successfully walk to shape " << lclTarget << std::endl;
+                std::cout << "agent can use simple motion to walk to shape \"" << lclTarget << "\"\n";
                 return true;
             }
 
@@ -791,7 +809,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             //compMotionAct:  CompleteMotionActuator
             
             //motionAct =PILOT=> compMotionAct =C=> endState
-            motionAct:      MotionActionRunner
+            motionAct:      MotionActionHandler
 
             motionAct =C=> endState
 
