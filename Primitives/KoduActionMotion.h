@@ -26,6 +26,27 @@ namespace Kodu {
             cmdValid(false)
         { }
 
+        //! Constructor #2
+        MotionCommand(const DualCoding::Shape<DualCoding::CylinderData>& kTarget,
+            float fwdSpeed, float trnSpeed)
+          : targetObject(kTarget),
+            forwardSpeed(fwdSpeed),
+            turnSpeed(trnSpeed),
+            dx(0.0f),
+            da(0.0f),
+            cmdValid(true)
+        { }
+
+        //! Constructor #3
+        MotionCommand(float fwdSpeed, float trnSpeed, float fwdDist, float trnAngle)
+          : targetObject(DualCoding::Shape<DualCoding::CylinderData>()),
+            forwardSpeed(fwdSpeed),
+            turnSpeed(trnSpeed),
+            dx(fwdDist),
+            da(trnAngle),
+            cmdValid(true)
+        { }
+
         //! Copy Constructor
         MotionCommand(const MotionCommand& kCommand)
           : targetObject(kCommand.targetObject),
@@ -207,7 +228,7 @@ namespace Kodu {
 
     private:
         MotionType_t motionType;    //!< States what type of movement the robot will do
-        MotionCommand motionCmd;    //!< Used to tell the robot what object to go to, how far to move, etc.
+        MotionCommand motionCmd;    //!< Used to tell the robot what object to go to, how far to move etc.
         NumericGenerator angleGen;  //!< Used to generate constant or random angle values
         NumericGenerator distGen;   //!< Used to generate constant or random distance values
     };

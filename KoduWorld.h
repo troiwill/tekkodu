@@ -15,8 +15,8 @@ namespace Kodu {
     class KoduWorld {
     public:
         //! Constructor
-        KoduWorld(const std::string& agentName)
-          : thisAgent(agentName, DualCoding::Point(0.0f, 0.0f, 0.0f, DualCoding::egocentric), 0.0f),
+        KoduWorld(/*const std::string& agentName*/)
+          : thisAgent(/*agentName,*/DualCoding::Point(0.0f, 0.0f, 0.0f, DualCoding::egocentric), 0.0f),
             northStarIsArtifical(true),
             worldBoundsPolygon(),
             worldSideLength(2000.0f)    // 2 meters (area = 2m sq)
