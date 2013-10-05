@@ -497,7 +497,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
 // end of Grab
 
-// Motion 
+// Motion Handler
     
     $nodeclass MotionActionHandler : StateNode {
         $provide Kodu::MotionCommand cmd;
@@ -508,18 +508,140 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             MTT_GO_TO_SHAPE
         };
 
-        $nodeclass MotionStart : StateNode : doStart {
-            $reference KoduGame::thisAgent;
-            $reference MotionActionHandler::cmd;
-            if (thisAgent->currMotionCmd.targetObjectIsValid()) {
-                postStateSignal<MotionTransType>(MTT_GO_TO_SHAPE);
-                cmd = thisAgent->currMotionCmd;
-            } else {
-                postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
-                cmd = thisAgent->currMotionCmd;
+        $nodeclass MotionStart : StateNode {
+
+            /**
+             * If the agent is walking towards a shape, it should first check if it can "simply" turn
+             * towards the object and walk straight to it. This function tests that by drawing a
+             * rectangle from the robot to the target shape. If any shape is in the rectangle
+             * (except for the target and the agent itself), then the agent must revert to the goToShape
+             * Pilot request. Otherwise, it can use simple motion.
+             *
+             * ASSUMPTIONS:
+             * - The only shapes in the environment are cylinders/canisters. This function does not
+             *   assume that there are other things such as walls or other agents (robots) in the
+             *   environment.
+             *
+             * - The environment is static. That is, there is only one robot in the environment and
+             *   it is the only mobile thing in the environment.
+            **/
+            Kodu::MotionCommand canUseSimpleMotion(const ShapeRoot& kTarget) {
+                $reference MotionActionHandler::kBaseOffset;
+                // gather all the shapes in the world shape space
+                std::cout << "checking if agent can do simple motion...\n";
+                std::vector<ShapeRoot> worldShapes(worldShS);
+
+                // import them to the local shape space (if it is a cylinder) and get the target object
+                ShapeRoot lclTarget;
+                std::vector<ShapeRoot> lclShapes;
+                std::cout << "importing shapes from world to local...\n";
+                for (std::size_t i = 0; i < worldShapes.size(); i++) {
+                    if (worldShapes[i]->getType() == cylinderDataType) {
+                        lclShapes.push_back(VRmixin::mapBuilder->importWorldToLocal(worldShapes[i]));
+                        if (worldShapes[i] == kTarget) {
+                            lclTarget = lclShapes.back();
+                        }
+                    }
+                }
+
+                // make sure the target shape is valid (should never be invalid)
+                if (!(lclTarget.isValid())) {
+                    std::cout << "local target shape was not found... cannot do simple motion\n";
+                    return Kodu::MotionCommand();
+                }
+
+                // get the centroid of the target and the agent's base offset
+                const Point& targetPt = lclTarget->getCentroid();
+                const float agentBaseOffset = VRmixin::theAgent->getBoundingBoxOffset()[0];
+
+                // calculate points for the pre-image polygon (rectangle/box)
+                // length (of box) = the distance from the robot's centroid to the target's centroid
+                const float length = targetPt.xyDistanceFrom(Point(0, 0, 0, egocentric));
+                // halfWidth (of box) = the inflated diameter of the robot
+                const float halfWidth = agentBaseOffset * 0.85f;
+                std::vector<Point> preImagePoly;
+                preImagePoly.push_back(Point(length,  halfWidth, 0, egocentric));   // top left point
+                preImagePoly.push_back(Point(length, -halfWidth, 0, egocentric));   // top right point
+                preImagePoly.push_back(Point(     0, -halfWidth, 0, egocentric));   // bottom right point
+                preImagePoly.push_back(Point(     0,  halfWidth, 0, egocentric));   // bottom left point
+
+                // create the transformed polygon
+                float dtheta = targetPt.atanYX();
+                std::vector<Point> transPoly;
+                for (std::size_t i = 0; i < preImagePoly.size(); i++) {
+                    // calculate the transformed x coordinate ==> x' = (x * cos(theta)) - (y * sin(theta))
+                    float xPrime = (preImagePoly[i].coordX() * cos(dtheta))
+                                    - (preImagePoly[i].coordY() * sin(dtheta));
+                    
+                    // calculate the transformed y coordinate ==> y' = (y * cos(theta)) + (x * sin(theta))
+                    float yPrime = (preImagePoly[i].coordY() * cos(dtheta))
+                                    + (preImagePoly[i].coordX() * sin(dtheta));
+
+                    // add the xy pair to the point vector
+                    transPoly.push_back(Point(xPrime, yPrime, 0, egocentric));
+                }
+                // close the polygon
+                transPoly.push_back(transPoly[0]);
+
+                // put the polygon in the local shape space
+                NEW_SHAPE(simpleMotionBox, PolygonData, new PolygonData(localShS, transPoly, true));
+                //simpleMotionBox->setObstacle(false);
+                simpleMotionBox->setViewable(true);
+
+                // iterate over all shapes in the local shape vector
+                const std::size_t kNumbOfCorners = 4;
+                for (std::size_t i = 0; i < lclShapes.size(); i++) {
+                    // if the current shape is the target, skip it
+                    if (lclShapes[i]->getId() == lclTarget->getId())
+                        continue;
+                    // create the four corners of the shape
+                    BoundingBox2D box = lclShapes[i]->getBoundingBox();
+
+                    Point shapeCorners[kNumbOfCorners] = {
+                        Point(box.max[0], box.max[1], 0, egocentric),   // top left
+                        Point(box.max[0], box.min[1], 0, egocentric),   // top right
+                        Point(box.min[0], box.min[1], 0, egocentric),   // bottom right
+                        Point(box.min[0], box.max[1], 0, egocentric)    // bottom left
+                    };
+                    // check if any of them are inside or "on" the simple motion box
+                    for (std::size_t j = 0; j < kNumbOfCorners; j++) {
+                        if (simpleMotionBox->isInside(shapeCorners[j])) {
+                            std::cout << "shape " << lclShapes[i] << " is inside the motion box... ";
+                            std::cout << "reverting to goToShape Pilot request.\n";
+                            return Kodu::MotionCommand();
+                        }
+                    }
+                }
+                std::cout << "agent can use simple motion to walk to shape \"" << lclTarget << "\"\n";
+                return Kodu::MotionCommand(length - kBaseOffset, dtheta, 150.0f, 150.0f / 130.0f);
             }
-            thisAgent->startMonitoringWalk();
-            thisAgent->currMotionCmd.invalidate();
+
+            virtual void doStart() {
+                $reference KoduGame::thisAgent;
+                $reference MotionActionHandler::cmd;
+                // check if the agent needs to go to an object
+                if (thisAgent->currMotionCmd.targetObjectIsValid()) {
+                    // get a constant reference to the target shape
+                    const ShapeRoot& target = thisAgent->currMotionCmd.getTargetObject();
+                    // check if the agent can perform simple motion
+                    if ((cmd = canUseSimpleMotion(target)).isValid()) {
+                        postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
+                    }
+                    // if not, revert to the goToShape Pilot request
+                    else {
+                        postStateSignal<MotionTransType>(MTT_GO_TO_SHAPE);
+                        cmd = thisAgent->currMotionCmd;
+                    }
+                }
+                // else, do simple motion
+                else {
+                    postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
+                    cmd = thisAgent->currMotionCmd;
+                }
+                // start monitoring the agent's walk, and invalidate the motion command
+                thisAgent->startMonitoringWalk();
+                thisAgent->currMotionCmd.invalidate();
+            }
         }
 
         $nodeclass GoToShape : PilotNode(PilotTypes::goToShape) : doStart {
@@ -530,8 +652,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             target->setObstacle(false);
             pilotreq.targetShape = target;
             pilotreq.baseOffset = fmat::pack(kBaseOffset, 0, 0);
-            pilotreq.forwardSpeed = cmd.getForwardSpeed();
-            pilotreq.turnSpeed = cmd.getTurnSpeed();
+            //pilotreq.forwardSpeed = cmd.getForwardSpeed();
+            //pilotreq.turnSpeed = cmd.getTurnSpeed();
             pilotreq.collisionAction = collisionIgnore;
         }
 
@@ -541,7 +663,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 $reference MotionActionHandler::cmd;
                 pilotreq = PilotRequest(PilotTypes::walk);
                 pilotreq.da = cmd.getTurningAngle();
-                pilotreq.turnSpeed = cmd.getTurnSpeed();
+                //pilotreq.turnSpeed = cmd.getTurnSpeed();
                 pilotreq.collisionAction = collisionIgnore;
                 std::cout << "simple turn = " << pilotreq.da << "rad (= " 
                           << rad2deg(pilotreq.da) << "deg)\n";
@@ -551,7 +673,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 $reference MotionActionHandler::cmd;
                 pilotreq = PilotRequest(PilotTypes::walk);
                 pilotreq.dx = cmd.getDistanceToTravel();
-                pilotreq.turnSpeed = cmd.getForwardSpeed();
+                //pilotreq.turnSpeed = cmd.getForwardSpeed();
                 pilotreq.collisionAction = collisionIgnore;
                 std::cout << "simple dist = " << pilotreq.dx << "mm\n";
             }
@@ -583,7 +705,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             go2Shape =C=> mEnd
             simMotion =C=> mEnd
         }
-
     }
 
 // end of Motion
