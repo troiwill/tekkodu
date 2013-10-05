@@ -19,10 +19,10 @@ namespace Kodu {
         //! Constructor
         MotionCommand()
           : targetObject(),
-            forwardSpeed(0),
-            turnSpeed(0),
             dx(0),
             da(0),
+            forwardSpeed(0),
+            turnSpeed(0),
             cmdValid(false)
         { }
 
@@ -30,30 +30,30 @@ namespace Kodu {
         MotionCommand(const DualCoding::Shape<DualCoding::CylinderData>& kTarget,
             float fwdSpeed, float trnSpeed)
           : targetObject(kTarget),
-            forwardSpeed(fwdSpeed),
-            turnSpeed(trnSpeed),
             dx(0.0f),
             da(0.0f),
+            forwardSpeed(fwdSpeed),
+            turnSpeed(trnSpeed),
             cmdValid(true)
         { }
 
         //! Constructor #3
-        MotionCommand(float fwdSpeed, float trnSpeed, float fwdDist, float trnAngle)
+        MotionCommand(float fwdDist, float trnAngle, float fwdSpeed, float trnSpeed)
           : targetObject(DualCoding::Shape<DualCoding::CylinderData>()),
-            forwardSpeed(fwdSpeed),
-            turnSpeed(trnSpeed),
             dx(fwdDist),
             da(trnAngle),
+            forwardSpeed(fwdSpeed),
+            turnSpeed(trnSpeed),
             cmdValid(true)
         { }
 
         //! Copy Constructor
         MotionCommand(const MotionCommand& kCommand)
           : targetObject(kCommand.targetObject),
-            forwardSpeed(kCommand.forwardSpeed),
-            turnSpeed(kCommand.turnSpeed),
             dx(kCommand.dx),
             da(kCommand.da),
+            forwardSpeed(kCommand.forwardSpeed),
+            turnSpeed(kCommand.turnSpeed),
             cmdValid(kCommand.cmdValid)
         { }
 
@@ -64,10 +64,10 @@ namespace Kodu {
         MotionCommand& operator=(const MotionCommand& kCommand) {
             if (this != &kCommand) {
                 targetObject = kCommand.targetObject;
-                forwardSpeed = kCommand.forwardSpeed;
-                turnSpeed = kCommand.turnSpeed;
                 dx = kCommand.dx;
                 da = kCommand.da;
+                forwardSpeed = kCommand.forwardSpeed;
+                turnSpeed = kCommand.turnSpeed;
                 cmdValid = kCommand.cmdValid;
             }
             return *this;
@@ -108,10 +108,10 @@ namespace Kodu {
 
     private:
         DualCoding::Shape<DualCoding::CylinderData> targetObject;
-        float forwardSpeed; //!< How fast the robot should move forward (units: mm/s)
-        float turnSpeed;    //!< How fast the robot should turn (units: rads/s)
         float dx;           //!< How far the robot should move forward (units: mm)
         float da;           //!< How much the robot should turn (units: rads)
+        float forwardSpeed; //!< How fast the robot should move forward (units: mm/s)
+        float turnSpeed;    //!< How fast the robot should turn (units: rads/s)
         bool cmdValid;      //!< States whether a command is valid or not
     };
 
