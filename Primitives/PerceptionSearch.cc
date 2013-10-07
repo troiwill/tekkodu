@@ -32,9 +32,9 @@ namespace Kodu {
     bool IsInFrontAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape
         AngSignPi dtheta = bearingFromAgentToObject(kShape);
-        // since the last calculate would produce a value between -pi/2 and +pi/2,
-        // add pi/2 to last calculate the result will give a position angle if the object is
-        // in front the agent
+        // since the last calculation would produce a value between -pi/2 and +pi/2,
+        // add pi/2 to the last calculation. the result will give a position angle
+        // if the object is in front the agent
         dtheta += AngSignPi(M_PI / 2.0f);
         // check the value of theta
         return (dtheta > 0.0f ? true : false);
@@ -53,6 +53,144 @@ namespace Kodu {
     bool IsFarAwayFromAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the distance between the shape and the agent
         return (distanceFromAgentToObject(kShape) >= 1050.0f);
+    }
+
+    float bearingFromAgentToPoint(const DualCoding::Point& kPoint) {
+        float dtheta = 0.0f;
+        switch (kPoint.getRefFrameType()) {
+            // take the agent's centroid into consideration if the point is allocentric
+            case DualCoding::allocentric:
+            {
+                // calculate the bearing between some point "kPoint" and the agent's position
+                // bearing2ThisPoint = arctan(dy/dx)
+                const DualCoding::Point& kAgentPt = DualCoding::VRmixin::theAgent->getCentroid();
+                float bearing2ThisPoint = (kPoint - kAgentPt).atanYX();
+                // subtract the agent's orientation (heading) from the bearing to get the point's angle
+                // relative ot the agent
+                dtheta = AngSignPi(bearing2ThisPoint - DualCoding::VRmixin::theAgent->getOrientation());
+                break;
+            }
+            // simply calculate the arctan of the point...
+            case DualCoding::egocentric:
+            {
+                dtheta = kPoint.atanYX();
+                break;
+            }
+            // handles all other Reference Frame Types...
+            default:
+                std::cout << "WARNING: Used unhandled reference frame in bearingFromAgentToPoint(...)\n";
+                break;
+        }
+        // return the angle between the agent and the target point
+        return dtheta;
+    }
+
+    float bearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
+        return bearingFromAgentToPoint(kShape->getCentroid());
+    }
+
+    float distanceFromAgentToPoint(const DualCoding::Point& kPoint) {
+        float dx = kPoint.coordX();
+        float dy = kPoint.coordY();
+        switch (kPoint.getRefFrameType()) {
+            // since the point is allocentric, take the agent's centroid into consideration.
+            case DualCoding::allocentric:
+            {
+                // get the agent's point
+                DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
+                // calculate the differences in the shape's and agent's positions
+                dx = dx - agentPoint.coordX();
+                dy = dy - agentPoint.coordY();
+                break;
+            }
+            // since the point is egocentric, there is nothing more to calculate (the agent's centroid
+            // is { 0, 0 }).
+            case DualCoding::egocentric:
+                break;
+
+            // this handles all other Reference Frame Types...
+            default:
+                std::cout << "WARNING: Used unhandled reference frame in distanceFromAgentToPoint(...)\n";
+                return (0.0f);
+        }
+        // return the distance
+        return sqrt((dx * dx) + (dy * dy));
+    }
+
+    float distanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
+        return distanceFromAgentToPoint(kShape->getCentroid());
+    }
+
+    float distanceInBetweenAgentAndObject(const DualCoding::ShapeRoot& kShape) {
+        static float const kRobotInflatedRadius = 205.0f;
+        float distBtwObjects = 0.0f;
+        DualCoding::ShapeRoot lclShape;
+        switch(kShape->getCentroid().getRefFrameType()) {
+            case DualCoding::allocentric:
+                lclShape = DualCoding::VRmixin::mapBuilder->importWorldToLocal(kShape);
+                break;
+
+            case DualCoding::egocentric:
+                lclShape = kShape;
+                break;
+
+            default:
+                std::cout << "WARNING: Used unhandled reference frame in "
+                          << "distanceInBetweenAgentAndObject(...)\n";
+                return (0.0f);
+        }
+        // need to check if the arm is extended or not
+        //float robotApproxLength = 
+        //BoundingBox2D shapeBounds = lclShape->getBoundingBox();
+        // determine the type of shape
+        switch(lclShape->getType()) {
+            case DualCoding::cylinderDataType:
+            {
+                // get the radius of the cylinder
+                float radius = safeApproachDistance(lclShape);
+                // calculate the distance between the objects
+                float distBetweenCentroids = distanceFromAgentToObject(lclShape);
+                distBtwObjects = distBetweenCentroids - kRobotInflatedRadius - radius;
+                break;
+            }
+            default:
+                std::cout << "WARNING: Used unhandled shape type in "
+                          << "distanceInBetweenAgentAndObject(...)\n";
+                return (0.0f);
+        }
+        return (distBtwObjects > 0.0f ? distBtwObjects : 0.0f);
+    }
+
+    float safeApproachDistance(const DualCoding::ShapeRoot& kShape) {
+        static float const kErrValue = -1.0f;
+        float safeDistance = 0.0f;
+        /*
+        DualCoding::ShapeRoot lclShape;
+        switch(kShape->getCentroid().getRefFrameType()) {
+            case DualCoding::allocentric:
+                lclShape = DualCoding::VRmixin::mapBuilder->importWorldToLocal(kShape);
+                break;
+
+            case DualCoding::egocentric:
+                lclShape = kShape;
+                break;
+
+            default:
+                std::cout << "WARNING: Used unhandled reference frame in calcObjectInflatedRadius(...)\n";
+                return kDefaultErrValue;
+        }
+        switch(lclShape->getType()) {
+        */
+        switch(kShape->getType()) {
+            case DualCoding::cylinderDataType:
+                safeDistance = static_cast<const DualCoding::CylinderData&>(kShape.getData()).getRadius();
+                break;
+
+            default:
+                std::cout << "WARNING: Used unhandled shape type in safeApproachDistance(...)\n";
+                return kErrValue;
+        }
+        return safeDistance;
     }
 
     template<typename Type>
