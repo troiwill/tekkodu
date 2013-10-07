@@ -1,5 +1,5 @@
-#ifndef BASE_OBJECTS_H_
-#define BASE_OBJECTS_H_
+#ifndef KODU_OBJECT_H_
+#define KODU_OBJECT_H_
 
 // Tekkodu Library
 #include "Kodu/Primitives/PerceptionSearch.h"
@@ -11,11 +11,11 @@
 #include <string>
 
 namespace Kodu {
-    //! Base Object class
-    class BaseObject {
+    //! Kodu Object class
+    class KoduObject {
     public:
         //! Constructor
-        BaseObject(const std::string& kObjectColor, const std::string& kObjectType,
+        KoduObject(const std::string& kObjectColor, const std::string& kObjectType,
             SearchLocation_t locationsToSearch, bool canBeLandmark)
           : objectColor(kObjectColor),
             objectType(kObjectType),
@@ -25,7 +25,7 @@ namespace Kodu {
         { }
 
         //! Copy constructor
-        BaseObject(const BaseObject& kObject)
+        KoduObject(const KoduObject& kObject)
           : objectColor(kObject.objectColor),
             objectType(kObject.objectType),
             searchLocations(kObject.searchLocations),
@@ -34,12 +34,12 @@ namespace Kodu {
         { }
 
         //! Destructor
-        virtual ~BaseObject() {
+        virtual ~KoduObject() {
             // no explicit implementation
         }
 
         //! Assignment operator
-        BaseObject& operator=(const BaseObject& kObject) {
+        KoduObject& operator=(const KoduObject& kObject) {
             if (this != &kObject) {
                 objectColor = kObject.objectColor;
                 objectType = kObject.objectType;
@@ -79,8 +79,10 @@ namespace Kodu {
         std::string objectType;             //!< the object's type (e.g. tree, rock, apple)
         SearchLocation_t searchLocations;   //!< the locations the perceiver should search for an object
         bool objectIsLandmark;              //!< can "this" object be used as a landmark
+
+    public:
         DualCoding::ShapeRoot matchingObject; //!< the object that matches search criteria
     };
 }
 
-#endif // end of BASE_OBJECTS_H_
+#endif // end of KODU_OBJECT_H_
