@@ -183,7 +183,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             $reference KoduGame::cycleCount;
             $reference KoduGame::thisAgent;
 
-            std::cout << "=== [Kodu Interpreter] ===\n";
+            std::cout << "\n=== [Kodu Interpreter] ===\n";
             bool hasNewTargetToLookAt = false;
 
             // pointers to the current page, rule, condition, and action (respectively)
@@ -198,8 +198,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 return;
             }
             // print the current game cycle and page number
-            std::cout << "========== GAME CYCLE #" << cycleCount++
-                      << ", PAGE #" << page->getPageNumber() << "==========\n";
+            std::cout << "GAME CYCLE #" << cycleCount++ << ", PAGE #" << page->getPageNumber() << "\n";
             // check if there are rules on this page
             const int numbOfRules = page->getRuleCount();
             if (numbOfRules == 0) {
@@ -518,12 +517,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
              * Pilot request. Otherwise, it can use simple motion.
              *
              * ASSUMPTIONS:
-             * - The only shapes in the environment are cylinders/canisters. This function does not
-             *   assume that there are other things such as walls or other agents (robots) in the
-             *   environment.
+             * 1) The only shapes in the environment are cylinders/canisters. This function does not
+             *    assume that there are other things such as walls or other agents (robots) in the
+             *    environment.
              *
-             * - The environment is static. That is, there is only one robot in the environment and
-             *   it is the only mobile thing in the environment.
+             * 2) The environment is static. That is, there is only one robot in the environment and
+             *    it is the only mobile thing in the environment.
             **/
             Kodu::MotionCommand canUseSimpleMotion(const ShapeRoot& kTarget) {
                 $reference MotionActionHandler::kBaseOffset;
@@ -613,7 +612,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     }
                 }
                 std::cout << "agent can use simple motion to walk to shape \"" << lclTarget << "\"\n";
-                return Kodu::MotionCommand(length - kBaseOffset, dtheta, 150.0f, 150.0f / 130.0f);
+                //return Kodu::MotionCommand(length - kBaseOffset, dtheta, 150.0f, 150.0f / 130.0f);
+                return Kodu::MotionCommand(Kodu::distanceInBetweenAgentAndObject(lclTarget), dtheta, 0,0);
             }
 
             virtual void doStart() {
@@ -638,20 +638,40 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                     cmd = thisAgent->currMotionCmd;
                 }
-                // start monitoring the agent's walk, and invalidate the motion command
+                // start monitoring the agent's walk
                 thisAgent->startMonitoringWalk();
+                // invalidate the motion command
                 thisAgent->currMotionCmd.invalidate();
+                
             }
         }
 
+        /**
+         * ASSUMPTIONS:
+         * By adding a Motion Command to do simple motion after this nodeclass (without checking if
+         * the agent can do simple motion), I am assuming that the environment is:
+         *   1) Static. There is one agent pure environment, and objects cannot move unless the one agent
+         *      causes the objects to move (intentionally or unintentionally).
+         *   2) The environment is rectangular with all objects, including the agent, are inside it.
+         *   3) There will be nothing in between the agent and the target object when this nodeclass,
+         *      GoToShape, transitions to SimpleMotion.
+        **/
         $nodeclass GoToShape : PilotNode(PilotTypes::goToShape) : doStart {
             $reference MotionActionHandler::cmd;
-            $reference MotionActionHandler::kBaseOffset;
+            //$reference MotionActionHandler::kBaseOffset;
+            //static float const kAdditionalDistBetweenAgentAndObject = 100.0f;
             pilotreq = PilotRequest(PilotTypes::goToShape);
             ShapeRoot target = cmd.getTargetObject();
             target->setObstacle(false);
             pilotreq.targetShape = target;
-            pilotreq.baseOffset = fmat::pack(kBaseOffset, 0, 0);
+            //pilotreq.baseOffset = fmat::pack(kBaseOffset + kAdditionalDistBetweenAgentAndObject, 0, 0);
+            float centroidDist = Kodu::distanceFromAgentToObject(target);
+            float spatialDist = Kodu::distanceInBetweenAgentAndObject(target);
+            pilotreq.baseOffset = fmat::pack(centroidDist - spatialDist + 100, 0, 0);
+            // need to fix the speeds for motion (for now they will be zero)
+            //float distLeft = kAdditionalDistBetweenAgentAndObject / 2.0f;
+            float distLeft = 85.0f;
+            cmd = Kodu::MotionCommand(distLeft, 0.0f, 0, 0);
             //pilotreq.forwardSpeed = cmd.getForwardSpeed();
             //pilotreq.turnSpeed = cmd.getTurnSpeed();
             pilotreq.collisionAction = collisionIgnore;
@@ -665,8 +685,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 pilotreq.da = cmd.getTurningAngle();
                 //pilotreq.turnSpeed = cmd.getTurnSpeed();
                 pilotreq.collisionAction = collisionIgnore;
-                std::cout << "simple turn = " << pilotreq.da << "rad (= " 
-                          << rad2deg(pilotreq.da) << "deg)\n";
+                std::cout << "simple turn = " << pilotreq.da << " rad (= " 
+                          << rad2deg(pilotreq.da) << " deg)\n";
             }
 
             $nodeclass SimpleWalk : PilotNode : doStart {
@@ -675,7 +695,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 pilotreq.dx = cmd.getDistanceToTravel();
                 //pilotreq.turnSpeed = cmd.getForwardSpeed();
                 pilotreq.collisionAction = collisionIgnore;
-                std::cout << "simple dist = " << pilotreq.dx << "mm\n";
+                std::cout << "simple dist = " << pilotreq.dx << " mm\n";
             }
 
             $setupmachine {
@@ -688,6 +708,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
         $nodeclass MotionEnd : StateNode : doStart {
             $reference KoduGame::thisAgent;
+            $reference MotionActionHandler::cmd;
+            cmd = Kodu::MotionCommand();
             thisAgent->stopMonitoringWalk();
             std::cout << "Motion complete.\n";
             postParentCompletion();
@@ -702,7 +724,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             mStart =S<MotionTransType>(MTT_GO_TO_SHAPE)=> go2Shape
             mStart =S<MotionTransType>(MTT_SIMPLE_MOTION)=> simMotion
 
-            go2Shape =C=> mEnd
+            go2Shape =C=> simMotion
             simMotion =C=> mEnd
         }
     }
