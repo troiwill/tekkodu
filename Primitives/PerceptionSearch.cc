@@ -124,32 +124,13 @@ namespace Kodu {
     float distanceInBetweenAgentAndObject(const DualCoding::ShapeRoot& kShape) {
         static float const kRobotInflatedRadius = 205.0f;
         float distBtwObjects = 0.0f;
-        DualCoding::ShapeRoot lclShape;
-        switch(kShape->getCentroid().getRefFrameType()) {
-            case DualCoding::allocentric:
-                lclShape = DualCoding::VRmixin::mapBuilder->importWorldToLocal(kShape);
-                break;
-
-            case DualCoding::egocentric:
-                lclShape = kShape;
-                break;
-
-            default:
-                std::cout << "WARNING: Used unhandled reference frame in "
-                          << "distanceInBetweenAgentAndObject(...)\n";
-                return (0.0f);
-        }
-        // need to check if the arm is extended or not
-        //float robotApproxLength = 
-        //BoundingBox2D shapeBounds = lclShape->getBoundingBox();
-        // determine the type of shape
-        switch(lclShape->getType()) {
+        switch(kShape->getType()) {
             case DualCoding::cylinderDataType:
             {
                 // get the radius of the cylinder
-                float radius = safeApproachDistance(lclShape);
+                float radius = safeApproachDistance(kShape);
                 // calculate the distance between the objects
-                float distBetweenCentroids = distanceFromAgentToObject(lclShape);
+                float distBetweenCentroids = distanceFromAgentToObject(kShape);
                 distBtwObjects = distBetweenCentroids - kRobotInflatedRadius - radius;
                 break;
             }
@@ -164,23 +145,6 @@ namespace Kodu {
     float safeApproachDistance(const DualCoding::ShapeRoot& kShape) {
         static float const kErrValue = -1.0f;
         float safeDistance = 0.0f;
-        /*
-        DualCoding::ShapeRoot lclShape;
-        switch(kShape->getCentroid().getRefFrameType()) {
-            case DualCoding::allocentric:
-                lclShape = DualCoding::VRmixin::mapBuilder->importWorldToLocal(kShape);
-                break;
-
-            case DualCoding::egocentric:
-                lclShape = kShape;
-                break;
-
-            default:
-                std::cout << "WARNING: Used unhandled reference frame in calcObjectInflatedRadius(...)\n";
-                return kDefaultErrValue;
-        }
-        switch(lclShape->getType()) {
-        */
         switch(kShape->getType()) {
             case DualCoding::cylinderDataType:
                 safeDistance = static_cast<const DualCoding::CylinderData&>(kShape.getData()).getRadius();

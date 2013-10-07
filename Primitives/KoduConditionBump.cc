@@ -4,7 +4,8 @@
 
 namespace Kodu {
 
-    const int KoduConditionBump::kMaxDistanceAwayToSenseBump = 400.0f; // millimeters
+    //const int KoduConditionBump::kMaxDistanceAwayToSenseBump = 400.0f; // millimeters
+    const int KoduConditionBump::kMaxDistanceAwayToSenseBump = 100.0f; // millimeters
     //const float KoduConditionBump::kMaxDistInBtwToSenseBump = 100.0f;
 
     bool KoduConditionBump::evaluate() {
@@ -36,7 +37,7 @@ namespace Kodu {
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
         std::cout << "Checking if the agent is near a matching object...";
-        if (obj.isValid() && distanceFromAgentToObject(obj) <= kMaxDistanceAwayToSenseBump) {
+        if (obj.isValid() && distanceInBetweenAgentAndObject(obj) <= kMaxDistanceAwayToSenseBump) {
             std::cout << "it's near!\n";
             refdObject = obj;
             return true;

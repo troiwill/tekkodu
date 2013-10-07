@@ -72,8 +72,7 @@ namespace Kodu {
             case MT_MOVE_TOWARDS:
             {
                 if (ObjectKeeper::isValid) {
-                    float turnAngle = 0.0f;
-                    if (distanceFromAgentToObject(ObjectKeeper::tempObject)
+                    if (distanceInBetweenAgentAndObject(ObjectKeeper::tempObject)
                         > KoduConditionBump::kMaxDistanceAwayToSenseBump)
                     {
                         motionCmd.targetObject = ObjectKeeper::tempObject;
