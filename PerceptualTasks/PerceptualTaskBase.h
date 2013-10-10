@@ -1,40 +1,103 @@
-#ifndef PERCEPTUAL_TASK_H_
-#define PERCEPTUAL_TASK_H_
+#ifndef PERCEPTUAL_TASK_BASE_H_
+#define PERCEPTUAL_TASK_BASE_H_
+
+// INCLUDES
+// c++
+#include <string>
+#include <vector>
+
+// tekkotsu
+#include "Crew/MapBuilderRequest.h"
+#include "Crew/PilotRequest.h"
+#include "DualCoding/ShapeRoot.h"
 
 namespace Kodu {
 
-    class PerceptualTask {
+    // tekkodu forward declarations
+    class KoduWorld;
+
+    enum PerceptualTaskType_t {
+        PT_VIS_BUMP_DETECTION = 0,
+        PT_VIS_WALK_PROGRESS
+    };
+
+    class PerceptualTaskBase {
     public:
-        //! Constructor #1
-        PerceptualTask(const DualCoding::ShapeRoot& kTargetShape)
-          : targetShapes(),
-            taskComplete(false)
+        enum TaskStatus_t {
+            TS_IN_PROGRESS = 0,
+            TS_SUCCESSFUL,
+            TS_FAILURE
+        };
+
+        //! Constructor
+        PerceptualTaskBase(PerceptualTaskType_t perceptTaskType, unsigned int taskId)
+          : type(perceptTaskType),
+            id(taskId),
+            mapreq(),
+            pilotreq(),
+            taskStatus(TS_IN_PROGRESS)
         {
-            targetShapes.push_back(kTargetShape);
+            std::cout << "Created task #" << id << std::endl;
         }
 
-        //! Constructor #2
-        PerceptualTask(const std::vector<DualCoding::ShapeRoot>& kTargetShapes)
-          : targetShapes(kTargetShapes),
-            taskComplete(false)
+        //! Copy constructor
+        PerceptualTaskBase(const PerceptualTaskBase& kTask)
+          : type(kTask.type),
+            id(kTask.id),
+            mapreq(kTask.mapreq),
+            pilotreq(kTask.pilotreq),
+            taskStatus(kTask.taskStatus)
         { }
 
         //! Destructor
-        virtual PerceptualTask() {
+        virtual ~PerceptualTaskBase() {
             // no explicit implementation
         }
 
-        //! Executes a particular perceptual task (reimplemented in all derived classes)
-        virtual void executeTask() = 0;
+        //! Assignment operator
+        PerceptualTaskBase& operator=(const PerceptualTaskBase& kTask) {
+            if (this != &kTask) {
+                type = kTask.type;
+                id = kTask.id;
+                mapreq = kTask.mapreq;
+                pilotreq = kTask.pilotreq;
+                taskStatus = kTask.taskStatus;
+            }
+            return *this;
+        }
+
+        //! Checks if a task can execute (reimplemented in all derived class)
+        virtual bool canExecute(const KoduWorld&) = 0;
+
+        //! Examines the results from a task
+        virtual void examineTaskResults();
+
+        //! Returns the MapBuilder request the robot should perform
+        virtual const DualCoding::MapBuilderRequest& getMapBuilderRequest();
+
+        //! Returns the Pilot request the robot should perform
+        virtual const DualCoding::PilotRequest& getPilotRequest();
+
+        //! Returns the task's current status
+        TaskStatus_t getStatus() const;
+
+        //! Returns the task's id
+        float getTaskId() const;
+
+        //! Returns the task type
+        PerceptualTaskType_t getType() const;
 
         //! Checks whether a task is complete
-        virtual bool taskIsComplete() const = 0;
+        virtual bool taskIsComplete(const KoduWorld&);
 
     protected:
-        std::vector<DualCoding::ShapeRoot> targetShapes;
-        bool taskComplete;
+        PerceptualTaskType_t type;              //!< The type of perceptual task
+        unsigned int id;                        //!< The task's id
+        DualCoding::MapBuilderRequest mapreq;   //!< The MapBuilder request the robot needs to perform
+        DualCoding::PilotRequest pilotreq;      //!< The Pilot request the robot needs to perform
+        TaskStatus_t taskStatus;                //!< The (current) status of a perceptual task
     };
 }
 
 
-#endif // PERCEPTUAL_TASK_H_
+#endif // PERCEPTUAL_TASK_BASE_H_
