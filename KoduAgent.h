@@ -8,7 +8,8 @@
 #include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Primitives/KoduActionMotion.h"
 
-#include "Kodu/Primitives/KoduConditionBump.h"
+//#include "Kodu/Primitives/KoduConditionBump.h"
+#include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
 
 // Tekkotsu Library
 #include "DualCoding/Point.h"
@@ -24,6 +25,8 @@
 #include <vector>
 
 namespace Kodu {
+
+    class PerceptualTaskBase;
 
     class KoduAgent {
     public:
@@ -42,7 +45,8 @@ namespace Kodu {
             stringToSpeak(""),
             playQueue(),
 
-            bmpDetector(),
+            //bmpDetector(),
+            pTasksQueue(),
 
             walkStartTime(0),
             totalApproxDistanceTravelled(0.0f),
@@ -59,6 +63,7 @@ namespace Kodu {
         //! Destructor
         ~KoduAgent() {
             GeneralFncs::destroyAllPtrsInVector(pages);
+            GeneralFncs::destroyAllPtrsInQueue(pTasksQueue);
             stringToSpeak.clear();
         }
 
@@ -77,7 +82,8 @@ namespace Kodu {
                 stringToSpeak = kAgent.stringToSpeak;
                 playQueue = kAgent.playQueue;
 
-                bmpDetector = kAgent.bmpDetector;
+                //bmpDetector = kAgent.bmpDetector;
+                pTasksQueue = kAgent.pTasksQueue;
 
                 walkStartTime = kAgent.walkStartTime;
                 totalApproxDistanceTravelled = kAgent.totalApproxDistanceTravelled;
@@ -185,7 +191,8 @@ namespace Kodu {
         std::queue<std::string> playQueue;  //!< The queue of sound files the agent wants to play
 
 
-        std::queue<KoduConditionBump*> bmpDetector;
+        //std::queue<KoduConditionBump*> bmpDetector;
+        std::queue<PerceptualTaskBase*> pTasksQueue;
 
         
     private: //// ================= The Private Agent Variables ================= ////

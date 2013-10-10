@@ -1,6 +1,7 @@
 // Tekkodu
 #include "Kodu/KoduAgent.h"
 #include "Kodu/Primitives/PerceptionSearch.h"
+#include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
 
 // Tekkotsu
 #include "DualCoding/ShapeTypes.h"
