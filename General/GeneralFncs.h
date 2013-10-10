@@ -3,12 +3,25 @@
 
 // C++ Library
 #include <ctime>
+#include <queue>
 #include <vector>
 
 // Linux Library
 #include <sys/time.h>
 
 namespace GeneralFncs {
+
+    //! Deletes and erases each dynamically created element
+    template<typename T>
+    inline void destroyAllPtrsInQueue(std::queue<T*>& q) {
+        while (!q.empty()) {
+            if (q.front() != NULL) {
+                delete q.front();
+                q.front() = NULL;
+            }
+            q.pop();
+        }
+    }
 
     //! Deletes and erases each dynamically created element
     template<typename T>
@@ -50,7 +63,8 @@ namespace GeneralFncs {
         static const unsigned long kL43AndHalfYrsInSecs = 1372726281L;
         // calculate the seconds since middle of 2013 ==> Time Since Epoch (secs) - 43.5 years (secs)
         // then multiple answer by 1000 (to have space for millisecond-precision)
-        unsigned long secsPortion = (static_cast<unsigned long>(cTime.tv_sec) - kL43AndHalfYrsInSecs) * 1000L;
+        unsigned long secsPortion = (static_cast<unsigned long>(cTime.tv_sec) - kL43AndHalfYrsInSecs);
+        secsPortion =* 1000L;
         // calculate milliseconds ==> Microseconds / 1000 (integer division)
         unsigned long milliSecsPortion = (static_cast<unsigned long>(cTime.tv_usec) / 1000L);
         // add the two parts together and return the answer
