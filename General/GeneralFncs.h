@@ -64,7 +64,7 @@ namespace GeneralFncs {
         // calculate the seconds since middle of 2013 ==> Time Since Epoch (secs) - 43.5 years (secs)
         // then multiple answer by 1000 (to have space for millisecond-precision)
         unsigned long secsPortion = (static_cast<unsigned long>(cTime.tv_sec) - kL43AndHalfYrsInSecs);
-        secsPortion =* 1000L;
+        secsPortion *= 1000L;
         // calculate milliseconds ==> Microseconds / 1000 (integer division)
         unsigned long milliSecsPortion = (static_cast<unsigned long>(cTime.tv_usec) / 1000L);
         // add the two parts together and return the answer
