@@ -37,7 +37,7 @@ namespace Kodu {
             pilotreq(),
             taskStatus(TS_IN_PROGRESS)
         {
-            std::cout << "Created task #" << id << std::endl;
+            //std::cout << "Created task #" << id << std::endl;
         }
 
         //! Copy constructor
