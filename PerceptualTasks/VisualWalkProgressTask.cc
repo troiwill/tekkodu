@@ -13,7 +13,7 @@
 
 namespace Kodu {
 
-    unsigned int const VisualWalkProgressTask::kMaxErrorOccurences = 3;
+    unsigned int const VisualWalkProgressTask::kMaxErrorOccurences = 2;
     unsigned int VisualWalkProgressTask::idCount = 30000;
 
     bool VisualWalkProgressTask::canExecute(const KoduWorld& kWorldState) {
@@ -38,7 +38,7 @@ namespace Kodu {
         // increment the error count since the robot did not correctly identify the object
         errorCount++;
         std::stringstream stream;
-        stream << id << ": recording (error) strike #" << errorCount << ". ";
+        stream << "task #" << id << ": recording (error) strike #" << errorCount << ". ";
         // record the agent's position when error occurred
         if (errorCount == 1) {
             agentPosDuringFirstError = DualCoding::VRmixin::theAgent->getCentroid();
@@ -70,6 +70,22 @@ namespace Kodu {
     }
 
     bool VisualWalkProgressTask::taskIsComplete(const KoduWorld& kWorldState) {
-        return (!kWorldState.thisAgent.isWalking() || taskStatus == TS_FAILURE);
+        switch (taskStatus) {
+            case PerceptualTaskBase::TS_IN_PROGRESS:
+            {
+                if (!kWorldState.thisAgent.isWalking()) {
+                    taskStatus = TS_SUCCESSFUL;
+                    return true;
+                }
+                return false;
+            }
+
+            case PerceptualTaskBase::TS_SUCCESSFUL:
+            case PerceptualTaskBase::TS_FAILURE:
+                return true;
+
+            default:
+                return false;
+        }
     }
 }
