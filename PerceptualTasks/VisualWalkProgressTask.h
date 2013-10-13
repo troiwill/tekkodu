@@ -28,6 +28,7 @@ namespace Kodu {
             targets()
         {
             targets.push_back(kTargetShape);
+            std::cout << "Created task #" << id << " to track " << kTargetShape << std::endl;
         }
 
         //! Constructor #2
