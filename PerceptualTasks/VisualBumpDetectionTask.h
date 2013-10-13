@@ -6,9 +6,11 @@
 #include "DualCoding/ShapeRoot.h"
 #include "DualCoding/VRmixin.h"
 
+#include "Kodu/Primitives/KoduConditionBump.h"
+
 namespace Kodu {
     // tekkodu forward declarations
-    class KoduConditionBump;
+    //class KoduConditionBump;
     class KoduWorld;
     class PerceptualTaskBase;
     
@@ -27,6 +29,8 @@ namespace Kodu {
             mapreq = DualCoding::MapBuilderRequest(DualCoding::MapBuilderRequest::localMap);
             mapreq.setAprilTagFamily();
             mapreq.searchArea = gazePoint;
+            std::cout << "Created task #" << id << " to detect a(n) " << condition->getObjectColor()
+                      << " " << condition->getObjectType() << std::endl;
         }
 
         //! Copy constructor
