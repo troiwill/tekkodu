@@ -286,7 +286,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 std::cout << "NOT complete. (adding to end of queue).\n";
                 thisAgent->pTasksQueue.push(currentTask);
             }
-            //std::cout << --tasksToExecute << " more task(s) left to check... ";
             // check if there are more tasks on the queue to execute
             if (thisAgent->pTasksQueue.empty()) {
                 // if there are more tasks, make the task at the front of the queue the current task
