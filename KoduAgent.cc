@@ -17,6 +17,10 @@ namespace Kodu {
         return (gripperObject.isValid() && !targetObjectIsInGripper && !agentIsAttemptingGrab);
     }
 
+    bool KoduAgent::isAttemptingGrab() const {
+        return agentIsAttemptingGrab;
+    }
+
     bool KoduAgent::isHoldingAnObject() const {
         return targetObjectIsInGripper;
     }

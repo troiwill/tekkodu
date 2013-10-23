@@ -110,6 +110,9 @@ namespace Kodu {
         //! Sets the "target object is in gripper" flag
         void setTargetInGripperFlag(bool);
 
+        //! States if the agent is attempting to grab an object
+        bool isAttemptingGrab() const;
+
         //! States whether or not the agent is (supposed to be) holding something
         bool isHoldingAnObject() const;
 
