@@ -81,6 +81,32 @@ namespace Kodu {
         DualCoding::ShapeRoot targetObject;
     };
 
+    class IsLandmark : public DualCoding::UnaryShapeRootPred {
+    public:
+        IsLandmark()
+          : DualCoding::UnaryShapeRootPred()
+        { }
+
+        ~IsLandmark() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+    };
+
+    class IsShapeOfType : public DualCoding::UnaryShapeRootPred {
+    public:
+        IsShapeOfType(DualCoding::ShapeType_t shapeType)
+          : DualCoding::UnaryShapeRootPred(),
+            targetShapeType(shapeType)
+        { }
+
+        ~IsShapeOfType() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+
+    private:
+        DualCoding::ShapeType_t targetShapeType;
+    };
+
     // Assumes the "Agent" data is always valid
 #define PERCEPTION_SEARCH(Dir)                                                  \
     class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \

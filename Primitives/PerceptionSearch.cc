@@ -18,6 +18,15 @@ namespace Kodu {
         // check if the objects match each other
         return (targetObject->isMatchFor(kShape));
     }
+
+    bool IsLandmark::operator()(const DualCoding::ShapeRoot& kShape) const {
+        return ((kShape->getType() == DualCoding::cylinderDataType)
+             && (ProjectInterface::getColorName(kShape->getColor()) == std::string("green")));
+    }
+
+    bool IsShapeOfType::operator()(const DualCoding::ShapeRoot& kShape) const {
+        return (kShape->getType() == targetShapeType);
+    }
     
     bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape and return the result
@@ -64,7 +73,7 @@ namespace Kodu {
                 // calculate the bearing between some point "kPoint" and the agent's position
                 // bearing2ThisPoint = arctan(dy/dx)
                 const DualCoding::Point& kAgentPt = DualCoding::VRmixin::theAgent->getCentroid();
-                float bearing2ThisPoint = (kPoint - kAgentPt).atanYX();
+                AngSignPi bearing2ThisPoint = (kPoint - kAgentPt).atanYX();
                 // subtract the agent's orientation (heading) from the bearing to get the point's angle
                 // relative ot the agent
                 dtheta = AngSignPi(bearing2ThisPoint - DualCoding::VRmixin::theAgent->getOrientation());
@@ -73,7 +82,7 @@ namespace Kodu {
             // simply calculate the arctan of the point...
             case DualCoding::egocentric:
             {
-                dtheta = kPoint.atanYX();
+                dtheta = AngSignPi(kPoint.atanYX());
                 break;
             }
             // handles all other Reference Frame Types...
