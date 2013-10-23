@@ -18,6 +18,7 @@ namespace Kodu {
 
     enum PerceptualTaskType_t {
         PT_VIS_BUMP_DETECTION = 0,
+        PT_VIS_LOCALIZATION,
         PT_VIS_WALK_PROGRESS
     };
 
@@ -25,6 +26,7 @@ namespace Kodu {
     public:
         enum TaskStatus_t {
             TS_IN_PROGRESS = 0,
+            TS_COMPLETE,
             TS_SUCCESSFUL,
             TS_FAILURE
         };
