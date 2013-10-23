@@ -47,6 +47,17 @@ namespace Kodu {
             cmdValid(true)
         { }
 
+        //! Constructor #4
+        MotionCommand(const DualCoding::Shape<DualCoding::CylinderData>& kTarget,
+            float fwdDist, float trnAngle, float fwdSpeed, float trnSpeed)
+          : targetObject(kTarget),
+            dx(fwdDist),
+            da(trnAngle),
+            forwardSpeed(fwdSpeed),
+            turnSpeed(trnSpeed),
+            cmdValid(true)
+        { }
+
         //! Copy Constructor
         MotionCommand(const MotionCommand& kCommand)
           : targetObject(kCommand.targetObject),
@@ -146,9 +157,9 @@ namespace Kodu {
             angleGen(0,0),
             distGen(0,0)
         {
-            // fwdSpd = walkSpeed
+            // fwdSpd ==> walkSpeed
             const float kForwardSpeed = kWalkingSpeed;
-            // trnSpd = (fwdSpd [mm/s] / 130 [mm])
+            // trnSpd ==> (fwdSpd [mm/s] / 130 [mm])
             // 130 mm: the approx. distance from the center of the robot to the middle of the wheel
             const float kTurningSpeed = kForwardSpeed / 130.0f;
 
