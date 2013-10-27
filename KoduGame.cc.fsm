@@ -358,9 +358,16 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     $reference WalkRecovery::waitCount;
                     
                     std::cout << "[Halt Evaluator]\n";
+                    // if the halt flag is not set (meaning it is false), set it to true
                     if (needToHaltExecution != true) {
                         std::cout << "Requesting the evaluator to halt.\n";
                         needToHaltExecution = true;
+                    }
+
+                    // stop the grab action runner
+                    if (grabActRef->isActive()) {
+                        std::cout << "Stopping the Grasper.\n";
+                        grabActRef->stop();
                     }
 
                     // abort/stop any node that may use motion (e.g. Pilot, Grasper)
@@ -371,12 +378,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                         motionActRef->stop();
                     }
 
-                    if (grabActRef->isActive()) {
-                        std::cout << "Stopping the Grasper.\n";
-                        grabActRef->stop();
-                    }
-
-                    // 
+                    // make sure all are inactive before recovery proceeds
                     if (!evaluatorRef->isActive() && !thisAgent->isWalking()
                         && !runnerRef->isActive() && !grabActRef->isActive())
                     {
@@ -384,10 +386,13 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                             waitCount = 0;
                             postStateCompletion();
                         }
-                    } else {
+                    }
+                    // else, wait for the timeout transitions
+                    else {
                         PRINT_ATTRS("Evaluator is active?", evaluatorRef->isActive());
                         PRINT_ATTRS("Runner is active?", runnerRef->isActive());
                         PRINT_ATTRS("Agent is walking?", thisAgent->isWalking());
+                        PRINT_ATTRS("Grab Action is active?", grabActRef->isActive());
                         waitCount = 0;
                     }
                 }
@@ -400,12 +405,16 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 $nodeclass CreateLocalizeTask : StateNode : doStart {
                     $reference PerceptualMultiplexor::currentTask;
                     std::cout << "[Create Localize Task]\n";
-                    const Point& kAgentPos =
-                        static_cast<Kodu::VisualWalkProgressTask*>(currentTask)->getPositionDuringError();
-                    float orient = 
-                        static_cast<Kodu::VisualWalkProgressTask*>(currentTask)->getOrientationDuringError();
+                    // get the robot's position when the error occurred
+                    const Point& kAgentPos = static_cast<Kodu::VisualWalkProgressTask*>
+                                                (currentTask)->getPositionDuringError();
+                    // get the robot's orientation when the error occurred
+                    float orient = static_cast<Kodu::VisualWalkProgressTask*>
+                                    (currentTask)->getOrientationDuringError();
+                    // delete the walk progress task (it is no longer needed)
                     std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
                     GeneralFncs::deletePtr(currentTask);
+                    // make the localization task the new current task
                     std::cout << "Creating a localization task\n";
                     currentTask = new Kodu::VisualLocalizationTask(kAgentPos, orient);
                     postParentCompletion();
@@ -754,31 +763,29 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         $reference KoduGame::sayActRef;
         $reference KoduGame::scoreActRef;
         
-        //$reference KoduGame::multiplexorRef;
-
         std::cout << "=== [Kodu Action Runner] ===\n";
 
-        PRINT_ATTRS("New object to grab? ", thisAgent->hasNewObjectToGrab());
+        //PRINT_ATTRS("New object to grab? ", thisAgent->hasNewObjectToGrab());
         if (thisAgent->hasNewObjectToGrab())
             grabActRef->start();
 
-        PRINT_ATTRS("New motion command? ", thisAgent->hasMotionCommand());
+        //PRINT_ATTRS("New motion command? ", thisAgent->hasMotionCommand());
         if (thisAgent->hasMotionCommand())
             motionActRef->start();
 
-        PRINT_ATTRS("New sounds to play? ", thisAgent->hasSoundsToPlay());
+        //PRINT_ATTRS("New sounds to play? ", thisAgent->hasSoundsToPlay());
         if (thisAgent->hasSoundsToPlay())
             playActRef->start();
         
-        PRINT_ATTRS("New text to say? ", thisAgent->hasTextToSay());
+        //PRINT_ATTRS("New text to say? ", thisAgent->hasTextToSay());
         if (thisAgent->hasTextToSay())
             sayActRef->start();
             
-        PRINT_ATTRS("New scores to change? ", thisAgent->hasNewScoreChanges());
+        //PRINT_ATTRS("New scores to change? ", thisAgent->hasNewScoreChanges());
         if (thisAgent->hasNewScoreChanges())
             scoreActRef->start();
 
-        PRINT_ATTRS("New page number? ", thisAgent->hasNewPageNumber());
+        //PRINT_ATTRS("New page number? ", thisAgent->hasNewPageNumber());
         if (thisAgent->hasNewPageNumber())
             pageSwitchActRef->start();
     }
@@ -831,7 +838,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         };
 
         enum MotionApproachSegment_t {
-            MAS_INITIAL = 0,
+            MAS_NO_SEGMENTS = 0,
+            MAS_INITIAL,
             MAS_FINAL,
             MAS_NUMB_SEG_TYPES
         };
@@ -964,20 +972,21 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     }
                     // if not, revert to the goToShape Pilot request
                     else {
-                        postStateSignal<MotionTransType>(MTT_GO_TO_SHAPE);
                         cmd = thisAgent->currMotionCmd;
+                        postStateSignal<MotionTransType>(MTT_GO_TO_SHAPE);
                     }
+                    segment = MAS_INITIAL;
                 }
                 // else, do simple motion
                 else {
-                    postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                     cmd = thisAgent->currMotionCmd;
+                    segment = MAS_NO_SEGMENTS;
+                    postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                 }
                 // start monitoring the agent's walk
                 thisAgent->startMonitoringWalk();
                 // invalidate the motion command
                 thisAgent->currMotionCmd.invalidate();
-                segment = MAS_INITIAL;
             }
         }
 
@@ -1004,8 +1013,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             pilotreq.baseOffset = fmat::pack(centroidDist - spatialDist + kInitAppOffset, 0, 0);
             float distLeft = kInitAppOffset - 15.0f;
             cmd = Kodu::MotionCommand(distLeft, 0, 0, 0);
-            //pilotreq.forwardSpeed = cmd.getForwardSpeed();
-            //pilotreq.turnSpeed = cmd.getTurnSpeed();
             pilotreq.collisionAction = collisionIgnore;
             segment = MAS_FINAL;
         }
@@ -1025,7 +1032,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 } else {
                     pilotreq.da = cmd.getTurningAngle();
                 }
-                //pilotreq.turnSpeed = cmd.getTurnSpeed();
                 pilotreq.collisionAction = collisionIgnore;
                 std::cout << "simple turn = " << pilotreq.da << " rad (= " 
                           << rad2deg(pilotreq.da) << " deg)\n";
@@ -1040,7 +1046,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 } else {
                     pilotreq.dx = cmd.getDistanceToTravel();
                 }
-                //pilotreq.turnSpeed = cmd.getForwardSpeed();
                 pilotreq.collisionAction = collisionIgnore;
                 std::cout << "simple dist = " << pilotreq.dx << " mm\n";
             }
@@ -1055,10 +1060,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 simpleTurn:     SimpleTurn
                 simpleWalk:     SimpleWalk
                 simpleDone:     SimpleDone
-                
+
+                // find a better way to implement loops in this state machine (w/o MAS_*)
                 simpleTurn =C=> simpleWalk =C=> simpleDone
                 simpleDone =S<MotionApproachSegment_t>(MAS_INITIAL)=> simpleTurn
                 simpleDone =S<MotionApproachSegment_t>(MAS_FINAL)=> PostMachineCompletion
+                simpleDone =S<MotionApproachSegment_t>(MAS_NO_SEGMENTS)=> PostMachineCompletion
             }
         }
 
