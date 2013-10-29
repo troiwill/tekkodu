@@ -277,18 +277,31 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
             $nodeclass ExecutePilotTask : PilotNode : doStart {
                 $reference PerceptualMultiplexor::currentTask;
+                std::cout << "[" << getName() << "]: submitting pilot request for localization\n";
                 pilotreq = currentTask->getPilotRequest();
             }
 
-            $nodeclass PilotLocalizationFailed : StateNode : doStart {
-                //$reference PerceptualMultiplexor::currentTask;
+            $nodeclass SetTaskSuccess : StateNode : doStart {
+                $reference PerceptualMultiplexor::currentTask;
+                std::cout << "[" << getName() << "]: setting pilot task status ==> SUCCESSFUL\n";
+                currentTask->setTaskStatus(Kodu::PerceptualTaskBase::TS_SUCCESSFUL);
+                postParentCompletion();
+            }
+
+            $nodeclass SetTaskFailure : StateNode : doStart {
+                $reference PerceptualMultiplexor::currentTask;
+                std::cout << "[" << getName() << "]: setting pilot task status ==> FAILURE\n";
+                currentTask->setTaskStatus(Kodu::PerceptualTaskBase::TS_FAILURE);
+                postParentCompletion();
             }
 
             $setupmachine {
                 executeRequest:     ExecutePilotTask
-                localizeFailed:     PilotLocalizationFailed
+                setTaskSuccess:     SetTaskSuccess
+                setTaskFailure:     SetTaskFailure
 
-                executeRequest =PILOT(cantLocalize)=> localizeFailed
+                executeRequest =PILOT(noError)=> setTaskSuccess
+                executeRequest =PILOT(cantLocalize)=> setTaskFailure
             }
         }
         
@@ -339,8 +352,31 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
             $nodeclass StartRecovery : StateNode : doStart {
                 $reference PerceptualMultiplexor::currentTask;
+                std::cout << "[" << getName() << "]\n";
                 std::cout << "Perceptual Recovery starting...\n";
                 postStateSignal<Kodu::PerceptualTaskType_t>(currentTask->getType());
+            }
+
+            $nodeclass LocalizeRecovery : StateNode : doStart {
+                $reference PerceptualMultiplexor::currentTask;
+                std::cout << "[" << getName() << "]\n";
+                std::cout << "Checking the type of MapBuilder request used...";
+                if (static_cast<Kodu::VisualLocalizationTask*>(currentTask)->usedGlobalGazePolygon()) {
+                    std::cout << "global gaze polygon!\n";
+                    std::cout << "this is a serious issue!!!!!!!";
+                    postStateFailure();
+                } else {
+                    std::cout << "a custom created gaze polygon\n";
+                    $reference KoduGame::thisAgent;
+                    // delete the walk progress task (it is no longer needed)
+                    std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
+                    GeneralFncs::deletePtr(currentTask);
+                    // make the new localization task the new current task
+                    std::cout << "Creating a new localization task with the global gaze polygon\n";
+                    currentTask = new Kodu::VisualLocalizationTask(thisAgent->getGazePolygon());
+                    std::cout << "Going to try using the global gaze polygon for localization\n";
+                    postStateCompletion();
+                }
             }
 
             $nodeclass WalkRecovery : StateNode {
@@ -357,7 +393,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     $reference KoduGame::needToHaltExecution;
                     $reference WalkRecovery::waitCount;
                     
-                    std::cout << "[Halt Evaluator]\n";
+                    std::cout << "[" << getName() << "]\n";
                     // if the halt flag is not set (meaning it is false), set it to true
                     if (needToHaltExecution != true) {
                         std::cout << "Requesting the evaluator to halt.\n";
@@ -398,13 +434,13 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
 
                 $nodeclass AskForHelp : SpeechNode : doStart {
-                    std::cout << "[Ask For Help]: asking the user for help.\n";
+                    std::cout << "[" << getName() << "]: asking the user for help.\n";
                     textstream << "I need some help I am stuck";
                 }
 
                 $nodeclass CreateLocalizeTask : StateNode : doStart {
                     $reference PerceptualMultiplexor::currentTask;
-                    std::cout << "[Create Localize Task]\n";
+                    std::cout << "[" << getName() << "]\n";
                     // get the robot's position when the error occurred
                     const Point& kAgentPos = static_cast<Kodu::VisualWalkProgressTask*>
                                                 (currentTask)->getPositionDuringError();
@@ -431,16 +467,22 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             }
 
             $nodeclass EndRecovery : StateNode : doStart {
-                std::cout << "Ending recovery...\n";
+                std::cout << "[" << getName() << "]: ending recovery...\n";
                 postParentCompletion();
             }
 
             $setupmachine {
                 startRec:   StartRecovery
+                locRec:     LocalizeRecovery
                 walkRec:    WalkRecovery
                 endRec:     EndRecovery
 
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> walkRec
+                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locRec
+
+                locRec =C=> endRec
+                locRec =F=> SpeechNode("failed to do localization using global gaze polygon")
+                
                 walkRec =C=> endRec
             }
         }
@@ -456,8 +498,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             startMP =S<MultiPlexorTransType_t>(MPT_PILOT)=> runPilotTask
 
             runMBTask =C=> endMP
-            runPilotTask =PILOT(noError)=> endMP
-            runPilotTask =PILOT(cantLocalize)=> SpeechNode("cannot localize")
+            runPilotTask =C=> endMP
 
             endMP =C=> startMP
             endMP =F=> recovery
