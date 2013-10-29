@@ -6,6 +6,7 @@
 #include "Crew/PilotRequest.h"
 #include "DualCoding/Point.h"
 #include "DualCoding/ShapeFuns.h"
+#include "DualCoding/ShapePoint.h"
 #include "DualCoding/ShapeRoot.h"
 
 namespace Kodu {
@@ -19,14 +20,24 @@ namespace Kodu {
         VisualLocalizationTask(const DualCoding::Point& kAgentPos, float agentOrient)
           : PerceptualTaskBase(PT_VIS_LOCALIZATION, ++idCount),
             agentPosition(kAgentPos),
-            agentOrientation(agentOrientation)
+            agentOrientation(agentOrientation),
+            globalGazePolygon()
+        { }
+
+        //! Constructor
+        VisualLocalizationTask(const DualCoding::Shape<DualCoding::PolygonData>& kGazePolygon)
+          : PerceptualTaskBase(PT_VIS_LOCALIZATION, ++idCount),
+            agentPosition(),
+            agentOrientation(),
+            globalGazePolygon(kGazePolygon)
         { }
 
         //! Copy constructor
         VisualLocalizationTask(const VisualLocalizationTask& kTask)
           : PerceptualTaskBase(kTask),
             agentPosition(kTask.agentPosition),
-            agentOrientation(kTask.agentOrientation)
+            agentOrientation(kTask.agentOrientation),
+            globalGazePolygon(kTask.globalGazePolygon)
         { }
 
         //! Destructor
@@ -40,6 +51,7 @@ namespace Kodu {
                 PerceptualTaskBase::operator=(kTask);
                 agentPosition = kTask.agentPosition;
                 agentOrientation = kTask.agentOrientation;
+                globalGazePolygon = kTask.globalGazePolygon;
             }
             return *this;
         }
@@ -50,10 +62,14 @@ namespace Kodu {
         //! Generates the Pilot request the agent needs to localize
         virtual const DualCoding::PilotRequest& getPilotRequest();
 
+        //! States whether the robot used a gaze polygon passed through the constructor, or a custom one
+        bool usedGlobalGazePolygon() const;
+
     private:
         static unsigned int idCount;
         DualCoding::Point agentPosition;
         float agentOrientation;
+        DualCoding::Shape<DualCoding::PolygonData> globalGazePolygon;
     };
 }
 
