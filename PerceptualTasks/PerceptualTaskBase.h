@@ -89,6 +89,8 @@ namespace Kodu {
         //! Returns the task type
         PerceptualTaskType_t getType() const;
 
+        void setTaskStatus(TaskStatus_t);
+
         //! Checks whether a task is complete
         virtual bool taskIsComplete(const KoduWorld&);
 

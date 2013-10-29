@@ -31,6 +31,10 @@ namespace Kodu {
         return type;
     }
 
+    void PerceptualTaskBase::setTaskStatus(TaskStatus_t newStatus) {
+        taskStatus = newStatus;
+    }
+
     bool PerceptualTaskBase::taskIsComplete(const KoduWorld& kWorldState) {
         return (taskStatus == TS_SUCCESSFUL
              || taskStatus == TS_FAILURE
