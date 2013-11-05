@@ -62,8 +62,8 @@ namespace Kodu {
 
         //! Destructor
         ~KoduAgent() {
-            GeneralFncs::destroyAllPtrsInVector(pages);
             GeneralFncs::destroyAllPtrsInQueue(pTasksQueue);
+            GeneralFncs::destroyAllPtrsInVector(pages);
             stringToSpeak.clear();
         }
 
