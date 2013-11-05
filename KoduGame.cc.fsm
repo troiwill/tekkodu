@@ -37,7 +37,7 @@
 #include "Kodu/KoduPage.h"
 #include "Kodu/KoduRule.h"
 
-$nodeclass KoduGame : VisualRoutinesStateNode {
+$nodeclass KoduInterp : VisualRoutinesStateNode {
     
     $provide Kodu::KoduWorld* theWorld(NULL);
     $provide Kodu::KoduAgent* thisAgent(NULL);
@@ -53,10 +53,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     $provide PerceptualMultiplexor* multiplexorRef(NULL);
 
     $provide bool needToHaltExecution(false);
-    $provide KoduInterpreter* evaluatorRef(NULL);
+    $provide KoduConditionEvaluator* evaluatorRef(NULL);
     $provide KoduActionRunner* runnerRef(NULL);
     
-    ~KoduGame() {
+    ~KoduInterp() {
         std::cout << "Destructing Kodu Game...\n";
         // null the KoduAgent pointer
         thisAgent = NULL;
@@ -69,9 +69,9 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass InitializeAgent : StateNode : doStart {
-        $reference KoduGame::theWorld;
-        $reference KoduGame::thisAgent;
-        $reference KoduGame::cycleCount;
+        $reference KoduInterp::theWorld;
+        $reference KoduInterp::thisAgent;
+        $reference KoduInterp::cycleCount;
 
         std::cout << "Initializing Kodu Game.\n";
         cycleCount = 0;
@@ -90,7 +90,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     
     //! Kodu Code Parser
     $nodeclass KoduParser : StateNode : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         
         // parses and creates Kodu program
         if (Kodu::Parser::parseAndCreateKoduProgram(thisAgent->pages) == false) {
@@ -108,7 +108,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         // search the world for the following objects
         mapreq.addObjectColor(cylinderDataType, "red");
         mapreq.addObjectColor(cylinderDataType, "blue");
@@ -128,7 +128,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass CheckForNorthStar : StateNode : doStart {
-        $reference KoduGame::theWorld;
+        $reference KoduInterp::theWorld;
         // check if the north star was visible
         // create a vector (multiple tags may have been seen)
         /*
@@ -165,7 +165,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         $provide Kodu::PerceptualTaskBase* currentTask(NULL);
         
         ~PerceptualMultiplexor() {
-            currentTask = NULL;
+            GeneralFncs::deletePtr(currentTask);
         }
 
         enum MultiPlexorTransType_t {
@@ -176,8 +176,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         $nodeclass MultiplexorStart : StateNode {
 
             Kodu::PerceptualTaskBase* getNextExecutableTask() {
-                $reference KoduGame::theWorld;
-                $reference KoduGame::thisAgent;
+                $reference KoduInterp::theWorld;
+                $reference KoduInterp::thisAgent;
                 
                 unsigned int tasksToExecute = thisAgent->pTasksQueue.size();
                 std::cout << "checking task #'s ";
@@ -195,10 +195,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             }
 
             virtual void doStart() {
-                $reference KoduGame::thisAgent;
+                $reference KoduInterp::thisAgent;
                 $reference PerceptualMultiplexor::currentTask;
                 
-                std::cout << "=== [Perceptual Multiplexor] ===\n";
+                std::cout << "=== [" << getName() << "] ===\n";
                 if (currentTask == NULL) {
                     if (thisAgent->pTasksQueue.empty()) {
                         std::cout << "No tasks to execute; exiting.\n";
@@ -306,10 +306,10 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         }
         
         $nodeclass MultiplexorEnd : StateNode : doStart {
-            $reference KoduGame::evaluatorRef;
-            $reference KoduGame::needToHaltExecution;
-            $reference KoduGame::theWorld;
-            $reference KoduGame::thisAgent;
+            $reference KoduInterp::evaluatorRef;
+            $reference KoduInterp::needToHaltExecution;
+            $reference KoduInterp::theWorld;
+            $reference KoduInterp::thisAgent;
             $reference PerceptualMultiplexor::currentTask;
             
             std::cout << "Task #" << currentTask->getTaskId() << " status: ";
@@ -349,12 +349,64 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         }
 
         $nodeclass FailureRecovery : StateNode {
+            // TODO check if page switch action is active and
+            // make sure it knows recovery has priority
 
             $nodeclass StartRecovery : StateNode : doStart {
                 $reference PerceptualMultiplexor::currentTask;
                 std::cout << "[" << getName() << "]\n";
                 std::cout << "Perceptual Recovery starting...\n";
                 postStateSignal<Kodu::PerceptualTaskType_t>(currentTask->getType());
+            }
+
+            $nodeclass PauseEvaluator : StateNode : doStart {
+                $reference KoduInterp::thisAgent;
+                $reference KoduInterp::evaluatorRef;
+                $reference KoduInterp::runnerRef;
+                $reference KoduInterp::motionActRef;
+                $reference KoduInterp::grabActRef;
+                $reference KoduInterp::needToHaltExecution;
+                
+                std::cout << "[" << getName() << "]: pausing the evaluator.\n";
+                static unsigned int waitCount = 0;
+                
+                // if the halt flag is not set (meaning it is false), set it to true
+                if (needToHaltExecution == false) {
+                    std::cout << "Requesting the evaluator to halt.\n";
+                    needToHaltExecution = true;
+                }
+                
+                // stop the grab action runner
+                if (grabActRef->isActive()) {
+                    std::cout << "Stopping the Grasper.\n";
+                    grabActRef->stop();
+                }
+
+                // abort/stop any node that may use motion (e.g. Pilot, Grasper)
+                if (thisAgent->isWalking()) {
+                    std::cout << "Aborting current pilot request.\n";
+                    VRmixin::pilot->pilotAbort();
+                    thisAgent->stopMonitoringWalk();
+                    motionActRef->stop();
+                }
+
+                // make sure all are inactive before recovery proceeds
+                if (!evaluatorRef->isActive() && !thisAgent->isWalking()
+                    && !runnerRef->isActive() && !grabActRef->isActive())
+                {
+                    if ((++waitCount) == 2) {
+                        waitCount = 0;
+                        postStateCompletion();
+                    }
+                }
+                // else, wait for the timeout transitions
+                else {
+                    PRINT_ATTRS("Evaluator is active?", evaluatorRef->isActive());
+                    PRINT_ATTRS("Runner is active?", runnerRef->isActive());
+                    PRINT_ATTRS("Agent is walking?", thisAgent->isWalking());
+                    PRINT_ATTRS("Grab Action is active?", grabActRef->isActive());
+                    waitCount = 0;
+                }
             }
 
             $nodeclass LocalizeRecovery : StateNode : doStart {
@@ -367,7 +419,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                     postStateFailure();
                 } else {
                     std::cout << "a custom created gaze polygon\n";
-                    $reference KoduGame::thisAgent;
+                    $reference KoduInterp::thisAgent;
                     // delete the walk progress task (it is no longer needed)
                     std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
                     GeneralFncs::deletePtr(currentTask);
@@ -380,58 +432,6 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             }
 
             $nodeclass WalkRecovery : StateNode {
-                $provide unsigned int waitCount(0);
-                // TODO check if page switch action is active and
-                // make sure it knows recovery has priority
-
-                $nodeclass HaltEvaluator : StateNode : doStart {
-                    $reference KoduGame::thisAgent;
-                    $reference KoduGame::evaluatorRef;
-                    $reference KoduGame::runnerRef;
-                    $reference KoduGame::motionActRef;
-                    $reference KoduGame::grabActRef;
-                    $reference KoduGame::needToHaltExecution;
-                    $reference WalkRecovery::waitCount;
-                    
-                    std::cout << "[" << getName() << "]\n";
-                    // if the halt flag is not set (meaning it is false), set it to true
-                    if (needToHaltExecution != true) {
-                        std::cout << "Requesting the evaluator to halt.\n";
-                        needToHaltExecution = true;
-                    }
-
-                    // stop the grab action runner
-                    if (grabActRef->isActive()) {
-                        std::cout << "Stopping the Grasper.\n";
-                        grabActRef->stop();
-                    }
-
-                    // abort/stop any node that may use motion (e.g. Pilot, Grasper)
-                    if (thisAgent->isWalking()) {
-                        std::cout << "Aborting current pilot request.\n";
-                        VRmixin::pilot->pilotAbort();
-                        thisAgent->stopMonitoringWalk();
-                        motionActRef->stop();
-                    }
-
-                    // make sure all are inactive before recovery proceeds
-                    if (!evaluatorRef->isActive() && !thisAgent->isWalking()
-                        && !runnerRef->isActive() && !grabActRef->isActive())
-                    {
-                        if ((++waitCount) == 2) {
-                            waitCount = 0;
-                            postStateCompletion();
-                        }
-                    }
-                    // else, wait for the timeout transitions
-                    else {
-                        PRINT_ATTRS("Evaluator is active?", evaluatorRef->isActive());
-                        PRINT_ATTRS("Runner is active?", runnerRef->isActive());
-                        PRINT_ATTRS("Agent is walking?", thisAgent->isWalking());
-                        PRINT_ATTRS("Grab Action is active?", grabActRef->isActive());
-                        waitCount = 0;
-                    }
-                }
 
                 $nodeclass AskForHelp : SpeechNode : doStart {
                     std::cout << "[" << getName() << "]: asking the user for help.\n";
@@ -457,12 +457,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
                 }
 
                 $setupmachine {
-                    halt:       HaltEvaluator
+                    pause:      PauseEvaluator
                     createTask: CreateLocalizeTask
                     help:       AskForHelp
 
-                    halt =C=> help =TM("localize")=> createTask
-                    halt =T(300)=> halt
+                    pause =C=> help =TM("localize")=> createTask
+                    pause =T(300)=> pause
                 }
             }
 
@@ -510,12 +510,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             DISALLOW_COPY_ASSIGN(PerceptualMultiplexor);
     }
     
-    //! Kodu Interpreter
-    $nodeclass KoduInterpreter : StateNode {
+    //! 
+    $nodeclass KoduConditionEvaluator : StateNode {
 
         //! Enables child rules with the once modifier enabled (who have already ran) to run (again)
         void resetChildRulesWithOnceEnabled(const unsigned int kParentRuleNumer) {
-            $reference KoduGame::thisAgent;
+            $reference KoduInterp::thisAgent;
 
             Kodu::KoduPage* page = thisAgent->getCurrentPage();
             Kodu::KoduRule* rule = NULL;
@@ -536,12 +536,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         }
 
         virtual void doStart() {
-            $reference KoduGame::cycleCount;
-            $reference KoduGame::multiplexorRef;
-            $reference KoduGame::needToHaltExecution;
-            $reference KoduGame::thisAgent;
+            $reference KoduInterp::cycleCount;
+            $reference KoduInterp::multiplexorRef;
+            $reference KoduInterp::needToHaltExecution;
+            $reference KoduInterp::thisAgent;
 
-            std::cout << "\n=== [Kodu Interpreter] ===\n";
+            std::cout << "\n=== [Kodu Condition Evaluator] ===\n";
             // check if the evaluator needs to halt execution
             if (needToHaltExecution) {
                 std::cout << "halting evaluator execution\n";
@@ -796,13 +796,13 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 
     //! Kodu Action Runner
     $nodeclass KoduActionRunner : StateNode : doStart {
-        $reference KoduGame::thisAgent;
-        $reference KoduGame::grabActRef;
-        $reference KoduGame::motionActRef;
-        $reference KoduGame::pageSwitchActRef;
-        $reference KoduGame::playActRef;
-        $reference KoduGame::sayActRef;
-        $reference KoduGame::scoreActRef;
+        $reference KoduInterp::thisAgent;
+        $reference KoduInterp::grabActRef;
+        $reference KoduInterp::motionActRef;
+        $reference KoduInterp::pageSwitchActRef;
+        $reference KoduInterp::playActRef;
+        $reference KoduInterp::sayActRef;
+        $reference KoduInterp::scoreActRef;
         
         std::cout << "=== [Kodu Action Runner] ===\n";
 
@@ -836,7 +836,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Grab
 
     $nodeclass GrabActuator : GrasperNode(GrasperRequest::grasp) : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         thisAgent->setIsAttemptingGrabFlag(true);
         // tell the robot it can move the body to attempt grasp
         //graspreq.allowBodyMotion = false;
@@ -846,7 +846,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass CompleteGrabActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         // stop monitoring the walk and calculate approximately how far the agent travelled
         thisAgent->stopMonitoringWalk();
         // the agent is not longer attempting to grab the object--the agent succeeded in grabbing it
@@ -858,7 +858,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
 
     $nodeclass FailedGrabActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         // stop monitoring the walk and calculate approximately how far the agent travelled
         thisAgent->stopMonitoringWalk();
         // the agent is not longer attempting to grab the object--the agent succeeded in grabbing it
@@ -1000,7 +1000,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
             }
 
             virtual void doStart() {
-                $reference KoduGame::thisAgent;
+                $reference KoduInterp::thisAgent;
                 $reference MotionActionHandler::cmd;
                 $reference MotionActionHandler::segment;
                 // check if the agent needs to go to an object
@@ -1111,7 +1111,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         }
 
         $nodeclass MotionEnd : StateNode : doStart {
-            $reference KoduGame::thisAgent;
+            $reference KoduInterp::thisAgent;
             $reference MotionActionHandler::cmd;
             cmd = Kodu::MotionCommand();
             thisAgent->stopMonitoringWalk();
@@ -1140,8 +1140,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Page Switch 
 
     $nodeclass PageSwitchActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
-        $reference KoduGame::multiplexorRef;
+        $reference KoduInterp::thisAgent;
+        $reference KoduInterp::multiplexorRef;
         int newPageIndex = thisAgent->newReqdPage - 1;
         if (thisAgent->pages[newPageIndex] == NULL) {
             std::cerr << "!!! A NULL page (index #" << newPageIndex << ") was requested.\n"
@@ -1173,7 +1173,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Play Actuator
 
     $nodeclass PlayActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         if (thisAgent->hasSoundsToPlay()) {
             std::cout << "All Play actions complete.\n";
             postStateCompletion();
@@ -1189,12 +1189,12 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Say Actuator
 
     $nodeclass SayActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         postStateSignal<std::string>(thisAgent->stringToSpeak);
     }
 
     $nodeclass CompleteSayActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
+        $reference KoduInterp::thisAgent;
         thisAgent->stringToSpeak.clear();
         std::cout << "Say action complete.\n";
         postStateCompletion();
@@ -1205,8 +1205,8 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
 // Score Actuator
 
     $nodeclass ScoreActuator : StateNode : doStart {
-        $reference KoduGame::thisAgent;
-        $reference KoduGame::theWorld;
+        $reference KoduInterp::thisAgent;
+        $reference KoduInterp::theWorld;
         theWorld->applyGlobalScoreChanges(thisAgent->scoreQueue);
         std::cout << "All Score actions complete.\n";
         postStateCompletion();
@@ -1218,33 +1218,36 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     
     virtual void setup() {
         $statemachine {
+            park:       ParkArm
             initAgent:  InitializeAgent
-
             parser:     KoduParser
-
+            snapImgs:   SnapImage
+            lookFwd:    PointHeadFwd
+            findNS:     CheckForNorthStar
+            
             mplex:      PerceptualMultiplexor
-
-            interp:     KoduInterpreter
+            evaluator:  KoduConditionEvaluator
             runner:     KoduActionRunner
             
             endState:   StateNode
             
-            lookFwd:    PointHeadFwd
-            findNS:     CheckForNorthStar
-            
             initAgent =C=> parser
 
-            parser =C=> SnapImage =C=> findNS
+            parser =C=> { snapImgs, park }
             parser =F=> findNS
-            findNS =C=> lookFwd =C=> interp
+            
+            snapImgs =C=> findNS
+            park =C=> endState
+            
+            findNS =C=> lookFwd =C=> evaluator
             //findNS =C=> lookFwd =C=> mplex 
-            //mplex =C=> interp
+            //mplex =C=> evaluator
             
             //lookFwd =C=> endState
-            interp =C=> runner
-            interp =F=> endState
+            evaluator =C=> runner
+            evaluator =F=> endState
 
-            runner =T(150)=> interp
+            runner =T(150)=> evaluator
             //runner =T(150)=> mplex
             mplex =C=> endState
             
@@ -1283,7 +1286,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
         }
         // 
         multiplexorRef = mplex;
-        evaluatorRef = interp;
+        evaluatorRef = evaluator;
         runnerRef = runner;
         
         // actuator references
@@ -1296,7 +1299,7 @@ $nodeclass KoduGame : VisualRoutinesStateNode {
     }
     
 private:
-    DISALLOW_COPY_ASSIGN(KoduGame);
+    DISALLOW_COPY_ASSIGN(KoduInterp);
 }
 
-REGISTER_BEHAVIOR(KoduGame);
+REGISTER_BEHAVIOR(KoduInterp);
