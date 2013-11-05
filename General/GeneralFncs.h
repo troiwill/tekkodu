@@ -50,8 +50,8 @@ namespace GeneralFncs {
     inline void deletePtr(T*& ptr) {
         if (ptr != NULL) {
             delete ptr;
-            ptr = NULL;
         }
+        ptr = NULL;
     }
     
     //! Returns the time since  in seconds (value has millisecond-precision)
