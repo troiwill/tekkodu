@@ -83,7 +83,10 @@ namespace Kodu {
         //! Prints the attributes of a particular instance
         virtual void printAttrs() const;
 
-        bool agentIsNearMatchingObject();
+        //******************* temp fix
+        bool agentIsNearMatchingObject(const DualCoding::ShapeRoot&);
+        //*******************
+        //bool agentIsNearMatchingObject();
 
         void setVisualBumpDetection(bool);
 
