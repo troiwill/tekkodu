@@ -9,6 +9,9 @@
 #include "Kodu/PerceptualTasks/VisualWalkProgressTask.h"
 #include "Kodu/Primitives/PerceptionSearch.h"
 
+//******** temp fix until base object is done
+#include "Kodu/Primitives/KoduConditionBump.h"
+
 // tekkotsu
 #include "DualCoding/VRmixin.h"
 
@@ -39,9 +42,9 @@ namespace Kodu {
 
         // ***NOTE: execution of the remaining portion of this function means a mathc was not found
         // check if the robot turned; sometimes that can cause an error (no match)
-        const float kFiveDegrees = 3.0f * M_PI / 180.0f;
+        const float kTurningError = 3.0f * M_PI / 180.0f;
         float agentCurrentOrientation = DualCoding::VRmixin::theAgent->getOrientation();
-        if (std::abs(AngSignPi(agentLastOrientation - agentCurrentOrientation)) > kFiveDegrees) {
+        if (std::fabs(AngSignPi(agentLastOrientation - agentCurrentOrientation)) > kTurningError) {
             std::cout << "Turning may have caused a matching error... ignoring error\n";
             return;
         }
@@ -78,9 +81,20 @@ namespace Kodu {
         float h = kTargetPt.xyDistanceFrom(kAgentPt);
         float x = cos(dtheta) * h;
         float y = sin(dtheta) * h;
+        float z = 0.0f;
+
+        switch (targets[0]->getType()) {
+            case DualCoding::cylinderDataType:
+                z = ShapeRootTypeConst(targets[0], CylinderData)->getHeight() / 2.0f;
+                break;
+
+            default:
+                break;
+        }
+
         NEW_SHAPE(gazePoint, PointData,
             new PointData(DualCoding::VRmixin::localShS,
-                DualCoding::Point(x, y, 0, DualCoding::egocentric)));
+                DualCoding::Point(x, y, z, DualCoding::egocentric)));
         mapreq.searchArea = gazePoint;
         return mapreq;
     }
@@ -101,6 +115,16 @@ namespace Kodu {
                     taskStatus = TS_SUCCESSFUL;
                     return true;
                 }
+
+                //******** temp fix until base object is done
+                if (distanceInBetweenAgentAndObject(targets[0])
+                    < KoduConditionBump::kMaxDistanceAwayToSenseBump)
+                {
+                    taskStatus = TS_COMPLETE;
+                    return true;
+                }
+                //*******************
+
                 return false;
             }
 
