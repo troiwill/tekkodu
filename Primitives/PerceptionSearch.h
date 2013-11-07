@@ -107,6 +107,23 @@ namespace Kodu {
         DualCoding::ShapeType_t targetShapeType;
     };
 
+    //********** temp fix
+    class IsNotExcludedShape : public DualCoding::UnaryShapeRootPred {
+    public:
+        IsNotExcludedShape(const DualCoding::ShapeRoot& kExecption)
+          : DualCoding::UnaryShapeRootPred(),
+            excludedShape(kExecption)
+        { }
+
+        ~IsNotExcludedShape() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+
+    private:
+        DualCoding::ShapeRoot excludedShape;
+    };
+    //**********
+
     // Assumes the "Agent" data is always valid
 #define PERCEPTION_SEARCH(Dir)                                                  \
     class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
@@ -163,8 +180,15 @@ namespace Kodu {
     }
 
     //! Returns the closest object that matches the specified criteria
+    //*************** temp fix
+    DualCoding::Shape<DualCoding::CylinderData>
+    getClosestObjectMatching(const std::string&, SearchLocation_t, 
+        const DualCoding::ShapeRoot& = DualCoding::ShapeRoot());
+    //***************
+    /*
     DualCoding::Shape<DualCoding::CylinderData>
     getClosestObjectMatching(const std::string&, SearchLocation_t);
+    */
 }
 
 #endif // PERCEPTION_SEARCH_H_

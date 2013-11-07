@@ -27,6 +27,12 @@ namespace Kodu {
     bool IsShapeOfType::operator()(const DualCoding::ShapeRoot& kShape) const {
         return (kShape->getType() == targetShapeType);
     }
+
+    //********* temp fix
+    bool IsNotExcludedShape::operator()(const DualCoding::ShapeRoot& kShape) const {
+        return (excludedShape.getId() != kShape.getId());
+    }
+    //**********
     
     bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape and return the result
@@ -234,8 +240,14 @@ namespace Kodu {
         return result;
     }
 
+    //************* temp fix
     DualCoding::Shape<DualCoding::CylinderData> getClosestObjectMatching(const std::string& color,
-                                                                         SearchLocation_t location)
+        SearchLocation_t location, const DualCoding::ShapeRoot& kExcludedShape)
+    //*************
+    /*
+    DualCoding::Shape<DualCoding::CylinderData> getClosestObjectMatching(const std::string& color,
+        SearchLocation_t location, const DualCoding::ShapeRoot& kExcludedShape = DualCoding::ShapeRoot())
+    */
     {
         // The closest object that matches the specified criteria
         // (if not assigned a value it is invalid)
@@ -244,6 +256,12 @@ namespace Kodu {
         // Tekkotsu function. Returns all the objects that are Cylinders
         NEW_SHAPEVEC(matchingObjects, DualCoding::CylinderData,
                      DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
+
+        //********** temp fix
+        if (matchingObjects.size() > 0 && kExcludedShape.isValid()) {
+            matchingObjects = DualCoding::subset(matchingObjects, IsNotExcludedShape(kExcludedShape));
+        }
+        //**********
 
         // The following attempts to remove any shapes that may create a false positive
         // (e.g. light reflections on an object (noise) that are perceived as red blobs or canisters)
