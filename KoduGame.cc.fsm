@@ -166,7 +166,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         $provide Kodu::PerceptualTaskBase* currentTask(NULL);
         
         ~PerceptualMultiplexor() {
-            GeneralFncs::deletePtr(currentTask);
+            currentTask = NULL;
         }
 
         enum MultiPlexorTransType_t {
@@ -175,6 +175,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         };
 
         $nodeclass MultiplexorStart : StateNode {
+
 
             Kodu::PerceptualTaskBase* getNextExecutableTask() {
                 $reference KoduInterp::theWorld;
@@ -748,24 +749,13 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 
                 // check if the agent can evaluate the condition
                 if (!cond->agentCanUsePrimitive()) {
-                    // check if the condition is a Bump condition and, if so, that the agent is no
-                    // longer near the object it was supposed to perceive
-                    /*
-                    if (cond->getConditionType() == Kodu::KoduCondition::CT_BUMP
-                        && !(static_cast<Kodu::KoduConditionBump*>(cond)->agentIsNearMatchingObject())) 
-                        {
-                        cond->setAgentCanUsePrimitive(true);
-                    }
-                    */
-                    // else continue onto the next rule
-                    //else {
-                        continue;
-                    //}
+                    std::cout << "cannot evaluate condition... continuing.\n";
+                    continue;
                 }
                 
                 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                if (cond->evaluate(*theWorld) == true) {
+                if (cond->evaluate() == true) {
                     // resets the action has already ran flag
                     if (rule->condLastEvalResult == false) {
                         resetChildRulesWithOnceEnabled(kRuleId);
@@ -912,11 +902,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                      * rule again. if not, the rule is disabled for some time (temp fix)
                     **/
                     if (cond->getConditionType() == Kodu::KoduCondition::CT_BUMP
-                        && !thisAgent->isAttemptingGrab()) {
-                        cond->setAgentCanUsePrimitive(false);
-                        thisAgent->pTasksQueue.push(
-                            new Kodu::VisualBumpDetectionTask(
-                                static_cast<Kodu::KoduConditionBump*>(cond)));
+                        && !thisAgent->isAttemptingGrab())
+                    {
+                        thisAgent->pTasksQueue.push(new Kodu::VisualBumpDetectionTask(
+                            static_cast<Kodu::KoduConditionBump*>(cond)));
                     }
                 }
                 // invalidate object
@@ -1286,9 +1275,16 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     // get a constant reference to the target shape
                     const ShapeRoot& target = thisAgent->currMotionCmd.getTargetObject();
                     // check if the agent can perform simple motion
-                    if ((cmd = canUseSimpleMotion(target)).isValid()) {
+                    //************* temp fix
+                    if (!thisAgent->isHoldingAnObject()
+                        && (cmd = canUseSimpleMotion(target)).isValid())
+                    {
                         postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                     }
+                    //*************
+                    //if ((cmd = canUseSimpleMotion(target)).isValid()) {
+                    //    postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
+                    //}
                     // if not, revert to the goToShape Pilot request
                     else {
                         cmd = thisAgent->currMotionCmd;
@@ -1323,10 +1319,15 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $reference MotionActionRunner::cmd;
             $reference MotionActionRunner::segment;
             $reference MotionActionRunner::kInitAppOffset;
+            $reference KoduInterp::thisAgent;
             pilotreq = PilotRequest(PilotTypes::goToShape);
             ShapeRoot target = cmd.getTargetObject();
             target->setObstacle(false);
             pilotreq.targetShape = target;
+            // prevent the agent from moving backwards if there is something in the gripper
+            if (thisAgent->isHoldingAnObject()) {
+                pilotreq.allowBackwardMotion = false;
+            }
             float centroidDist = Kodu::distanceFromAgentToObject(target);
             float spatialDist = Kodu::distanceInBetweenAgentAndObject(target);
             pilotreq.baseOffset = fmat::pack(centroidDist - spatialDist + kInitAppOffset, 0, 0);
@@ -1438,6 +1439,13 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             if (multiplexorRef->isActive()) {
                 multiplexorRef->stop();
+                /*
+                for (std::queue<Kodu::PerceptualTaskBase*>::iterator it = thisAgent->pTasksQueue.begin();
+                    it != thisAgent->pTasksQueue.end(); ++it)
+                {
+                    if (it->getType() != Kodu::PT_VIS_GRIPPER_MONITOR)
+                }
+                */
                 GeneralFncs::destroyAllPtrsInQueue(thisAgent->pTasksQueue);
             }
         }
@@ -1530,12 +1538,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             mplex =C=> endState
             
             // grab actuator
-            //grabAct:        GrabActuator
-            //compGrabAct:    CompleteGrabActuator
-            //failGrabAct:    FailedGrabActuator
-
-            //grabAct =GRASP(noError)=> compGrabAct =C=> endState
-            //grabAct =GRASP=> failGrabAct =C=> endState
             grabAct:    GrabActionRunner
             grabAct =C=> endState
 

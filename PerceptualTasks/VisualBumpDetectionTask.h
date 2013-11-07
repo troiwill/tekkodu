@@ -21,6 +21,7 @@ namespace Kodu {
           : PerceptualTaskBase(PT_VIS_BUMP_DETECTION, ++idCount),
             condition(bmpCondition)
         {
+            condition->setAgentCanUsePrimitive(false);
             std::cout << "Created task #" << id << " to detect a(n) " << condition->getObjectColor()
                 << " " << condition->getObjectType() << std::endl;
         }
