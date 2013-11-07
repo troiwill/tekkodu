@@ -22,7 +22,11 @@ namespace Kodu {
         // this task can execute if:
         // 1) the agent is near the matching object
         // 2) the agent is not walking
-        return ((condition->agentIsNearMatchingObject()) && (!kWorldState.thisAgent.isWalking()));
+        //**************** temp fix
+        return ((condition->agentIsNearMatchingObject(kWorldState.thisAgent.gripperObject))
+            && (!kWorldState.thisAgent.isWalking()));
+        //****************
+        //return ((condition->agentIsNearMatchingObject()) && (!kWorldState.thisAgent.isWalking()));
     }
 
     void VisualBumpDetectionTask::examineTaskResults() {
@@ -47,5 +51,17 @@ namespace Kodu {
             // state the task is a failure
             taskStatus = TS_FAILURE;
         }
+    }
+
+    const DualCoding::MapBuilderRequest& VisualBumpDetectionTask::getMapBuilderRequest() {
+        // create the gaze point (look directly down)
+        NEW_SHAPE(gazePoint, DualCoding::PointData,
+            new PointData(DualCoding::VRmixin::localShS,
+                DualCoding::Point(200, 0, 0, DualCoding::egocentric)));
+        // create the mapbuilder request
+        mapreq = DualCoding::MapBuilderRequest(DualCoding::MapBuilderRequest::localMap);
+        mapreq.setAprilTagFamily();
+        mapreq.searchArea = gazePoint;
+        return mapreq;
     }
 }

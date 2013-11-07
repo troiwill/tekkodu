@@ -21,16 +21,8 @@ namespace Kodu {
           : PerceptualTaskBase(PT_VIS_BUMP_DETECTION, ++idCount),
             condition(bmpCondition)
         {
-            // create the gaze point (look directly down)
-            NEW_SHAPE(gazePoint, DualCoding::PointData,
-                new PointData(DualCoding::VRmixin::localShS,
-                    DualCoding::Point(200, 0, 0, DualCoding::egocentric)));
-            // create the mapbuilder request
-            mapreq = DualCoding::MapBuilderRequest(DualCoding::MapBuilderRequest::localMap);
-            mapreq.setAprilTagFamily();
-            mapreq.searchArea = gazePoint;
             std::cout << "Created task #" << id << " to detect a(n) " << condition->getObjectColor()
-                      << " " << condition->getObjectType() << std::endl;
+                << " " << condition->getObjectType() << std::endl;
         }
 
         //! Copy constructor
@@ -58,6 +50,9 @@ namespace Kodu {
 
         //! Examines the results from the MapBuilder request to see if an object was "bumped"
         virtual void examineTaskResults();
+
+        //! Creates a MapBuilder request telling the robot where to look to detect the bump
+        virtual const DualCoding::MapBuilderRequest& getMapBuilderRequest();
 
     private:
         static unsigned int idCount;    //!< Used to generate id numbers for VisualBumpDetectionTask
