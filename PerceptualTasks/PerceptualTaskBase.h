@@ -18,6 +18,7 @@ namespace Kodu {
 
     enum PerceptualTaskType_t {
         PT_VIS_BUMP_DETECTION = 0,
+        PT_VIS_GRIPPER_MONITOR,
         PT_VIS_LOCALIZATION,
         PT_VIS_WALK_PROGRESS
     };
