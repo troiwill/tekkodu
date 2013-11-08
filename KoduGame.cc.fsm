@@ -28,6 +28,8 @@
 #include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/Primitives/KoduConditionSee.h"
 
+// Perceptual Tasks
+#include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
 #include "Kodu/PerceptualTasks/VisualBumpDetectionTask.h"
 #include "Kodu/PerceptualTasks/VisualGripperMonitorTask.h"
 #include "Kodu/PerceptualTasks/VisualLocalizationTask.h"
@@ -37,6 +39,7 @@
 #include "Kodu/Keepers/ObjectKeeper.h"
 #include "Kodu/KoduPage.h"
 #include "Kodu/KoduRule.h"
+#include "Kodu/PosOrientState.h"
 
 $nodeclass KoduInterp : VisualRoutinesStateNode {
     
@@ -161,6 +164,28 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         theWorld->setNorthStarLocation(artificialNorthStar, true);
         //}
         postStateCompletion();
+    }
+
+    $nodeclass WalkMonitor : StateNode {
+        $provide Kodu::PosOrientState lastRecordedState();
+
+        virtual void doStart() {
+            if (VRmixin::isWalkingFlag == true) {
+                // get the robot's current state
+                Kodu::PosOrientState currState(VRmixin::theAgent->getCentroid(),
+                    VRmixin::theAgent->getOrientation());
+                // get the difference between points and orientation
+                Kodu::PosOrientState stateDiff = currState - lastRecordedState;
+                float xyNorm = stateDiff.position.xyNorm();
+                float arcLen = std::fabs(stateDiff.orientation) * 130.0f;
+                // increment the total distance travelled
+                $reference KoduInterp::thisAgent;
+                thisAgent->distanceTravelled = thisAgent->distanceTravelled + xyNorm + arcLen;
+                lastRecordedState = currState;
+                std::cout << "[" << getName() << "]: accumulated dist. = " 
+                    << thisAgent->distanceTravelled << "mm\n";
+            }
+        }
     }
 
     $nodeclass PerceptualMultiplexor : StateNode {
@@ -401,7 +426,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 if (thisAgent->isWalking()) {
                     std::cout << "Aborting current pilot request.\n";
                     VRmixin::pilot->pilotAbort();
-                    thisAgent->stopMonitoringWalk();
                     motionActRef->stop();
                 }
 
@@ -1395,8 +1419,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     segment = MAS_NO_SEGMENTS;
                     postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                 }
-                // start monitoring the agent's walk
-                thisAgent->startMonitoringWalk();
                 // invalidate the motion command
                 thisAgent->currMotionCmd.invalidate();
             }
@@ -1499,7 +1521,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $reference MotionActionRunner::cmd;
             std::cout << "[" << getName() << "]: simple motion complete.\n";
             cmd = Kodu::MotionCommand();
-            thisAgent->stopMonitoringWalk();
             postParentCompletion();
         }
 
@@ -1699,6 +1720,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             lookFwd:    PointHeadFwd
             findNS:     CheckForNorthStar
             
+            walkMon:    WalkMonitor
             mplex:      PerceptualMultiplexor
             evaluator:  KoduConditionEvaluator
             runner:     KoduActionRunner
@@ -1713,7 +1735,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             snapImgs =C=> findNS
             park =C=> endState
             
-            findNS =C=> lookFwd =C=> evaluator
+            findNS =C=> lookFwd =C=> { evaluator, walkMon }
+            walkMon =T(500)=> walkMon
+            //findNS =C=> lookFwd =C=> evaluator
             //findNS =C=> lookFwd =C=> mplex 
             //mplex =C=> evaluator
             
