@@ -888,10 +888,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             {
                                 thisAgent->currMotionCmd = cmd;
                                 //************ temp fix
+                                /*
                                 if (cmd.targetObjectIsValid()) {
                                     thisAgent->ptasks.push(
                                         new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
                                 }
+                                */
                                 //************
                                 std::cout << "Added a motion command.\n";
                             }
