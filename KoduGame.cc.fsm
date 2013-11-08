@@ -428,6 +428,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $provide float const kReverseDist(75.0f);
                 $provide Kodu::VisualGripperMonitorTask* gTask(NULL);
 
+                ~ObjectManipRecovery() {
+                    gTask = NULL;
+                }
+
                 $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
                     $reference ObjectManipRecovery::kReverseDist;
                     std::cout << "[" << getName() << "]: reversing by " << kReverseDist << "mm\n";
@@ -604,6 +608,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     getLoc =S=> PostMachineSuccess
                     getLoc =F=> PostMachineFailure
                 }
+
+            private:
+                DISALLOW_COPY_ASSIGN(ObjectManipRecovery);
             }
 
             $nodeclass LocalizeRecovery : StateNode : doStart {
@@ -880,13 +887,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                                 && cmd.isValid())
                             {
                                 thisAgent->currMotionCmd = cmd;
-                                /******* temp fix
+                                //************ temp fix
                                 if (cmd.targetObjectIsValid()) {
                                     thisAgent->ptasks.push(
                                         new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
                                 }
-                                */
-                                /**********
+                                //************
                                 std::cout << "Added a motion command.\n";
                             }
                             break;
