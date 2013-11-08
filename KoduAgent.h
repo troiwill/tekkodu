@@ -8,7 +8,6 @@
 #include "Kodu/Keepers/ScoreKeeper.h"
 #include "Kodu/Primitives/KoduActionMotion.h"
 
-//#include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
 
 // Tekkotsu Library
@@ -27,7 +26,7 @@
 namespace Kodu {
 
     class PerceptualTaskBase;
-
+    
     class KoduAgent {
     public:
         //! Constructor
@@ -38,23 +37,17 @@ namespace Kodu {
             targetObjectIsInGripper(false),
             agentIsWalking(false),
             currMotionCmd(),
+
+            distanceTravelled(0.0f),
+
             pages(),
             currPageIndex(0),
             newReqdPage(0),
+            ptasks(),
             scoreQueue(),
             stringToSpeak(""),
             playQueue(),
-
-            //bmpDetector(),
-            ptasks(),
-
-            walkStartTime(0),
-            totalApproxDistanceTravelled(0.0f),
-            distanceSinceLastLocalization(0.0f),
-            lastRecordedPosition(agentLocation),
-            lastRecordedHeading(agentOrientation),
-            agentGazePolygon()//,
-            //name(kName)
+            agentGazePolygon()
         {
             // generate the gaze polygon
             generateGazePolygon();
@@ -75,23 +68,17 @@ namespace Kodu {
                 targetObjectIsInGripper = kAgent.targetObjectIsInGripper;
                 agentIsWalking = kAgent.agentIsWalking;
                 currMotionCmd = kAgent.currMotionCmd;
+
+                distanceTravelled = kAgent.distanceTravelled;
+                
                 pages = kAgent.pages;
                 currPageIndex = kAgent.currPageIndex;
                 newReqdPage = kAgent.newReqdPage;
+                ptasks = kAgent.ptasks;
                 scoreQueue = kAgent.scoreQueue;
                 stringToSpeak = kAgent.stringToSpeak;
                 playQueue = kAgent.playQueue;
-
-                //bmpDetector = kAgent.bmpDetector;
-                ptasks = kAgent.ptasks;
-
-                walkStartTime = kAgent.walkStartTime;
-                totalApproxDistanceTravelled = kAgent.totalApproxDistanceTravelled;
-                distanceSinceLastLocalization = kAgent.distanceSinceLastLocalization;
-                lastRecordedPosition = kAgent.lastRecordedPosition;
-                lastRecordedHeading = kAgent.lastRecordedHeading;
                 agentGazePolygon = kAgent.agentGazePolygon;
-                //name = kAgent.name;
             }
             return *this;
         }
@@ -117,8 +104,6 @@ namespace Kodu {
         bool isHoldingAnObject() const;
 
         /// ================================ Motion functions ================================ ///
-        bool bodyHasMoved();
-
         //! Checks if the agent has a valid motion command
         bool hasMotionCommand() const;
 
@@ -127,12 +112,6 @@ namespace Kodu {
 
         //! Checks if the agent needs to localize
         bool needsToLocalize() const;
-
-        //! Notes what time the agent started walking and sets the "walking" flag to true
-        void startMonitoringWalk();
-
-        //! Calculates the approx distance the robot travelled and sets the "walking" flag to false
-        void stopMonitoringWalk();
 
         /// ================================ Page functions ================================ ///
         //! Returns the page currently being evaluated (determined by current page index variable)
@@ -178,11 +157,15 @@ namespace Kodu {
         static const float kLocalizationDistanceThreshold;
         bool agentIsWalking;                //!< A flag stating whether or not the agent is walking
         MotionCommand currMotionCmd;        //!< The current motion command
+        float distanceTravelled;
         
         // === Page variables === //
         std::vector<KoduPage*> pages;       //!< The vector of pages containing kode
         unsigned int currPageIndex;         //!< The page (index) currently being executed
         unsigned int newReqdPage;           //!< Stores the page number the agent wants to switch to
+
+        // === Perceptual Tasks container === //
+        std::queue<PerceptualTaskBase*> ptasks;
 
         // === Score variables === //
         std::queue<ScoreChange> scoreQueue; //!< The queue of score operations and their value
@@ -193,18 +176,7 @@ namespace Kodu {
         // === Sound variables === //
         std::queue<std::string> playQueue;  //!< The queue of sound files the agent wants to play
 
-        // === Perceptual Tasks container === //
-        std::queue<PerceptualTaskBase*> ptasks;
-
-        
     private: //// ================= The Private Agent Variables ================= ////
-        // === Motion variables === //
-        unsigned int walkStartTime;         //!< The time (in milliseconds) the agent started walking
-        float totalApproxDistanceTravelled; //!< The total approx. distance travelled (including turns)
-        float distanceSinceLastLocalization;//!< The distance travelled since the last localization
-        DualCoding::Point lastRecordedPosition; //!< The approx. position the agent was at before it moved
-        float lastRecordedHeading;
-        
         // === Gaze polygon variables === //
         //! egocentric (relative to the robot's body) "directions" to look at (they are really points)
         DualCoding::Shape<DualCoding::PolygonData> agentGazePolygon;

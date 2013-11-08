@@ -10,7 +10,7 @@
 
 namespace Kodu {
     /// ================================ Static initializations ================================ ///
-    const float KoduAgent::kLocalizationDistanceThreshold = 3000.0f;
+    const float KoduAgent::kLocalizationDistanceThreshold = 1000.0f;
 
     /// ================================ Grasper functions ================================ ///
     bool KoduAgent::hasNewObjectToGrab() const {
@@ -34,11 +34,6 @@ namespace Kodu {
     }
 
     /// ================================ Motion functions ================================ ///
-    bool KoduAgent::bodyHasMoved() {
-        return ((lastRecordedPosition != DualCoding::VRmixin::theAgent->getCentroid())
-            || (lastRecordedHeading != DualCoding::VRmixin::theAgent->getOrientation()));
-    }
-
     bool KoduAgent::hasMotionCommand() const {
         return currMotionCmd.isValid();
     }
@@ -48,31 +43,7 @@ namespace Kodu {
     }
 
     bool KoduAgent::needsToLocalize() const {
-        return ((distanceSinceLastLocalization >= kLocalizationDistanceThreshold)
-                && getCurrentPage()->requiresVision());
-    }
-
-    void KoduAgent::startMonitoringWalk() {
-        agentIsWalking = true;
-        walkStartTime = get_time();
-    }
-
-    void KoduAgent::stopMonitoringWalk() {
-        agentIsWalking = false;
-        // check if the agent has moved (its body)
-        if (bodyHasMoved()) {
-            unsigned int timeElasped = get_time() - walkStartTime;
-            walkStartTime = 0;
-            // calculate the approx distance travelled, and add it to:
-            // 1) the total approx distance and
-            // 2) the distance since last localization
-            float approxDistanceTravelled = KoduActionMotion::kWalkingSpeed * (timeElasped / 1000);
-            totalApproxDistanceTravelled += approxDistanceTravelled;
-            distanceSinceLastLocalization += approxDistanceTravelled;
-            std::cout << "Approx. Dist. Travelled = " << approxDistanceTravelled << std::endl;
-            std::cout << "Total Approx. Dist. Travelled = " << totalApproxDistanceTravelled << std::endl;
-            std::cout << "Dist. Since Last Localization = " << distanceSinceLastLocalization << std::endl;
-        }
+        return (distanceTravelled >= kLocalizationDistanceThreshold);
     }
 
     /// ================================ Scoring functions ================================ ///
