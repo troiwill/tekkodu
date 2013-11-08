@@ -1,6 +1,8 @@
 // Tekkodu Library
 #include "Kodu/Primitives/PerceptionSearch.h"
 
+using namespace DualCoding;
+
 namespace Kodu {
 
     bool HasAreaGreaterThan::operator()(const DualCoding::ShapeRoot& kShape) const {
@@ -82,13 +84,13 @@ namespace Kodu {
                 AngSignPi bearing2ThisPoint = (kPoint - kAgentPt).atanYX();
                 // subtract the agent's orientation (heading) from the bearing to get the point's angle
                 // relative ot the agent
-                dtheta = AngSignPi(bearing2ThisPoint - DualCoding::VRmixin::theAgent->getOrientation());
+                dtheta = bearing2ThisPoint - AngSignPi(DualCoding::VRmixin::theAgent->getOrientation());
                 break;
             }
             // simply calculate the arctan of the point...
             case DualCoding::egocentric:
             {
-                dtheta = AngSignPi(kPoint.atanYX());
+                dtheta = kPoint.atanYX();
                 break;
             }
             // handles all other Reference Frame Types...
@@ -143,7 +145,7 @@ namespace Kodu {
             case DualCoding::cylinderDataType:
             {
                 // get the radius of the cylinder
-                float radius = safeApproachDistance(kShape);
+                float radius = objectRadius(kShape);
                 // calculate the distance between the objects
                 float distBetweenCentroids = distanceFromAgentToObject(kShape);
                 distBtwObjects = distBetweenCentroids - kRobotInflatedRadius - radius;
@@ -157,19 +159,19 @@ namespace Kodu {
         return (distBtwObjects > 0.0f ? distBtwObjects : 0.0f);
     }
 
-    float safeApproachDistance(const DualCoding::ShapeRoot& kShape) {
+    float objectRadius(const DualCoding::ShapeRoot& kShape) {
         static float const kErrValue = -1.0f;
-        float safeDistance = 0.0f;
+        float radius = 0.0f;
         switch(kShape->getType()) {
             case DualCoding::cylinderDataType:
-                safeDistance = static_cast<const DualCoding::CylinderData&>(kShape.getData()).getRadius();
+                radius = ShapeRootTypeConst(kShape, DualCoding::CylinderData)->getRadius();
                 break;
 
             default:
-                std::cout << "WARNING: Used unhandled shape type in safeApproachDistance(...)\n";
+                std::cout << "WARNING: Used unhandled shape type in objectRadius(...)\n";
                 return kErrValue;
         }
-        return safeDistance;
+        return radius;
     }
 
     template<typename Type>

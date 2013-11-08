@@ -162,7 +162,7 @@ namespace Kodu {
     //! 
     float distanceInBetweenAgentAndObject(const DualCoding::ShapeRoot&);
 
-    float safeApproachDistance(const DualCoding::ShapeRoot&);
+    float objectRadius(const DualCoding::ShapeRoot&);
 
     //! Returns the closest shape/object to the agent
     template<typename Type>
@@ -175,8 +175,8 @@ namespace Kodu {
     //! Returns the objects that are a specified color
     template<typename Type>
     inline
-    std::vector<Type> getObjectsWithColor(const std::vector<Type>& kObjects, const std::string& color) {
-        return DualCoding::subset(kObjects, DualCoding::IsColor(color));
+    std::vector<Type> getObjectsWithColor(const std::vector<Type>& kObjects, const std::string& kColor) {
+        return DualCoding::subset(kObjects, DualCoding::IsColor(kColor));
     }
 
     //! Returns the closest object that matches the specified criteria
