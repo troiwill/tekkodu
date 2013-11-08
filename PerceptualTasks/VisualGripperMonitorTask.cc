@@ -28,7 +28,7 @@ namespace Kodu {
     void VisualGripperMonitorTask::examineTaskResults() {
         std::cout << "Examining visual gripper monitor results...\n";
         DualCoding::Shape<DualCoding::AprilTagData> objectTag
-            = DualCoding::find_if<DualCoding::AprilTagData>(DualCoding::VRmixin::localShS, taskPred);
+            = DualCoding::find_if<DualCoding::AprilTagData>(DualCoding::VRmixin::localShS,taskPred);
 
         std::cout << "objectTag reference valid? ";
         if (objectTag.isValid()) {
@@ -39,7 +39,7 @@ namespace Kodu {
                 << lastSuccessfulOrient << std::endl;
         } else {
             std::cout << "no, reporting failure.\n";
-            // add code to make sure the robot isn't dropping the object when executing this function
+            // add code to make sure  robot isn't dropping the object when executing this function
             /*
             std::cout << "no, reporting failure. last successful state: ";
             if (lastSuccessfulState != posOrientDeque.end()) {
@@ -76,6 +76,7 @@ namespace Kodu {
             new DualCoding::PointData(DualCoding::VRmixin::localShS, taskPred.aprTagCentroid));
         mapreq = DualCoding::MapBuilderRequest(DualCoding::MapBuilderRequest::localMap);
         mapreq.searchArea = tagApproxPosition;
+        mapreq.setAprilTagFamily();
         return mapreq;
     }
 
@@ -85,6 +86,10 @@ namespace Kodu {
 
     int VisualGripperMonitorTask::getTagId() const {
         return taskPred.aprTagId;
+    }
+
+    void VisualGripperMonitorTask::relocateTagCentroid(const DualCoding::Point& kNewLocation) {
+        taskPred.aprTagCentroid = kNewLocation;
     }
 
     bool VisualGripperMonitorTask::taskIsComplete(const KoduWorld& kWorldState) {

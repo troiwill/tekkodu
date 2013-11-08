@@ -155,6 +155,9 @@ namespace Kodu {
         //! Returns the April Tag's id
         int getTagId() const;
 
+        //! Relocates the object's tag (used after manipulation recovery)
+        void relocateTagCentroid(const DualCoding::Point&);
+
         //! Checks whether a task is complete
         virtual bool taskIsComplete(const KoduWorld&);
 
