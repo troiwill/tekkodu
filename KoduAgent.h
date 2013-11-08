@@ -46,7 +46,7 @@ namespace Kodu {
             playQueue(),
 
             //bmpDetector(),
-            pTasksQueue(),
+            ptasks(),
 
             walkStartTime(0),
             totalApproxDistanceTravelled(0.0f),
@@ -62,7 +62,7 @@ namespace Kodu {
 
         //! Destructor
         ~KoduAgent() {
-            GeneralFncs::destroyAllPtrsInQueue(pTasksQueue);
+            GeneralFncs::destroyAllPtrsInQueue(ptasks);
             GeneralFncs::destroyAllPtrsInVector(pages);
             stringToSpeak.clear();
         }
@@ -83,7 +83,7 @@ namespace Kodu {
                 playQueue = kAgent.playQueue;
 
                 //bmpDetector = kAgent.bmpDetector;
-                pTasksQueue = kAgent.pTasksQueue;
+                ptasks = kAgent.ptasks;
 
                 walkStartTime = kAgent.walkStartTime;
                 totalApproxDistanceTravelled = kAgent.totalApproxDistanceTravelled;
@@ -195,7 +195,7 @@ namespace Kodu {
 
 
         //std::queue<KoduConditionBump*> bmpDetector;
-        std::queue<PerceptualTaskBase*> pTasksQueue;
+        std::queue<PerceptualTaskBase*> ptasks;
 
         
     private: //// ================= The Private Agent Variables ================= ////
