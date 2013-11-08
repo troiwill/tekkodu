@@ -6,6 +6,7 @@
 
 // Tekkotsu Library
 #include "DualCoding/ShapeRoot.h"
+#include "DualCoding/ShapeAprilTag.h"
 
 // C++ Library
 #include <string>
@@ -15,40 +16,17 @@ namespace Kodu {
     class KoduObject {
     public:
         //! Constructor
-        KoduObject(const std::string& kObjectColor, const std::string& kObjectType,
-            SearchLocation_t locationsToSearch, bool canBeLandmark)
-          : objectColor(kObjectColor),
-            objectType(kObjectType),
-            searchLocations(locationsToSearch),
-            objectIsLandmark(canBeLandmark),
-            matchingObject()
-        { }
+        KoduObject(const std::string& kColor, const std::string& kType, SearchLocation_t locationsToSearch,
+            bool canBeLandmark);
 
         //! Copy constructor
-        KoduObject(const KoduObject& kObject)
-          : objectColor(kObject.objectColor),
-            objectType(kObject.objectType),
-            searchLocations(kObject.searchLocations),
-            objectIsLandmark(kObject.objectIsLandmark),
-            matchingObject(kObject.matchingObject)
-        { }
+        KoduObject(const KoduObject& kObject);
 
         //! Destructor
-        virtual ~KoduObject() {
-            // no explicit implementation
-        }
+        ~KoduObject();
 
         //! Assignment operator
-        KoduObject& operator=(const KoduObject& kObject) {
-            if (this != &kObject) {
-                objectColor = kObject.objectColor;
-                objectType = kObject.objectType;
-                searchLocations = kObject.searchLocations;
-                objectIsLandmark = kObject.objectIsLandmark;
-                matchingObject = kObject.matchingObject;
-            }
-            return *this;
-        }
+        KoduObject& operator=(const KoduObject& kObject);
 
         //! Returns the object's color
         const std::string& getColor() const;
@@ -69,19 +47,26 @@ namespace Kodu {
         bool foundValidMatch() const;
 
         //! Returns the object that matches the description
-        const DualCoding::ShapeRoot& getMatchingObject() const;
+        const DualCoding::ShapeRoot& getObject() const;
+
+        //! Returns the matching object's april tag
+        const DualCoding::Shape<DualCoding::AprilTagData>& getObjectIdentifier() const;
 
         //! Stores the object that matches the search criteria
-        void setMatchingObject(const DualCoding::ShapeRoot&);
+        void setObject(const DualCoding::ShapeRoot&);
+
+        //! Stores the object's identifier
+        void setObjectIdentifier(const DualCoding::Shape<DualCoding::AprilTagData>&);
 
     protected:
-        std::string objectColor;            //!< the object's color
-        std::string objectType;             //!< the object's type (e.g. tree, rock, apple)
+        std::string color;                  //!< the object's color
+        std::string type;                   //!< the object's type (e.g. tree, rock, apple)
         SearchLocation_t searchLocations;   //!< the locations the perceiver should search for an object
         bool objectIsLandmark;              //!< can "this" object be used as a landmark
 
     public:
         DualCoding::ShapeRoot matchingObject; //!< the object that matches search criteria
+        DualCoding::Shape<DualCoding::AprilTagData> matchingObjTag;
     };
 }
 
