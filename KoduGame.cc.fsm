@@ -427,6 +427,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $nodeclass ObjectManipRecovery : StateNode {
                 $provide float const kReverseDist(75.0f);
                 $provide Kodu::VisualGripperMonitorTask* gTask(NULL);
+                $provide ShapeRoot grasperTarget;
 
                 ~ObjectManipRecovery() {
                     gTask = NULL;
@@ -557,7 +558,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     NEW_SHAPE(objToRetrieve, CylinderData, find_if<CylinderData>(localShS));
                     if (objToRetrieve.isValid()) {
                         std::cout << "object is valid!\n";
-                        graspreq.object = VRmixin::mapBuilder->importLocalShapeToWorld(objToRetrieve);
+                        //********** possible temp fix
+                        $reference ObjectManipRecovery::grasperTarget;
+                        grasperTarget = VRmixin::mapBuilder->importLocalShapeToWorld(objToRetrieve);
+                        graspreq.object = grasperTarget;
+                        //**********
+                        //graspreq.object = VRmixin::mapBuilder->importLocalShapeToWorld(objToRetrieve);
                         graspreq.allowBodyMotion = false;
                     } else {
                         std::cout << "object is NOT valid!!!\n";
@@ -590,6 +596,24 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     }
                     // book keeping
                     gTask = NULL;
+                    //********** possible temp fix
+                    $reference ObjectManipRecovery::grasperTarget;
+                    std::cout << "grasper target valid? ";
+                    if (grasperTarget.isValid()) {
+                        std::cout << "yes\n";
+                        std::cout << "grasper target's matches the gripper target?";
+                        $reference KoduInterp::thisAgent;
+                        if (grasperTarget.getId() == thisAgent->gripperObject.getId()) {
+                            std::cout << "yes, not deleting... making it not an obstacle.\n";
+                            grasperTarget->setObstacle(false);
+                        } else {
+                            std::cout << "no, deleting the object.\n";
+                            worldShS.deleteShape(grasperTarget);
+                        }
+                    } else {
+                        std::cout << "no, THIS SHOULD NOT HAPPEN!!!\n";
+                    }
+                    //***********
                 }
 
                 $setupmachine {
