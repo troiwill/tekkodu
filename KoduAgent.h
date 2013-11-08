@@ -135,7 +135,7 @@ namespace Kodu {
         void stopMonitoringWalk();
 
         /// ================================ Page functions ================================ ///
-        //! Returns the page currently being evaluated (determined by the current page index variable)
+        //! Returns the page currently being evaluated (determined by current page index variable)
         KoduPage* getCurrentPage() const;
 
         //! Returns the specified page (using it's page number)
@@ -161,7 +161,7 @@ namespace Kodu {
 
     private:
         /// ================================ Gaze functions ================================ ///
-        //! Generates the agent's gaze points (the points in space the agent should search for objects)
+        //! Generates the agent's gaze points (the points in space to search for objects)
         void generateGazePolygon();
 
         // Disallows the copy constructor
@@ -193,8 +193,7 @@ namespace Kodu {
         // === Sound variables === //
         std::queue<std::string> playQueue;  //!< The queue of sound files the agent wants to play
 
-
-        //std::queue<KoduConditionBump*> bmpDetector;
+        // === Perceptual Tasks container === //
         std::queue<PerceptualTaskBase*> ptasks;
 
         
@@ -209,9 +208,6 @@ namespace Kodu {
         // === Gaze polygon variables === //
         //! egocentric (relative to the robot's body) "directions" to look at (they are really points)
         DualCoding::Shape<DualCoding::PolygonData> agentGazePolygon;
-
-        //! The name of the robot
-        //std::string name;
     };
 }
 
