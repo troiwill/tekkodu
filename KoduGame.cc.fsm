@@ -85,7 +85,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         theWorld = new Kodu::KoduWorld();
         // point the KoduAgent pointer to KoduWorld::thisAgent
         thisAgent = &(theWorld->thisAgent);
-
         // set the world bounds
         VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
 
