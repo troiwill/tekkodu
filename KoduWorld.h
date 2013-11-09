@@ -63,7 +63,7 @@ namespace Kodu {
         KoduAgent thisAgent;
 
     private:
-        //! Local copy of the Score Keeper (each agent has its own copy which all must be kept synchronized)
+        //! Local copy of the Score Keeper
         static ScoreKeeper globalScoreKeeper;
 
         //! The North Star - used for localization, and defines "north" in the world
