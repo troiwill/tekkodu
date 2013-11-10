@@ -30,8 +30,7 @@ namespace Kodu {
     class KoduAgent {
     public:
         //! Constructor
-        KoduAgent(/*const std::string& kName,*/ const DualCoding::Point& agentLocation,
-            float agentOrientation)
+        KoduAgent()
           : gripperObject(),
             agentIsAttemptingGrab(false),
             targetObjectIsInGripper(false),
