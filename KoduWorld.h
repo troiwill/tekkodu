@@ -9,20 +9,23 @@
 // Tekkotsu Library
 #include "DualCoding/PolygonData.h"
 #include "DualCoding/ShapePolygon.h"
+#include "DualCoding/ShapeRoot.h"
 
 namespace Kodu {
 
     class KoduWorld {
     public:
         //! Constructor
-        KoduWorld(/*const std::string& agentName*/)
-          : thisAgent(/*agentName,*/DualCoding::Point(0.0f, 0.0f, 0.0f, DualCoding::egocentric), 0.0f),
+        KoduWorld()
+          : thisAgent(),
+            //northStar(),
+            northStarLocation(),
             northStarIsArtifical(true),
             worldBoundsPolygon(),
             worldSideLength(2000.0f)    // 2 meters (area = 2m sq)
         {
             // generates the world bounds polygon
-            generateWorldBoundsPolygon();
+            //generateWorldBoundsPolygon();
         }
 
         //! Destructor
@@ -39,21 +42,23 @@ namespace Kodu {
         static int getScoreValue(const std::string&);
 
         /// ================================ World Bounds and North Star functions =========== ///
+        //! Returns the world North Star
+        //const DualCoding::ShapeRoot& getNorthStar() const;
+        const DualCoding::Point& getNorthStarLocation() const;
+
         //! Returns the world bounds polygon
-        const DualCoding::Shape<DualCoding::PolygonData>& getWorldBoundsPolygon();
+        const DualCoding::Shape<DualCoding::PolygonData>& getWorldBoundsPolygon() const;
+
+        //! Sets the "North Star"
+        //void setNorthStar(const DualCoding::ShapeRoot&, bool);
+        void generateWorldBoundsPolygon(const DualCoding::ShapeRoot&);
 
         //! Returns whether or not the north star was seen by the camera
         bool theNorthStarIsArtificial() const;
 
-        //! Sets the "North Star"
-        //void setNorthStar(const DualCoding::Shape<DualCoding::AprilTagData>&, bool);
-
-        //! Sets the "North star" location
-        void setNorthStarLocation(const DualCoding::Shape<DualCoding::PointData>&, bool);
-
     private:
         //! Generates the world bounds
-        void generateWorldBoundsPolygon();
+        //void generateWorldBoundsPolygon();
 
         //! Disallows the copy constructor and assignment operator
         DISALLOW_COPY_ASSIGN(KoduWorld);
@@ -67,11 +72,9 @@ namespace Kodu {
         static ScoreKeeper globalScoreKeeper;
 
         //! The North Star - used for localization, and defines "north" in the world
-        //DualCoding::Shape<DualCoding::AprilTagData> northStar;
+        //DualCoding::ShapeRoot northStar;
+        DualCoding::Point northStarLocation;
         
-        //! The North Star - used for localization, and defines "north" in the world
-        static DualCoding::Shape<DualCoding::PointData> northStarLocation;
-
         //! States if the North Star was seen by the camera, or it is artifical
         bool northStarIsArtifical;
 
