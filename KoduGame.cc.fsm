@@ -45,8 +45,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     
     $provide Kodu::KoduWorld* theWorld(NULL);
     $provide Kodu::KoduAgent* thisAgent(NULL);
-    $provide unsigned int cycleCount(0);
-
+    
     $provide GrabActionRunner* grabActRef(NULL);
     $provide MotionActionRunner* motionActRef(NULL);
     $provide PageSwitchActionRunner* pageSwitchActRef(NULL);
@@ -73,96 +72,163 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         std::cout << "Kodu Game destruction complete!\n";
     }
 
-    $nodeclass InitializeAgent : StateNode : doStart {
-        $reference KoduInterp::theWorld;
-        $reference KoduInterp::thisAgent;
-        $reference KoduInterp::cycleCount;
+    $nodeclass InitializeAgent : StateNode {
 
-        std::cout << "Initializing Kodu Game.\n";
-        cycleCount = 0;
-        
-        // create an instance of the Kodu World
-        theWorld = new Kodu::KoduWorld();
-        // point the KoduAgent pointer to KoduWorld::thisAgent
-        thisAgent = &(theWorld->thisAgent);
-        // set the world bounds
-        VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
+        $nodeclass CreateWorld : StateNode : doStart {
+            $reference KoduInterp::theWorld;
+            $reference KoduInterp::thisAgent;
 
-        std::cout << "Initialization complete.\n";
-        postStateCompletion();
-    }
-    
-    //! Kodu Code Parser
-    $nodeclass KoduParser : StateNode : doStart {
-        $reference KoduInterp::thisAgent;
-        
-        // parses and creates Kodu program
-        if (Kodu::Parser::parseAndCreateKoduProgram(thisAgent->pages) == false) {
-            postStateFailure();
-            std::cerr << "Error parsing and creating Kodu program.\n";
-            return;
-        }
-
-        std::cout << "Parsing complete.\n";
-        if (thisAgent->getCurrentPage()->requiresVision()) {
+            std::cout << "[" << getName() << "]: creating world\n";
+            // create an instance of the Kodu World
+            if ((theWorld = new Kodu::KoduWorld()) == NULL) {
+                std::cout << "!!! there was an error creating the World! Terminating...\n";
+                postStateFailure();
+                return;
+            }
+            // create a pointer to the agent instance in KoduWorld
+            thisAgent = &(theWorld->thisAgent);
             postStateCompletion();
-        } else {
-            postStateFailure();
         }
-    }
 
-    $nodeclass SnapImage : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
-        $reference KoduInterp::thisAgent;
-        // search the world for the following objects
-        mapreq.addObjectColor(cylinderDataType, "red");
-        mapreq.addObjectColor(cylinderDataType, "blue");
-        mapreq.addObjectColor(cylinderDataType, "green");
-        //mapreq.setAprilTagFamily();
+        $nodeclass ParseKode : StateNode : doStart {
+            std::cout << "[" << getName() << "]: parsing kode\n";
+            $reference KoduInterp::thisAgent;
+            // parses and creates Kodu program
+            if (Kodu::Parser::parseAndCreateKoduProgram(thisAgent->pages) == false) {
+                std::cerr << "!!! Error parsing and creating Kodu program.\n";
+                postStateFailure();
+                return;
+            }
+            std::cout << "parsing complete.\n";
+            postStateSuccess();
+        }
 
-        mapreq.searchArea = thisAgent->getGazePolygon();
-        //mapreq.doScan = true;
-        mapreq.pursueShapes = true;
-        mapreq.removePts = false;
-        //mapreq.maxDist = distantRadius * 1.15f;
-    }
+        $nodeclass LookAround : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
+            $reference KoduInterp::thisAgent;
+            // search the world for the following objects
+            mapreq.addObjectColor(cylinderDataType, "red");
+            mapreq.addObjectColor(cylinderDataType, "blue");
+            mapreq.addObjectColor(cylinderDataType, "green");
+            mapreq.setAprilTagFamily();
+            // the points to look at to observe the world
+            mapreq.searchArea = thisAgent->getGazePolygon();
+            mapreq.pursueShapes = true;
+            mapreq.removePts = false;
+        }
 
-    $nodeclass PointHeadFwd : HeadPointerNode : doStart {
-        // look ahead at point {x, y, z}
-        getMC()->lookAtPoint(2000.0f, 0, 0);
-    }
+        $nodeclass PointHeadFwd : HeadPointerNode : doStart {
+            // look ahead at point {x, y, z}
+            getMC()->lookAtPoint(1400.0f, 0, 0);
+        }
 
-    $nodeclass CheckForNorthStar : StateNode : doStart {
-        $reference KoduInterp::theWorld;
-        // check if the north star was visible
-        // create a vector (multiple tags may have been seen)
-        /*
-        NEW_SHAPEVEC(aprilTagsVec, AprilTagData, select_type<AprilTagData>(worldShS));
-        bool foundNS = false;
-        // check if any april tags were visible
-        if (aprilTagsVec.size() > 0) {
-            for (unsigned int i = 0; i < aprilTagsVec.size(); i++) {
-                if (aprilTagsVec[i]->getTagID() == 0) {
-                    std::cout << "Found the North Star!\n";
-                    //theWorld->setNorthStar(aprilTagsVec[i], false);
-                    foundNS = true;
-                    break;
+        $nodeclass OrganizeWorld : StateNode {
+
+            class IsNotWorldShape : public UnaryShapeRootPred {
+            public:
+                IsNotWorldShape()
+                  : UnaryShapeRootPred()
+                { }
+
+                ~IsNotWorldShape() {
+                    // no explicit implementation
                 }
+
+                bool operator()(const ShapeRoot& kWShape) const {
+                    switch (kWShape->getType()) {
+                        // if it's a cylinder, it must have a radius within some range
+                        case cylinderDataType:
+                        {
+                            const Shape<CylinderData>& kCyl = ShapeRootTypeConst(kWShape, CylinderData);
+                            if ((kCyl->getRadius() < 40.0f) || (kCyl->getRadius() > 70.0f))
+                                return true;
+                            break;
+                        }
+
+                        // if it's an april tag, it must be the north star
+                        case aprilTagDataType:
+                        {
+                            const Shape<AprilTagData>& kTag = ShapeRootTypeConst(kWShape, AprilTagData);
+                            if (kTag->getTagID() > 0)
+                                return true;
+                            break;
+                        }
+
+                        // the following should not be included in the vector
+                        case agentDataType:
+                        case localizationParticleDataType:
+                        case polygonDataType:
+                            return false;
+
+                        default:
+                            return true;
+                    }
+                    return false;
+                }
+            };
+
+            virtual void doStart() {
+                $reference KoduInterp::theWorld;
+                std::cout << "[" << getName() << "]: organizing the world.\n";
+                // get all the shapes that are probably false positives, or not considered as a
+                // world shape, and remove them from the worldShS
+                std::cout << "deleting some shapes.\n";
+                NEW_SHAPEROOTVEC(shapesToDelete, subset(worldShS, IsNotWorldShape()));
+                worldShS.deleteShapes(shapesToDelete);
+                // search for the north star
+                std::cout << "searching for north star... ";
+                NEW_SHAPE(northStar, AprilTagData, find_if<AprilTagData>(worldShS));
+                if (northStar.isValid()) {
+                    std::cout << "found the North Star!\n";
+                    theWorld->generateWorldBoundsPolygon(northStar);
+                    //************ temp fix
+                    // remove the north star shape (pilot will periodically stop the robot
+                    // to use it to localize)
+                    worldShS.deleteShape(northStar);
+                    //************
+                } else {
+                    std::cout << "could not find North Star (creating an artificial point)\n";
+                    /*
+                    // get 2D box bounding the world
+                    BoundingBox2D bounds = theWorld->getWorldBoundsPolygon()->getBoundingBox();
+                    // the max x-value
+                    float xPos = bounds.max[0];
+                    // the avg of the max and min y-values
+                    float yPos = (bounds.max[1] + bounds.min[1]) / 2.0f;
+                    // z-value; northstar is artificial, only xy matters
+                    float zPos = 0.0f;
+                    // create a point the world where the north star would be
+                    NEW_SHAPE(artificialNorthStar, PointData,
+                        new PointData(worldShS, Point(xPos, yPos, zPos, allocentric)));
+                    */
+                    theWorld->generateWorldBoundsPolygon();
+                }
+                // set the world bounds
+                std::cout << "setting world bounds\n";
+                VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
+                // clear the landmark vector in the pilot
+                std::cout << "clearing default landmarks\n";
+                VRmixin::pilot->setDefaultLandmarks(std::vector<ShapeRoot>());
+                postStateCompletion();
             }
         }
-        */
-        //if (!foundNS) {
-        // get 2D box bounding the world
-        BoundingBox2D bounds = theWorld->getWorldBoundsPolygon()->getBoundingBox();
-        NEW_SHAPE(artificialNorthStar, PointData,
-            new PointData(worldShS,                      // put the northstar in the world shape space
-                Point(
-                    bounds.max[0],                           // the max x-value
-                    ((bounds.max[1] + bounds.min[1]) / 2.0f),// the avg of the max and min y-values
-                    0)));                         // z-value; northstar is artificial, only xy matters
-        // set the world northstar to the artifically created AprilTag
-        theWorld->setNorthStarLocation(artificialNorthStar, true);
-        //}
-        postStateCompletion();
+
+        $setupmachine {
+            newWorld:       CreateWorld
+            parse:          ParseKode
+            look:           LookAround
+            initArm:        ParkArm
+            lookFwd:        PointHeadFwd
+            orgWorld:       OrganizeWorld
+
+            newWorld =C=> parse
+            newWorld =F=> SpeechNode("error creating world") =C=> PostMachineFailure
+
+            parse =S=> { look, initArm }
+            parse =F=> PostMachineFailure
+
+            look =C=> lookFwd =C=> orgWorld =C=> PostMachineCompletion
+            initArm =C=> StateNode
+        }
     }
 
     $nodeclass WalkMonitor : StateNode {
@@ -425,6 +491,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 if (thisAgent->isWalking()) {
                     std::cout << "Aborting current pilot request.\n";
                     VRmixin::pilot->pilotAbort();
+                    thisAgent->agentIsWalking = false;
                     motionActRef->stop();
                 }
 
@@ -779,6 +846,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     
     //! 
     $nodeclass KoduConditionEvaluator : StateNode {
+        $provide unsigned int cycleCount(0);
 
         //! Enables child rules with the once modifier enabled (who have already ran) to run (again)
         void resetChildRulesWithOnceEnabled(const unsigned int kParentRuleNumer) {
@@ -803,7 +871,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         }
 
         virtual void doStart() {
-            $reference KoduInterp::cycleCount;
             $reference KoduInterp::multiplexorRef;
             $reference KoduInterp::needToHaltExecution;
             $reference KoduInterp::theWorld;
@@ -1093,6 +1160,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference KoduInterp::thisAgent;
                 std::cout << "[" << getName() << "]: setting grab action status to 'attempting grab'\n";
                 thisAgent->setIsAttemptingGrabFlag(true);
+                //thisAgent->agentIsWalking = true;
                 postStateCompletion();
             }
             
@@ -1232,6 +1300,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             thisAgent->setIsAttemptingGrabFlag(false);
             // the target object is (should be) in the gripper
             thisAgent->setTargetInGripperFlag(true);
+            //thisAgent->agentIsWalking = false;
             std::cout << "Grab action complete.\n";
             postStateCompletion();
         }
@@ -1389,6 +1458,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference MotionActionRunner::cmd;
                 $reference MotionActionRunner::segment;
                 std::cout << "[" << getName() << "]: starting up motion action runner\n";
+                thisAgent->agentIsWalking = true;
                 // check if the agent needs to go to an object
                 if (thisAgent->currMotionCmd.targetObjectIsValid()) {
                     // get a constant reference to the target shape
@@ -1520,6 +1590,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $reference MotionActionRunner::cmd;
             std::cout << "[" << getName() << "]: simple motion complete.\n";
             cmd = Kodu::MotionCommand();
+            thisAgent->agentIsWalking = false;
             postParentCompletion();
         }
 
@@ -1712,13 +1783,14 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     
     virtual void setup() {
         $statemachine {
-            initAgent:  InitializeAgent
-            parser:     KoduParser
-            snapImgs:   SnapImage
-            park:       ParkArm
-            lookFwd:    PointHeadFwd
-            findNS:     CheckForNorthStar
+            //initAgent:  InitializeAgent
+            //parser:     KoduParser
+            //snapImgs:   SnapImage
+            //park:       ParkArm
+            //lookFwd:    PointHeadFwd
+            //findNS:     CheckForNorthStar
             
+            initAgent:  InitializeAgent
             walkMon:    WalkMonitor
             mplex:      PerceptualMultiplexor
             evaluator:  KoduConditionEvaluator
@@ -1726,15 +1798,16 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             
             endState:   StateNode
             
-            initAgent =C=> parser
+            //initAgent =C=> parser
 
-            parser =C=> { snapImgs, park }
-            parser =F=> findNS
+            //parser =C=> { snapImgs, park }
+            //parser =F=> findNS
             
-            snapImgs =C=> findNS
-            park =C=> endState
+            //snapImgs =C=> findNS
+            //park =C=> endState
             
-            findNS =C=> lookFwd =C=> { evaluator, walkMon }
+            //findNS =C=> lookFwd =C=> { evaluator, walkMon }
+            initAgent =C=> { evaluator, walkMon }
             walkMon =T(500)=> walkMon
             //findNS =C=> lookFwd =C=> evaluator
             //findNS =C=> lookFwd =C=> mplex 
@@ -1745,7 +1818,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             evaluator =F=> endState
 
             runner =T(150)=> evaluator
-            //runner =T(150)=> mplex
             mplex =C=> endState
             
             // grab actuator
@@ -1772,8 +1844,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             scoreAct:   ScoreActuator
             scoreAct =C=> endState
 
-            // page switch actuator
-            //pageSwitchAct: PageSwitchActuator
+            // page switch action runner
             pageSwitchAct:  PageSwitchActionRunner
             pageSwitchAct =C=> endState
 
