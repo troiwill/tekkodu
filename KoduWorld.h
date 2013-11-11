@@ -51,7 +51,7 @@ namespace Kodu {
 
         //! Sets the "North Star"
         //void setNorthStar(const DualCoding::ShapeRoot&, bool);
-        void generateWorldBoundsPolygon(const DualCoding::ShapeRoot&);
+        void generateWorldBoundsPolygon(const DualCoding::ShapeRoot& = DualCoding::ShapeRoot());
 
         //! Returns whether or not the north star was seen by the camera
         bool theNorthStarIsArtificial() const;
