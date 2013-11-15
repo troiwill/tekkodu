@@ -17,11 +17,21 @@ namespace Kodu {
     class VisualLocalizationTask : public PerceptualTaskBase {
     public:
         //! Constructor
+        VisualLocalizationTask(const std::map<unsigned int, DualCoding::Point>& kStarConstellation)
+          : PerceptualTaskBase(PT_VIS_LOCALIZATION, ++idCount),
+            agentPosition(),
+            agentOrientation(),
+            globalGazePolygon(),
+            localizationPoints(kStarConstellation)
+        { }
+
+        //! Constructor
         VisualLocalizationTask(const DualCoding::Point& kAgentPos, float agentOrient)
           : PerceptualTaskBase(PT_VIS_LOCALIZATION, ++idCount),
             agentPosition(kAgentPos),
             agentOrientation(agentOrientation),
-            globalGazePolygon()
+            globalGazePolygon(),
+            localizationPoints()
         { }
 
         //! Constructor
@@ -29,7 +39,8 @@ namespace Kodu {
           : PerceptualTaskBase(PT_VIS_LOCALIZATION, ++idCount),
             agentPosition(),
             agentOrientation(),
-            globalGazePolygon(kGazePolygon)
+            globalGazePolygon(kGazePolygon),
+            localizationPoints()
         { }
 
         //! Copy constructor
@@ -37,7 +48,8 @@ namespace Kodu {
           : PerceptualTaskBase(kTask),
             agentPosition(kTask.agentPosition),
             agentOrientation(kTask.agentOrientation),
-            globalGazePolygon(kTask.globalGazePolygon)
+            globalGazePolygon(kTask.globalGazePolygon),
+            localizationPoints(kTask.localizationPoints)
         { }
 
         //! Destructor
@@ -52,6 +64,7 @@ namespace Kodu {
                 agentPosition = kTask.agentPosition;
                 agentOrientation = kTask.agentOrientation;
                 globalGazePolygon = kTask.globalGazePolygon;
+                localizationPoints = kTask.localizationPoints;
             }
             return *this;
         }
@@ -70,6 +83,7 @@ namespace Kodu {
         DualCoding::Point agentPosition;
         float agentOrientation;
         DualCoding::Shape<DualCoding::PolygonData> globalGazePolygon;
+        std::map<unsigned int, DualCoding::Point> localizationPoints;
     };
 }
 

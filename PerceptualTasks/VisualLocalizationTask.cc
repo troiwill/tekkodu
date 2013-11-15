@@ -28,7 +28,40 @@ namespace Kodu {
         DualCoding::MapBuilderRequest* mreq = NULL;
         mreq = new DualCoding::MapBuilderRequest(DualCoding::MapBuilderRequest::localMap);
 
-        if (!globalGazePolygon.isValid()) {
+        if (!localizationPoints.empty()) {
+            std::vector<DualCoding::Point> starLocs;
+            starLocs.reserve(localizationPoints.size());
+            std::cout << "creating the localization point vector for " << localizationPoints.size()
+                << " points.\n";
+            for (std::map<unsigned int, DualCoding::Point>::iterator it = localizationPoints.begin();
+                it != localizationPoints.end(); ++it)
+            {
+                //******** to fix... make the robot only look a little back when stars are to the side
+                AngSignPi dtheta = bearingFromAgentToPoint(it->second);
+                dtheta += AngSignPi(M_PI / 2.0f);
+                if (dtheta > 0.0f) {
+                    std::cout << "adding tag #" << it->first << " @ " << it->second << " to vector.\n";
+                    NEW_SHAPE(star, DualCoding::AprilTagData,
+                        new DualCoding::AprilTagData(DualCoding::VRmixin::worldShS,
+                            AprilTags::TagDetection(it->first), DualCoding::Point(it->second)));
+                    DualCoding::Point starCen(star->getCentroid());
+                    starLocs.push_back(starCen);
+                    starLocs.push_back(DualCoding::Point(starCen.coordX() - 200.0f, starCen.coordY(),
+                        starCen.coordZ(), starCen.getRefFrameType()));
+                }
+                //**********
+            }
+            std::cout << "generating localization polygon\n";
+            NEW_SHAPE(localizePolygon, DualCoding::PolygonData,
+                new DualCoding::PolygonData(DualCoding::VRmixin::localShS, starLocs, false));
+            localizePolygon->setObstacle(false);
+            localizePolygon->setViewable(true);
+
+            std::cout << "creating mapbuilder request\n";
+            mreq->setAprilTagFamily();
+            mreq->searchArea = localizePolygon;
+
+        } else if (!globalGazePolygon.isValid()) {
             std::cout << "getting the usable objects in the world\n";
             std::vector<DualCoding::ShapeRoot> usableShapes;
             usableShapes = DualCoding::subset(DualCoding::VRmixin::worldShS,
@@ -66,7 +99,7 @@ namespace Kodu {
         } else {
             mreq->searchArea = globalGazePolygon;
         }
-        mreq->pursueShapes = true;
+        //mreq->pursueShapes = true;
         mreq->removePts = false;
         
         // create the pilot request
