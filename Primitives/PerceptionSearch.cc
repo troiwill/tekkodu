@@ -1,3 +1,7 @@
+// INCLUDES
+// tekkotsu
+#include "DualCoding/AprilTagData.h"
+
 // Tekkodu Library
 #include "Kodu/Primitives/PerceptionSearch.h"
 
@@ -44,7 +48,7 @@ namespace Kodu {
                 //if (kTag->getTagID() > 4)
                 //    return true;
                 //break;
-                return IsStar()(kWShape);
+                return (!IsStar()(kWShape));
             }
 
             // the following should not be included in the vector
@@ -61,7 +65,7 @@ namespace Kodu {
 
     bool IsStar::operator()(const DualCoding::ShapeRoot& kWShape) const {
         return (kWShape.isValid() && kWShape->getType() == aprilTagDataType
-            && ShapeRootTypeConst(kWShape, AprilTagData)->getTagID() <= 4);
+            && static_cast<const AprilTagData&>(kWShape.getData()).getTagID() <= 4);
     }
 
     bool IsLandmark::operator()(const DualCoding::ShapeRoot& kShape) const {
