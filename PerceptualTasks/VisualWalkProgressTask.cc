@@ -38,13 +38,15 @@ namespace Kodu {
         std::cout << "Examining Walk Progress...";
         for (size_t i = 0; i < kNumbOfShapes; i++) {
             if (lclShapes[i]->isMatchFor(lclTarget)) {
-                std::cout << "found a match!\n";
+                std::cout << "found a match! xy-dist between centroids = ";
+                float dist = lclShapes[i]->getCentroid().xyDistanceFrom(lclTarget->getCentroid());
+                std::cout << dist << "mm\n";
                 errorCount = 0;
                 return;
             }
         }
 
-        // ***NOTE: execution of the remaining portion of this function means a mathc was not found
+        // ***NOTE: execution of the remaining portion of this function means a match was not found
         // check if the robot turned; sometimes that can cause an error (no match)
         const float kTurningError = 3.0f * M_PI / 180.0f;
         float agentCurrentOrientation = DualCoding::VRmixin::theAgent->getOrientation();
