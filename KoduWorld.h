@@ -1,6 +1,9 @@
 #ifndef KODU_WORLD_H_
 #define KODU_WORLD_H_
 
+// c++ library
+#include <map>
+
 // Tekkodu Library
 #include "Kodu/KoduAgent.h"
 #include "Kodu/Keepers/ScoreKeeper.h"
@@ -8,6 +11,7 @@
 
 // Tekkotsu Library
 #include "DualCoding/PolygonData.h"
+#include "DualCoding/ShapeAprilTag.h"
 #include "DualCoding/ShapePolygon.h"
 #include "DualCoding/ShapeRoot.h"
 
@@ -18,15 +22,12 @@ namespace Kodu {
         //! Constructor
         KoduWorld()
           : thisAgent(),
-            //northStar(),
             northStarLocation(),
             northStarIsArtifical(true),
+            starConstellation(),
             worldBoundsPolygon(),
             worldSideLength(2000.0f)    // 2 meters (area = 2m sq)
-        {
-            // generates the world bounds polygon
-            //generateWorldBoundsPolygon();
-        }
+        { }
 
         //! Destructor
         ~KoduWorld() {
@@ -43,8 +44,10 @@ namespace Kodu {
 
         /// ================================ World Bounds and North Star functions =========== ///
         //! Returns the world North Star
-        //const DualCoding::ShapeRoot& getNorthStar() const;
         const DualCoding::Point& getNorthStarLocation() const;
+
+        //! Returns the "stars" seen and their location
+        const std::map<unsigned int, DualCoding::Point>& getStarConstellation() const;
 
         //! Returns the world bounds polygon
         const DualCoding::Shape<DualCoding::PolygonData>& getWorldBoundsPolygon() const;
@@ -53,13 +56,13 @@ namespace Kodu {
         //void setNorthStar(const DualCoding::ShapeRoot&, bool);
         void generateWorldBoundsPolygon(const DualCoding::ShapeRoot& = DualCoding::ShapeRoot());
 
+        //! Sets the "stars" seen and their allocentric locations
+        void setStarConstellation(const std::vector<DualCoding::ShapeRoot>&);
+
         //! Returns whether or not the north star was seen by the camera
         bool theNorthStarIsArtificial() const;
 
     private:
-        //! Generates the world bounds
-        //void generateWorldBoundsPolygon();
-
         //! Disallows the copy constructor and assignment operator
         DISALLOW_COPY_ASSIGN(KoduWorld);
 
@@ -77,6 +80,9 @@ namespace Kodu {
         
         //! States if the North Star was seen by the camera, or it is artifical
         bool northStarIsArtifical;
+
+        //! A map of the april tag (used as stars) and their allocentric positions
+        std::map<unsigned int, DualCoding::Point> starConstellation;
 
         //! The world bounds polygon
         DualCoding::Shape<DualCoding::PolygonData> worldBoundsPolygon;
