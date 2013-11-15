@@ -15,6 +15,8 @@
 // C++ Library
 #include <cstdlib>
 
+//using namespace DualCoding;
+
 namespace Kodu {
 
     //! Specifies what region(s) the agent should focus on when using conditions such as see and bump
@@ -79,6 +81,28 @@ namespace Kodu {
 
     private:
         DualCoding::ShapeRoot targetObject;
+    };
+
+    class IsNotWorldShape : public DualCoding::UnaryShapeRootPred {
+    public:
+        IsNotWorldShape()
+          : DualCoding::UnaryShapeRootPred()
+        { }
+
+        ~IsNotWorldShape() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+    };
+
+    class IsStar : public DualCoding::UnaryShapeRootPred {
+    public:
+        IsStar()
+          : DualCoding::UnaryShapeRootPred()
+        { }
+
+        ~IsStar() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
     };
 
     class IsLandmark : public DualCoding::UnaryShapeRootPred {

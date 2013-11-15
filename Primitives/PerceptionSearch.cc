@@ -21,6 +21,49 @@ namespace Kodu {
         return (targetObject->isMatchFor(kShape));
     }
 
+/*
+    bool IsNotStar::operator()(const DualCoding::ShapeRoot& kWShape) const {
+        return (!(kWShape->getType() && ShapeRootTypeConst(kWShape, AprilTagData)->getTagID() <= 4));
+    }
+*/
+    bool IsNotWorldShape::operator()(const ShapeRoot& kWShape) const {
+        switch (kWShape->getType()) {
+            // if it's a cylinder, it must have a radius within some range
+            case cylinderDataType:
+            {
+                const Shape<CylinderData>& kCyl = ShapeRootTypeConst(kWShape, CylinderData);
+                if ((kCyl->getRadius() < 40.0f) || (kCyl->getRadius() > 70.0f))
+                    return true;
+                break;
+            }
+
+            // if it's an april tag, it must be the north star
+            case aprilTagDataType:
+            {
+                //const Shape<AprilTagData>& kTag = ShapeRootTypeConst(kWShape, AprilTagData);
+                //if (kTag->getTagID() > 4)
+                //    return true;
+                //break;
+                return IsStar()(kWShape);
+            }
+
+            // the following should not be included in the vector
+            case agentDataType:
+            case localizationParticleDataType:
+            case polygonDataType:
+                return false;
+
+            default:
+                return true;
+        }
+        return false;
+    }
+
+    bool IsStar::operator()(const DualCoding::ShapeRoot& kWShape) const {
+        return (kWShape.isValid() && kWShape->getType() == aprilTagDataType
+            && ShapeRootTypeConst(kWShape, AprilTagData)->getTagID() <= 4);
+    }
+
     bool IsLandmark::operator()(const DualCoding::ShapeRoot& kShape) const {
         return ((kShape->getType() == DualCoding::cylinderDataType)
              && (ProjectInterface::getColorName(kShape->getColor()) == std::string("green")));
