@@ -123,67 +123,29 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
         $nodeclass OrganizeWorld : StateNode {
 
-            class IsNotWorldShape : public UnaryShapeRootPred {
-            public:
-                IsNotWorldShape()
-                  : UnaryShapeRootPred()
-                { }
-
-                ~IsNotWorldShape() {
-                    // no explicit implementation
-                }
-
-                bool operator()(const ShapeRoot& kWShape) const {
-                    switch (kWShape->getType()) {
-                        // if it's a cylinder, it must have a radius within some range
-                        case cylinderDataType:
-                        {
-                            const Shape<CylinderData>& kCyl = ShapeRootTypeConst(kWShape, CylinderData);
-                            if ((kCyl->getRadius() < 40.0f) || (kCyl->getRadius() > 70.0f))
-                                return true;
-                            break;
-                        }
-
-                        // if it's an april tag, it must be the north star
-                        case aprilTagDataType:
-                        {
-                            const Shape<AprilTagData>& kTag = ShapeRootTypeConst(kWShape, AprilTagData);
-                            if (kTag->getTagID() > 0)
-                                return true;
-                            break;
-                        }
-
-                        // the following should not be included in the vector
-                        case agentDataType:
-                        case localizationParticleDataType:
-                        case polygonDataType:
-                            return false;
-
-                        default:
-                            return true;
-                    }
-                    return false;
-                }
-            };
-
             virtual void doStart() {
                 $reference KoduInterp::theWorld;
                 std::cout << "[" << getName() << "]: organizing the world.\n";
                 // get all the shapes that are probably false positives, or not considered as a
                 // world shape, and remove them from the worldShS
                 std::cout << "deleting some shapes.\n";
-                NEW_SHAPEROOTVEC(shapesToDelete, subset(worldShS, IsNotWorldShape()));
+                NEW_SHAPEROOTVEC(shapesToDelete, subset(worldShS, Kodu::IsNotWorldShape()));
                 worldShS.deleteShapes(shapesToDelete);
                 // search for the north star
                 std::cout << "searching for north star... ";
-                NEW_SHAPE(northStar, AprilTagData, find_if<AprilTagData>(worldShS));
-                if (northStar.isValid()) {
+                //NEW_SHAPE(northStar, AprilTagData, find_if<AprilTagData>(worldShS));
+                NEW_SHAPEROOTVEC(constellation, subset(worldShS, Kodu::IsStar()));
+                //if (northStar.isValid()) {
+                if (!constellation.empty()) {
                     std::cout << "found the North Star!\n";
-                    theWorld->generateWorldBoundsPolygon(northStar);
+                    theWorld->setStarConstellation(constellation);
+                    //theWorld->generateWorldBoundsPolygon(northStar);
+                    theWorld->generateWorldBoundsPolygon();
                     //************ temp fix
                     // remove the north star shape (pilot will periodically stop the robot
                     // to use it to localize)
-                    worldShS.deleteShape(northStar);
+                    //worldShS.deleteShape(northStar);
+                    worldShS.deleteShapes(constellation);
                     //************
                 } else {
                     std::cout << "could not find North Star (creating an artificial point)\n";
@@ -388,6 +350,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference PerceptualMultiplexor::currentTask;
                 std::cout << "[" << getName() << "]: setting pilot task status ==> SUCCESSFUL\n";
                 currentTask->setTaskStatus(Kodu::PerceptualTaskBase::TS_SUCCESSFUL);
+                NEW_SHAPEROOTVEC(stars, subset(worldShS, Kodu::IsStar()));
+                worldShS.deleteShapes(stars);
                 postParentCompletion();
             }
 
@@ -395,6 +359,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference PerceptualMultiplexor::currentTask;
                 std::cout << "[" << getName() << "]: setting pilot task status ==> FAILURE\n";
                 currentTask->setTaskStatus(Kodu::PerceptualTaskBase::TS_FAILURE);
+                NEW_SHAPEROOTVEC(stars, subset(worldShS, Kodu::IsStar()));
+                worldShS.deleteShapes(stars);
                 postParentCompletion();
             }
 
@@ -664,7 +630,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 // need to limit the distance the robot looks...
                 $nodeclass LookForTag : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
                     mapreq.clearLocal = true;
-                    mapreq.pursueShapes = true;
+                    //mapreq.pursueShapes = true;
                     mapreq.setAprilTagFamily();
                 }
 
@@ -758,7 +724,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                 $nodeclass CreateLocalizeTask : StateNode : doStart {
                     $reference PerceptualMultiplexor::currentTask;
+                    $reference KoduInterp::theWorld;
                     std::cout << "[" << getName() << "]\n";
+                    /*
                     // get the robot's position when the error occurred
                     const Point& kAgentPos = static_cast<Kodu::VisualWalkProgressTask*>
                                                 (currentTask)->getPositionDuringError();
@@ -766,20 +734,23 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     float orient = static_cast<Kodu::VisualWalkProgressTask*>
                                     (currentTask)->getOrientationDuringError();
                     // delete the walk progress task (it is no longer needed)
+                    */
                     std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
                     GeneralFncs::deletePtr(currentTask);
                     // make the localization task the new current task
                     std::cout << "Creating a localization task\n";
-                    currentTask = new Kodu::VisualLocalizationTask(kAgentPos, orient);
+                    //currentTask = new Kodu::VisualLocalizationTask(kAgentPos, orient);
+                    currentTask = new Kodu::VisualLocalizationTask(theWorld->getStarConstellation());
                     postParentCompletion();
                 }
 
                 $setupmachine {
                     pause:      PauseEvaluator
                     createTask: CreateLocalizeTask
-                    help:       AskForHelp
+                    //help:       AskForHelp
 
-                    pause =C=> help =TM("localize")=> createTask
+                    //pause =C=> help =TM("localize")=> createTask
+                    pause =C=> SpeechNode("localizing") =C=> createTask
                     pause =T(300)=> pause
                 }
             }
@@ -1002,12 +973,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             {
                                 thisAgent->currMotionCmd = cmd;
                                 //************ temp fix
-                                /*
+                                ///*
                                 if (cmd.targetObjectIsValid()) {
                                     thisAgent->ptasks.push(
                                         new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
                                 }
-                                */
+                                //*/
                                 //************
                                 std::cout << "Added a motion command.\n";
                             }
@@ -1160,7 +1131,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference KoduInterp::thisAgent;
                 std::cout << "[" << getName() << "]: setting grab action status to 'attempting grab'\n";
                 thisAgent->setIsAttemptingGrabFlag(true);
-                //thisAgent->agentIsWalking = true;
                 postStateCompletion();
             }
             
@@ -1300,7 +1270,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             thisAgent->setIsAttemptingGrabFlag(false);
             // the target object is (should be) in the gripper
             thisAgent->setTargetInGripperFlag(true);
-            //thisAgent->agentIsWalking = false;
             std::cout << "Grab action complete.\n";
             postStateCompletion();
         }
