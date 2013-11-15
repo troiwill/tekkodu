@@ -104,15 +104,45 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         }
 
         $nodeclass LookAround : MapBuilderNode(MapBuilderRequest::worldMap) : doStart {
-            $reference KoduInterp::thisAgent;
-            // search the world for the following objects
+            std::cout << "[" << getName() << "]: looking for objects.\n";
+            // search for red, blue, and green cylinders
             mapreq.addObjectColor(cylinderDataType, "red");
             mapreq.addObjectColor(cylinderDataType, "blue");
             mapreq.addObjectColor(cylinderDataType, "green");
             mapreq.setAprilTagFamily();
-            // the points to look at to observe the world
-            mapreq.searchArea = thisAgent->getGazePolygon();
-            mapreq.pursueShapes = true;
+            
+            // get the gaze points from the agent
+            $reference KoduInterp::thisAgent;
+            std::vector<Point> searchPoints(thisAgent->gazePoints);
+
+            const float kSearchRadius = 1500.0f;
+            const float kZval = 300.0f;
+            // now add the approx. search points for the april tags (star constellation)
+            // direct left
+            searchPoints.push_back(Point(cos(deg2rad( 95.0f)) * kSearchRadius,
+                                         sin(deg2rad( 95.0f)) * kSearchRadius,
+                                         kZval, egocentric));
+
+            // forward left
+            searchPoints.push_back(Point(cos(deg2rad( 35.0f)) * kSearchRadius,
+                                         sin(deg2rad( 35.0f)) * kSearchRadius,
+                                         kZval, egocentric));
+
+            // forward
+            searchPoints.push_back(Point(kSearchRadius, 0.0f, kZval, egocentric));
+
+            // forward right
+            searchPoints.push_back(Point(cos(deg2rad(-35.0f)) * kSearchRadius,
+                                         sin(deg2rad(-35.0f)) * kSearchRadius,
+                                         kZval, egocentric));
+
+            // direct right
+            searchPoints.push_back(Point(cos(deg2rad(-95.0f)) * kSearchRadius,
+                                         sin(deg2rad(-95.0f)) * kSearchRadius,
+                                         kZval, egocentric));
+            
+            NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, searchPoints, false));
+            mapreq.searchArea = gazePoints;
             mapreq.removePts = false;
         }
 
