@@ -46,7 +46,9 @@ namespace Kodu {
             scoreQueue(),
             stringToSpeak(""),
             playQueue(),
-            agentGazePolygon()
+            agentGazePolygon(),
+
+            gazePoints()
         {
             // generate the gaze polygon
             generateGazePolygon();
@@ -78,6 +80,8 @@ namespace Kodu {
                 stringToSpeak = kAgent.stringToSpeak;
                 playQueue = kAgent.playQueue;
                 agentGazePolygon = kAgent.agentGazePolygon;
+
+                gazePoints = kAgent.gazePoints;
             }
             return *this;
         }
@@ -179,6 +183,9 @@ namespace Kodu {
         // === Gaze polygon variables === //
         //! egocentric (relative to the robot's body) "directions" to look at (they are really points)
         DualCoding::Shape<DualCoding::PolygonData> agentGazePolygon;
+
+    public:
+        std::vector<DualCoding::Point> gazePoints;
     };
 }
 

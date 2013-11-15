@@ -90,41 +90,23 @@ namespace Kodu {
 
     void KoduAgent::generateGazePolygon() {
         // SA: the search area (in degrees)--(from -SA/2 to SA/2)
-        const float kSearchArea = 160.0f;
-        // FoV: the (reduced) field of view
-        // (reduced to compensate for any inaccuracies in moving the head)
-        // the actual field of view is approx. 75 degrees
-        const float kFoV = 70.0f;
-        // N_GA: the minimum number of times the robot will have to move it's head to view the search area
-        int numbOfGazeAngles = ceil(kSearchArea / kFoV);
-        // delta_GA: the change in angle each time the robot moves it's head
-        float deltaGazeAngle = ceil(kSearchArea / numbOfGazeAngles);
-        // GA<N_GA>: the vector of gaze angles
-        std::vector<float> gazeAngles;
-        // GA[0]: (-SA / 2) + (delta_GA / 2)
-        gazeAngles.push_back((-1 * (kSearchArea / 2)) + (deltaGazeAngle / 2));
-        // GA[i]: GA[i - 1] + delta_GA
-        for (int i = 1; i < numbOfGazeAngles; i++)
-            gazeAngles.push_back(gazeAngles[i - 1] + deltaGazeAngle);
+        const float kSearchArea = mathutils::deg2rad(200.0f);
+        const float kAngleIncrement = mathutils::deg2rad(25.0f);
+        
+        float radius = 750.0f;
 
-        // create the gaze points using the gaze angles
-        std::vector<DualCoding::Point> gazePoints;
-        const int numbOfRadii = 2;
-        float radii[numbOfRadii] = {
-            2000.0f,        // the distant radius
-             500.0f         // the nearby radius
-        };
-
-        for (int radiiIndex = 0; radiiIndex < numbOfRadii; radiiIndex++) {
-            for (int gaIndex = 0; gaIndex < numbOfGazeAngles * 2; gaIndex++) {
-                gazePoints.push_back(DualCoding::Point(
-                    cos(mathutils::deg2rad(gazeAngles[gaIndex])) * radii[radiiIndex],  // x-value
-                    sin(mathutils::deg2rad(gazeAngles[gaIndex])) * radii[radiiIndex],  // y-value
-                    0.0f,                                                              // z-value
-                    DualCoding::egocentric                     // point is relative to agent body
-                    ));
-            }
+        float currAngle = -1.0f * kSearchArea / 2.0f;
+        while (currAngle <= (kSearchArea / 2.0f)) {
+            gazePoints.push_back(DualCoding::Point(
+                cos(currAngle) * radius,  // x-value
+                sin(currAngle) * radius,  // y-value
+                0.0f,                     // z-value
+                DualCoding::egocentric    // point is relative to agent body
+                ));
+            currAngle += kAngleIncrement;
         }
+
+        /*
         // create a polygon search area
         NEW_SHAPE(gazePolygon, DualCoding::PolygonData,
             new DualCoding::PolygonData(DualCoding::VRmixin::localShS, gazePoints, false));
@@ -133,6 +115,7 @@ namespace Kodu {
         gazePolygon->setViewable(false);
         // assign gazePolygon to agentaGzePoints
         agentGazePolygon = gazePolygon;
+        */
     }
     
 }
