@@ -633,9 +633,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     mapreq.pursueShapes = true;
                     mapreq.removePts = false;
                     mapreq.addObjectColor(lostCyl->getType(), lostCyl->getColor());
-
-                    // book keeping
-                    //gTask = NULL;
                 }
 
                 // ASSUMPTION: there is only one tag in view (need to use ID to select correct object)
@@ -660,7 +657,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 // need to limit the distance the robot looks...
                 $nodeclass LookForTag : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
                     mapreq.clearLocal = true;
-                    //mapreq.pursueShapes = true;
                     mapreq.setAprilTagFamily();
                 }
 
@@ -723,28 +719,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 DISALLOW_COPY_ASSIGN(ObjectManipRecovery);
             }
 
-            $nodeclass LocalizeRecovery : StateNode : doStart {
-                $reference PerceptualMultiplexor::currentTask;
-                std::cout << "[" << getName() << "]\n";
-                std::cout << "Checking the type of MapBuilder request used...";
-                if (static_cast<Kodu::VisualLocalizationTask*>(currentTask)->usedGlobalGazePolygon()) {
-                    std::cout << "global gaze polygon!\n";
-                    std::cout << "this is a serious issue!!!!!!!";
-                    postStateFailure();
-                } else {
-                    std::cout << "a custom created gaze polygon\n";
-                    $reference KoduInterp::thisAgent;
-                    // delete the walk progress task (it is no longer needed)
-                    std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
-                    GeneralFncs::deletePtr(currentTask);
-                    // make the new localization task the current task
-                    std::cout << "Creating a new localization task with the global gaze polygon\n";
-                    currentTask = new Kodu::VisualLocalizationTask(thisAgent->getGazePolygon());
-                    std::cout << "Going to try using the global gaze polygon for localization\n";
-                    postStateCompletion();
-                }
-            }
-
             $nodeclass WalkRecovery : StateNode {
 
                 $nodeclass AskForHelp : SpeechNode : doStart {
@@ -777,9 +751,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $setupmachine {
                     pause:      PauseEvaluator
                     createTask: CreateLocalizeTask
-                    //help:       AskForHelp
-
-                    //pause =C=> help =TM("localize")=> createTask
+                    
                     pause =C=> SpeechNode("localizing") =C=> createTask
                     pause =T(300)=> pause
                 }
@@ -794,12 +766,14 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             $setupmachine {
                 startRec:   StartRecovery
-                locRec:     LocalizeRecovery
+                //************* temp fix
+                //locRec:     LocalizeRecovery
+                //*************
                 manipRec:   ObjectManipRecovery
                 walkRec:    WalkRecovery
                 endRec:     EndRecovery
 
-                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locRec
+                //startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locRec
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_GRIPPER_MONITOR)=> manipRec
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> walkRec
                 
@@ -808,9 +782,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_BUMP_DETECTION)=> bumpRec
                 //*************
 
-                locRec =C=> endRec
                 //************* temp fix
-                locRec =F=> SpeechNode("failed to do localization using global gaze polygon")
+                //locRec =C=> endRec
+                //locRec =F=> SpeechNode("failed to do localization using global gaze polygon")
                 //*************
                 
                 manipRec =S=> endRec
