@@ -19,6 +19,8 @@
 
 namespace Kodu {
 
+    class KoduWorld;
+
     class KoduConditionTimer : public KoduCondition {
     public: 
         //! Constructor
@@ -63,7 +65,7 @@ namespace Kodu {
         }
         
         //! Checks if the timer threshold has been reached or exceeded
-        virtual bool evaluate();
+        virtual bool evaluate(const KoduWorld&);
         
         //! Tests if the primitive argument is the same as the calling class
         static bool isSameTypeAs(const KoduPrimitive*);

@@ -1,4 +1,5 @@
 // Kodu Library
+#include "Kodu/KoduWorld.h"
 #include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/General/GeneralMacros.h"
 
@@ -7,7 +8,7 @@ namespace Kodu {
     const float KoduConditionBump::kMaxDistanceAwayToSenseBump = 80.0f; // millimeters
     //const float KoduConditionBump::kMaxDistInBtwToSenseBump = 100.0f;
 
-    bool KoduConditionBump::evaluate() {
+    bool KoduConditionBump::evaluate(const KoduWorld& kWorldState) {
         // check the following:
         // 1) the agent visually detected the bump,
         // 2) the referenced object (the object the bump condition will react to) is valid

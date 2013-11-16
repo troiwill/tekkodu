@@ -9,12 +9,15 @@
 
 namespace Kodu {
 
+    class KoduWorld;
+
     //! Kodu Condition (derived from Kodu Primitive)
     class KoduCondition : public KoduPrimitive {
     public:
         enum ConditionTypes {
             CT_ALWAYS = 0,
             CT_BUMP,
+            CT_GOT,
             CT_SCORED,
             CT_SEE,
             CT_TIMER
@@ -47,7 +50,7 @@ namespace Kodu {
         }
         
         //! Evaluates the event portion of the rule (implementation in derived classes)
-        virtual bool evaluate() = 0;
+        virtual bool evaluate(const KoduWorld&) = 0;
         
         bool canEvaluate() const {
             return KoduPrimitive::agentCanUsePrimitive();

@@ -1,9 +1,10 @@
+#include "Kodu/KoduWorld.h"
 #include "Kodu/Primitives/KoduConditionTimer.h"
 #include "Shared/get_time.h"
 
 namespace Kodu {
         
-    bool KoduConditionTimer::evaluate() {
+    bool KoduConditionTimer::evaluate(const KoduWorld& kWorldState) {
         // TODO (24/JUL/13) Is needToInitialize necessary?
         if (needToInitialize) {     // do initial setup for timer
             startTime = getTimeInSec();

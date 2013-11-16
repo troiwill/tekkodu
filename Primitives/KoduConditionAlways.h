@@ -2,10 +2,13 @@
 #define KODU_CONDITION_ALWAYS_H_
 
 // Kodu Library
+#include "Kodu/KoduWorld.h"
 #include "Kodu/Primitives/KoduCondition.h"
 
 namespace Kodu {
     
+    class KoduWorld;
+
     //! Kodu Condition Always (derived from Kodu Condition)
     class KoduConditionAlways : public KoduCondition {
     public:
@@ -33,7 +36,7 @@ namespace Kodu {
         }
 
         //! Evaluates true (always)
-        virtual bool evaluate() {
+        virtual bool evaluate(const KoduWorld& kWorldState) {
             return true;
         }
 

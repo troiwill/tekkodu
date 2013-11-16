@@ -5,7 +5,7 @@
 
 namespace Kodu {
 
-    bool KoduConditionScored::evaluate() {
+    bool KoduConditionScored::evaluate(const KoduWorld& kWorldState) {
         // boolean return value
         bool rv = false;
         // get the latest score

@@ -12,6 +12,8 @@
 
 namespace Kodu {
 
+    class KoduWorld;
+
     class KoduConditionSee : public KoduCondition {
     public:
         //! Constructor
@@ -54,7 +56,7 @@ namespace Kodu {
         }
 
         //! Checks if a specified object was seen
-        virtual bool evaluate();
+        virtual bool evaluate(const KoduWorld&);
 
         //! Returns a specified object's color
         const std::string& getObjectColor() const;

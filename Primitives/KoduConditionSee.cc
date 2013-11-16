@@ -1,15 +1,17 @@
 // Kodu Library
+#include "Kodu/KoduWorld.h"
 #include "Kodu/Primitives/KoduConditionSee.h"
 #include "Kodu/General/GeneralMacros.h"
 
 namespace Kodu {
 
-    bool KoduConditionSee::evaluate() {
+    bool KoduConditionSee::evaluate(const KoduWorld& kWorldState) {
         bool rv = false;
         DualCoding::Shape<DualCoding::CylinderData> _refdObject;
         
         // get the closest object that matches what this condition is searching for
-        _refdObject = getClosestObjectMatching(objColor, searchLocation);
+        _refdObject = getClosestObjectMatching(objColor, searchLocation,
+            kWorldState.thisAgent.gripperObject);
         
         // If there is one valid remaining, the robot will react to that object
         if (_refdObject.isValid()) {

@@ -18,6 +18,8 @@
     
 namespace Kodu {
 
+    class KoduWorld;
+
     //! Kodu Condition Scored (derived from Kodu Condition)
     class KoduConditionScored : public KoduCondition {
     public:
@@ -74,7 +76,7 @@ namespace Kodu {
         }
         
         //! Compares the target score against the current (global) score
-        virtual bool evaluate();
+        virtual bool evaluate(const KoduWorld&);
         
         //! Tests if the primitive argument is the same as the calling class
         static bool isSameTypeAs(const KoduPrimitive*);
@@ -86,12 +88,12 @@ namespace Kodu {
         virtual void printAttrs() const;
 
     private:
-        bool notModifierEnabled;     //!< if true, the NOT operator is applied to the evaluate function's result
+        bool notModifierEnabled; //!< if true, NOT operator is applied to the evaluate function's result
         CompareType_t type;     //!< states how the target value and current score are compared
         NumericGenerator numericGen; //!< returns a constant or random numeric value (the target score)
         std::string designator; //!< the score type (the key to the Score Keeper map)
         bool numericsWereSpecified; //!< if false, this condition returns true when a certin score changes
-        int lastRecordedValue;  //!< used in conjunction with numericsWereSpecified to monitor score changes
+        int lastRecordedValue;//!< used in conjunction with numericsWereSpecified to monitor score changes
     };
 }
 
