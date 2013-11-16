@@ -55,7 +55,8 @@ namespace Kodu {
 
     bool KoduObject::isMovable() const {
         // landmark objects should not be movable
-        return (!isLandmark());
+        //return (!isLandmark());
+        return false;
     }
 
     bool KoduObject::foundValidMatch() const {
