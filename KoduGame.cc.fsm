@@ -27,6 +27,7 @@
 #include "Kodu/Primitives/KoduConditionAlways.h"
 #include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/Primitives/KoduConditionSee.h"
+#include "Kodu/Primitives/KoduConditionGot.h"
 
 // Perceptual Tasks
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
@@ -912,7 +913,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 
                 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
-                if (cond->evaluate() == true) {
+                if (cond->evaluate(*theWorld) == true) {
                     // resets the action has already ran flag
                     if (rule->condLastEvalResult == false) {
                         resetChildRulesWithOnceEnabled(kRuleId);
@@ -976,14 +977,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                                 && cmd.isValid())
                             {
                                 thisAgent->currMotionCmd = cmd;
-                                //************ temp fix
-                                ///*
                                 if (cmd.targetObjectIsValid()) {
                                     thisAgent->ptasks.push(
                                         new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
                                 }
-                                //*/
-                                //************
                                 std::cout << "Added a motion command.\n";
                             }
                             break;
