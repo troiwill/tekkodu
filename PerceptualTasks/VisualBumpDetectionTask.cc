@@ -10,6 +10,7 @@
 
 // tekkotsu
 #include "DualCoding/AprilTagData.h"
+#include "DualCoding/Point.h"
 #include "DualCoding/ShapeAprilTag.h"
 #include "DualCoding/ShapeFuns.h"
 #include "DualCoding/ShapeRoot.h"
@@ -55,13 +56,27 @@ namespace Kodu {
 
     const DualCoding::MapBuilderRequest& VisualBumpDetectionTask::getMapBuilderRequest() {
         // create the gaze point (look directly down)
-        NEW_SHAPE(gazePoint, DualCoding::PointData,
-            new PointData(DualCoding::VRmixin::localShS,
-                DualCoding::Point(200, 0, 0, DualCoding::egocentric)));
+        //
+        const float kSearchRadius = 250.0f;
+        const float kSideAngle = mathutils::deg2rad(10.0f);
+        
+        std::vector<DualCoding::Point> searchPoints;
+        searchPoints.push_back(DualCoding::Point(cos(kSideAngle) * kSearchRadius,
+                                                 sin(kSideAngle) * kSearchRadius,
+                                                 0.0f, DualCoding::egocentric));
+
+        searchPoints.push_back(DualCoding::Point(kSearchRadius, 0.0f, 0.0f, DualCoding::egocentric));
+
+        searchPoints.push_back(DualCoding::Point(cos(-1.0f * kSideAngle) * kSearchRadius,
+                                                 sin(-1.0f * kSideAngle) * kSearchRadius,
+                                                 0.0f, DualCoding::egocentric));
+
+        NEW_SHAPE(gazePolygon, DualCoding::PolygonData,
+            new PolygonData(DualCoding::VRmixin::localShS, searchPoints, false));
         // create the mapbuilder request
         mapreq = DualCoding::MapBuilderRequest(DualCoding::MapBuilderRequest::localMap);
         mapreq.setAprilTagFamily();
-        mapreq.searchArea = gazePoint;
+        mapreq.searchArea = gazePolygon;
         return mapreq;
     }
 }
