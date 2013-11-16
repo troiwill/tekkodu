@@ -33,6 +33,9 @@ namespace Kodu {
             starLocs.reserve(localizationPoints.size());
             std::cout << "creating the localization point vector for " << localizationPoints.size()
                 << " points.\n";
+
+            const int kNumbOfStarsNeeded = 2;
+            int numbOfStarsInVector = 0;
             for (std::map<unsigned int, DualCoding::Point>::iterator it = localizationPoints.begin();
                 it != localizationPoints.end(); ++it)
             {
@@ -40,6 +43,7 @@ namespace Kodu {
                 AngSignPi dtheta = bearingFromAgentToPoint(it->second);
                 dtheta += AngSignPi(M_PI / 2.0f);
                 if (dtheta > 0.0f) {
+                    count++;
                     std::cout << "adding tag #" << it->first << " @ " << it->second << " to vector.\n";
                     NEW_SHAPE(star, DualCoding::AprilTagData,
                         new DualCoding::AprilTagData(DualCoding::VRmixin::worldShS,
@@ -48,6 +52,8 @@ namespace Kodu {
                     starLocs.push_back(starCen);
                     starLocs.push_back(DualCoding::Point(starCen.coordX() - 200.0f, starCen.coordY(),
                         starCen.coordZ(), starCen.getRefFrameType()));
+                    
+                    if ((++numbOfStarsInVector) == kNumbOfStarsNeeded) break;
                 }
                 //**********
             }
