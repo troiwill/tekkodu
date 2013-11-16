@@ -26,6 +26,7 @@ namespace Kodu {
         // add the following conditions to the keyword set
         koduKeywords.insert("always");
         koduKeywords.insert("bump");
+        koduKeywords.insert("got");
         koduKeywords.insert("scored");
         koduKeywords.insert("see");
         koduKeywords.insert("timer");

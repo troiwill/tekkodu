@@ -24,6 +24,7 @@
 #include "Kodu/Primitives/KoduCondition.h"
 #include "Kodu/Primitives/KoduConditionAlways.h"
 #include "Kodu/Primitives/KoduConditionBump.h"
+#include "Kodu/Primitives/KoduConditionGot.h"
 #include "Kodu/Primitives/KoduConditionSee.h"
 #include "Kodu/Primitives/KoduConditionScored.h"
 #include "Kodu/Primitives/KoduConditionTimer.h"
@@ -111,6 +112,9 @@ namespace Kodu {
             // condition parsers
             //! Creates the bump condition
             static KoduConditionBump* createBumpKode(std::vector<TokenBase*>&);
+
+            //! Creates the got condition
+            static KoduConditionGot* createGotKode(std::vector<TokenBase*>&);
 
             //! Creates the see condition
             static KoduConditionSee* createSeeKode(std::vector<TokenBase*>&);

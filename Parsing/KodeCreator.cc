@@ -148,6 +148,15 @@ namespace Kodu {
             std::cout << "Created Bump condition...\n";
         }
 
+        // Kodu Condition Got
+        else if (conditionStr == "got") {
+            // ASSERTION: the Kodu got condition was successfully created
+            PARSER_ASSERT(((condition = createGotKode(tempModifiers)) != NULL),
+                errorMessage << "An error occurred while trying to create the Got condition. "
+                << "See above.");
+            std::cout << "Created Got condition...\n";
+        }
+
         // Kodu Condition See
         else if (conditionStr == "see") {
             // ASSERTION: the Kodu see condition was succesfully created

@@ -96,6 +96,76 @@ namespace Kodu {
         return (new KoduConditionBump(notEnabled, objectType, objectColor, (frontBack | leftRight)));
     }
 
+    KoduConditionGot* Parser::KodeCreator::createGotKode(std::vector<TokenBase*>& mods) {
+        // mandatory modifiers
+        std::string objectType;
+        std::string objectColor;
+
+        // optional modifiers
+        bool notEnabled = false;
+        
+        // checkers
+        int tokenCount = 1;
+        
+        // parsing loop
+        while (!mods.empty()) {
+            // check if the token is a keyword
+            if (mods[0]->isKeywordToken()) {
+                std::string keyword = mods[0]->getKeywordData();
+                // check if keyword is an object type
+                if (keyword == "apple" || keyword == "rock" || keyword == "tree") {
+                    // ASSERTION: The object type was not already specifieds
+                    PARSER_ASSERT((objectType.empty()),
+                        errorMessage << "The Got condition only accepts one object type.\n"
+                        << "Previous object found: " << objectType);
+                    objectType = keyword;
+                }
+                // check if the keyword is a color
+                else if (Parser::isValidColor(keyword)) {
+                    // ASSERTION: The color was not already specified
+                    PARSER_ASSERT((objectColor.empty()),
+                        errorMessage << "The Got condition only accepts one color.\n"
+                        << "Previous color found: " << objectColor);
+                    objectColor = keyword;
+                }
+                // check if the keyword is the "not" modifier
+                else if (keyword == "not") {
+                    // ASSERTION: The "not" modifier has not been specified before in this condition
+                    PARSER_ASSERT((notEnabled == false),
+                        errorMessage << "The \"not\" modifier was already used in this rule. It can " << 
+                        "only be used once per rule.");
+                    notEnabled = true;
+                }
+                // the user specified the wrong keyword
+                else {
+                    // ASSERTION: The user entered a wrong keyword
+                    PARSER_ASSERT((ERROR),
+                        errorMessage << "The keyword \"" << keyword << "\" cannot be used with the "
+                        << "Got condition.");
+                }
+                // bookkeeping
+                GeneralFncs::destroyPtrInVector(mods, 0);
+            }
+            // the user something other than a keyword and is therefore illegal
+            else {
+                PARSER_ASSERT((ERROR),
+                    errorMessage << "Token " << tokenCount << " cannot be used with the Got condition.");
+            }
+            // increment the token counter
+            tokenCount++;
+        }
+        // ASSERTION: the user specified a object type
+        PARSER_ASSERT((!objectType.empty()),
+            errorMessage << "An object type must be specified (e.g. tree, apple, or rock).");
+
+        // ASSERTION: the user specified a object color
+        PARSER_ASSERT((!objectColor.empty()),
+            errorMessage << "An object color must be specified (e.g. red, green, blue).");
+
+        // create the condition
+        return (new KoduConditionGot(notEnabled, objectType, objectColor));
+    }
+
     KoduConditionSee* Parser::KodeCreator::createSeeKode(std::vector<TokenBase*>& mods) {
         // mandatory modifiers
         std::string objectType;
