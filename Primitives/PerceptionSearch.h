@@ -48,26 +48,6 @@ namespace Kodu {
         return SearchLocation_t(static_cast<int>(rs1) & static_cast<int>(rs2));
     }
 
-    // TODO
-    // Find a permanent solution to removing elements that do not satisfy the predicate.
-    // Unary- and binary-predicate function classes are deprecated in C++11
-    // Concerns the following lines...
-    // Creates the HasAreaGreaterThan class
-    class HasAreaGreaterThan : public DualCoding::UnaryShapeRootPred {
-    public:
-        HasAreaGreaterThan(float mininumAcceptableShapeArea)
-          : DualCoding::UnaryShapeRootPred(),
-            minAcceptableShapeArea(mininumAcceptableShapeArea)
-        { }
-
-        ~HasAreaGreaterThan() { }
-
-        bool operator()(const DualCoding::ShapeRoot&) const;
-
-    private:
-        float minAcceptableShapeArea;
-    };
-
     class IsMatchForTargetObject : public DualCoding::UnaryShapeRootPred {
     public:
         IsMatchForTargetObject(const DualCoding::ShapeRoot& kTargetObject)
@@ -101,17 +81,6 @@ namespace Kodu {
         { }
 
         ~IsStar() { }
-
-        bool operator()(const DualCoding::ShapeRoot&) const;
-    };
-
-    class IsLandmark : public DualCoding::UnaryShapeRootPred {
-    public:
-        IsLandmark()
-          : DualCoding::UnaryShapeRootPred()
-        { }
-
-        ~IsLandmark() { }
 
         bool operator()(const DualCoding::ShapeRoot&) const;
     };
