@@ -119,8 +119,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             const float kZval = 300.0f;
             // now add the approx. search points for the april tags (star constellation)
             // direct left
-            searchPoints.push_back(Point(cos(deg2rad( 95.0f)) * kSearchRadius,
-                                         sin(deg2rad( 95.0f)) * kSearchRadius,
+            searchPoints.push_back(Point(cos(deg2rad( 90.0f)) * kSearchRadius,
+                                         sin(deg2rad( 90.0f)) * kSearchRadius,
                                          kZval, egocentric));
 
             // forward left
@@ -137,8 +137,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                                          kZval, egocentric));
 
             // direct right
-            searchPoints.push_back(Point(cos(deg2rad(-95.0f)) * kSearchRadius,
-                                         sin(deg2rad(-95.0f)) * kSearchRadius,
+            searchPoints.push_back(Point(cos(deg2rad(-90.0f)) * kSearchRadius,
+                                         sin(deg2rad(-90.0f)) * kSearchRadius,
                                          kZval, egocentric));
             
             NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, searchPoints, false));
