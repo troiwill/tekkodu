@@ -55,8 +55,6 @@ namespace Kodu {
     }
 
     const DualCoding::MapBuilderRequest& VisualBumpDetectionTask::getMapBuilderRequest() {
-        // create the gaze point (look directly down)
-        //
         const float kSearchRadius = 250.0f;
         const float kSideAngle = mathutils::deg2rad(10.0f);
         
@@ -65,11 +63,11 @@ namespace Kodu {
                                                  sin(kSideAngle) * kSearchRadius,
                                                  0.0f, DualCoding::egocentric));
 
-        searchPoints.push_back(DualCoding::Point(kSearchRadius, 0.0f, 0.0f, DualCoding::egocentric));
-
         searchPoints.push_back(DualCoding::Point(cos(-1.0f * kSideAngle) * kSearchRadius,
                                                  sin(-1.0f * kSideAngle) * kSearchRadius,
                                                  0.0f, DualCoding::egocentric));
+
+        searchPoints.push_back(DualCoding::Point(kSearchRadius, 0.0f, 0.0f, DualCoding::egocentric));
 
         NEW_SHAPE(gazePolygon, DualCoding::PolygonData,
             new PolygonData(DualCoding::VRmixin::localShS, searchPoints, false));
