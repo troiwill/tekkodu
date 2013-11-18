@@ -13,24 +13,61 @@ namespace Kodu {
     const float KoduAgent::kLocalizationDistanceThreshold = 1000.0f;
 
     /// ================================ Grasper functions ================================ ///
-    bool KoduAgent::hasNewObjectToGrab() const {
-        return (gripperObject.isValid() && !targetObjectIsInGripper && !agentIsAttemptingGrab);
-    }
-
-    bool KoduAgent::isAttemptingGrab() const {
-        return agentIsAttemptingGrab;
+    bool KoduAgent::isExecutingManipAction() const {
+        return agentIsExecutingManipAction;
     }
 
     bool KoduAgent::isHoldingAnObject() const {
         return targetObjectIsInGripper;
     }
 
-    void KoduAgent::setIsAttemptingGrabFlag(bool bval) {
-        agentIsAttemptingGrab = bval;
+    void KoduAgent::setIsExecutingManipActionFlag(bool bval = true) {
+        agentIsExecutingManipAction = bval;
     }
 
-    void KoduAgent::setTargetInGripperFlag(bool bval) {
+    void KoduAgent::setTargetInGripperFlag(bool bval = true) {
         targetObjectIsInGripper = bval;
+    }
+
+    void KoduAgent::setWantsToDropObjectFlag(bool bval = true) {
+        agentWantsToDropObject = bval;
+    }
+
+    void KoduAgent::setWantsToGrabObjectFlag(bool bval = true) {
+        agentWantsToGrabObject = bval;
+    }
+
+    bool KoduAgent::wantsToDropObject() const {
+        return agentWantsToDropObject;
+    }
+
+    bool KoduAgent::wantsToGrabObject() const {
+        //return (gripperObject.isValid() && !targetObjectIsInGripper);//&& !agentIsExecutingManipAction);
+        return agentWantsToGrabObject;
+    }
+
+    void KoduAgent::signalDropActionStart() {
+        setIsExecutingManipActionFlag();    // states the robot is executing a manipulation action
+        setWantsToDropObjectFlag();         // the robot wants to drop an object
+    }
+
+    void KoduAgent::signalGrabActionStart() {
+        setIsExecutingManipActionFlag();    // states the robot is executing a manipulation action
+        setWantsToGrabObjectFlag();         // the robot wants to grab an object
+    }
+
+    void KoduAgent::manipulationComplete() {
+        // check the type of manipulation completed
+        if (agentWantsToDropObject) {
+            setWantsToDropObjectFlag(false);    // the robot no longer "wants to drop an object"
+            setTargetInGripperFlag(false);      // the object is no longer in the gripper
+        }
+        // else, it must be the grab action
+        else {
+            setWantsToGrabObjectFlag(false);    // the robot no longer "wants to grab an object"
+            setTargetInGripperFlag();           // (implicit true) object is in the gripper
+        }
+        setIsExecutingManipActionFlag(false);   // the manipulation action is no longer executing
     }
 
     /// ================================ Motion functions ================================ ///

@@ -32,7 +32,11 @@ namespace Kodu {
         //! Constructor
         KoduAgent()
           : gripperObject(),
-            agentIsAttemptingGrab(false),
+            agentIsExecutingManipAction(false),
+
+            agentWantsToDropObject(false),
+            agentWantsToGrabObject(false),
+
             targetObjectIsInGripper(false),
             agentIsWalking(false),
             currMotionCmd(),
@@ -65,7 +69,11 @@ namespace Kodu {
         KoduAgent& operator=(const KoduAgent& kAgent) {
             if (this != &kAgent) {
                 gripperObject = kAgent.gripperObject;
-                agentIsAttemptingGrab = kAgent.agentIsAttemptingGrab;
+                agentIsExecutingManipAction = kAgent.agentIsExecutingManipAction;
+
+                agentWantsToDropObject = kAgent.agentWantsToDropObject;
+                agentWantsToGrabObject = kAgent.agentWantsToGrabObject;
+
                 targetObjectIsInGripper = kAgent.targetObjectIsInGripper;
                 agentIsWalking = kAgent.agentIsWalking;
                 currMotionCmd = kAgent.currMotionCmd;
@@ -91,20 +99,35 @@ namespace Kodu {
         const DualCoding::Shape<DualCoding::PolygonData>& getGazePolygon() const;
         
         /// ================================ Grasper functions ================================ ///
-        //! States whether or not the agent has an object it wants to grab
-        bool hasNewObjectToGrab() const;
-
         //! Sets the "(agent) is attempting grab" flag
-        void setIsAttemptingGrabFlag(bool);
+        void setIsExecutingManipActionFlag(bool);
 
         //! Sets the "target object is in gripper" flag
         void setTargetInGripperFlag(bool);
 
+        //! Signals that the agent wants to drop something
+        void setWantsToDropObjectFlag(bool);
+
+        //! Signals that the agent wants to grab something
+        void setWantsToGrabObjectFlag(bool);
+
         //! States if the agent is attempting to grab an object
-        bool isAttemptingGrab() const;
+        bool isExecutingManipAction() const;
 
         //! States whether or not the agent is (supposed to be) holding something
         bool isHoldingAnObject() const;
+
+        //! States whether or not the agent wants to drop an object
+        bool wantsToDropObject() const;
+
+        //! States whether or not the agent has an object it wants to grab
+        bool wantsToGrabObject() const;
+
+        void signalDropActionStart();
+
+        void signalGrabActionStart();
+
+        void manipulationComplete();
 
         /// ================================ Motion functions ================================ ///
         //! Checks if the agent has a valid motion command
@@ -152,7 +175,9 @@ namespace Kodu {
     public: //// ================= The Public Agent Variables ================= ////
         // === Grasp variables === //
         DualCoding::ShapeRoot gripperObject;//!< The object the agent is holding/will be holding
-        bool agentIsAttemptingGrab;     //!< (flag) States if the agent is attempting to grab an object
+        bool agentIsExecutingManipAction; //!< (flag) States if the agent is attempting to grab an object
+        bool agentWantsToDropObject;    //!< (flag) States if the agent wants to drop an object
+        bool agentWantsToGrabObject;
         bool targetObjectIsInGripper;   //!< (flag) States if the target object is in the gripper
 
         // === Motion variables === //
