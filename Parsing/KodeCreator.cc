@@ -213,8 +213,16 @@ namespace Kodu {
         // get the modifiers for a phrase
         std::vector<TokenBase*> tempModifiers = tempAction->getPhraseModifiers();
 
+        // Kodu Action Drop
+        if (actionStr == "drop") {
+            // ASSERTION: The Kodu grab action was successfully created
+            PARSER_ASSERT(((action = createDropKode(tempModifiers)) != NULL),
+                errorMessage << "An error occurred while trying to create the Drop action. "
+                << "See above.");
+            std::cout << "Created Drop action...\n";
+        }
         // Kodu Action Grab
-        if (actionStr == "grab") {
+        else if (actionStr == "grab") {
             // ASSERTION: The Kodu grab action was successfully created
             PARSER_ASSERT(((action = createGrabKode(tempModifiers)) != NULL),
                 errorMessage << "An error occurred while trying to create the Grab action. "

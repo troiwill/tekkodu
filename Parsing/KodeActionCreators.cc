@@ -2,10 +2,21 @@
 
 namespace Kodu {
 
+    KoduActionDrop* Parser::KodeCreator::createDropKode(std::vector<TokenBase*>& mods) {
+        // ASSERTION: There are 1 - 2 modifiers
+        PARSER_ASSERT((mods.size() == 0),
+            errorMessage << "The Drop action should have 0 tokens.");
+
+        // create the action
+        return (new KoduActionDrop());
+    }
+
     KoduActionGrab* Parser::KodeCreator::createGrabKode(std::vector<TokenBase*>& mods) {
+        //****** temp fix (need to find out how much are actualy used)
         // ASSERTION: There are 1 - 2 modifiers
         PARSER_ASSERT((1 <= mods.size() && mods.size() <= 2),
             errorMessage << "The Grab action should have 1 - 2 tokens.");
+        //******
 
         // Mandatory modifiers
         bool itModifierWasSpecified = false;

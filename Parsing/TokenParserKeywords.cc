@@ -33,6 +33,7 @@ namespace Kodu {
 
         // add the following actions to the keyword set
         koduKeywords.insert("do_nothing");
+        koduKeywords.insert("drop");
         koduKeywords.insert("grab");
         koduKeywords.insert("move");
         koduKeywords.insert("switch_to_page");
