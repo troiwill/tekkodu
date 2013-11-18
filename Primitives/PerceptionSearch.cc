@@ -9,6 +9,11 @@ using namespace DualCoding;
 
 namespace Kodu {
 
+    bool HasAprilTagID::operator()(const DualCoding::ShapeRoot& kShape) const {
+        return (kShape->getType() == aprilTagDataType
+            && static_cast<const AprilTagData&>(kShape.getData()).getTagID() == id);
+    }
+
     bool IsMatchForTargetObject::operator()(const DualCoding::ShapeRoot& kShape) const {
         // check if the objects match each other
         return (targetObject->isMatchFor(kShape));

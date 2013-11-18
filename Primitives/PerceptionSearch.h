@@ -48,6 +48,21 @@ namespace Kodu {
         return SearchLocation_t(static_cast<int>(rs1) & static_cast<int>(rs2));
     }
 
+    class HasAprilTagID : public DualCoding::UnaryShapeRootPred {
+    public:
+        HasAprilTagID(int aprilTagId)
+          : DualCoding::UnaryShapeRootPred(),
+            id(aprilTagId)
+        { }
+
+        ~HasAprilTagID() { }
+
+        bool operator()(const DualCoding::ShapeRoot&) const;
+
+    private:
+        int id;
+    };
+
     class IsMatchForTargetObject : public DualCoding::UnaryShapeRootPred {
     public:
         IsMatchForTargetObject(const DualCoding::ShapeRoot& kTargetObject)
