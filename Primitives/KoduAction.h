@@ -17,6 +17,7 @@ namespace Kodu {
         //! The different action types
         enum ActionTypes {
             AT_DO_NOTHING = 0,
+            AT_DROP,
             AT_GRAB,
             AT_MOTION,
             AT_PAGE_SWITCH,
