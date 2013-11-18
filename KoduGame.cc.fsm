@@ -143,6 +143,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                                          sin(deg2rad(-90.0f)) * kSearchRadius,
                                          kZval, egocentric));
             
+            // create a polygon, and have the robot look at the vertices of the polygon
             NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, searchPoints, false));
             mapreq.searchArea = gazePoints;
             mapreq.removePts = false;
@@ -165,38 +166,23 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 worldShS.deleteShapes(shapesToDelete);
                 // search for the north star
                 std::cout << "searching for north star... ";
-                //NEW_SHAPE(northStar, AprilTagData, find_if<AprilTagData>(worldShS));
                 NEW_SHAPEROOTVEC(constellation, subset(worldShS, Kodu::IsStar()));
-                //if (northStar.isValid()) {
+                // check if the robot observed the constellation
                 if (!constellation.empty()) {
                     std::cout << "found the North Star!\n";
+                    // add the constellation (points) to the world state
                     theWorld->setStarConstellation(constellation);
-                    //theWorld->generateWorldBoundsPolygon(northStar);
+                    // generate the world bounds
                     theWorld->generateWorldBoundsPolygon();
-                    //************ temp fix
-                    // remove the north star shape (pilot will periodically stop the robot
-                    // to use it to localize)
-                    //worldShS.deleteShape(northStar);
+                    // remove the constellation from the world shape space (prevents the pilot from
+                    // periodically stopping the robot---I want the interpreter to controll that)
                     worldShS.deleteShapes(constellation);
-                    //************
                 } else {
                     std::cout << "could not find North Star (creating an artificial point)\n";
-                    /*
-                    // get 2D box bounding the world
-                    BoundingBox2D bounds = theWorld->getWorldBoundsPolygon()->getBoundingBox();
-                    // the max x-value
-                    float xPos = bounds.max[0];
-                    // the avg of the max and min y-values
-                    float yPos = (bounds.max[1] + bounds.min[1]) / 2.0f;
-                    // z-value; northstar is artificial, only xy matters
-                    float zPos = 0.0f;
-                    // create a point the world where the north star would be
-                    NEW_SHAPE(artificialNorthStar, PointData,
-                        new PointData(worldShS, Point(xPos, yPos, zPos, allocentric)));
-                    */
+                    // nothing in the constellation was seen (generate the world bounds)
                     theWorld->generateWorldBoundsPolygon();
                 }
-                // set the world bounds
+                // set the world bounds in the pilot
                 std::cout << "setting world bounds\n";
                 VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
                 // clear the landmark vector in the pilot
@@ -235,7 +221,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     VRmixin::theAgent->getOrientation());
                 // get the difference between points and orientation
                 Kodu::PosOrientState stateDiff = currState - lastRecordedState;
+                // motion along the x-axis
                 float xyNorm = stateDiff.position.xyNorm();
+                // motion through turning
                 float arcLen = std::fabs(stateDiff.orientation) * 130.0f;
                 // increment the total distance travelled
                 $reference KoduInterp::thisAgent;
@@ -437,7 +425,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             if (thisAgent->ptasks.empty()) {
                 // if there are more tasks, make the task at the front of the queue the current task
                 std::cout << "exiting.\n";
-                postParentCompletion();      // TODO should this be another transition?
+                postParentCompletion();
             }
             // else, tell the parent state machine the multiplexor is done
             else {
@@ -452,13 +440,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         }
 
         $nodeclass FailureRecovery : StateNode {
-            // TODO check if page switch action is active and
-            // make sure it knows recovery has priority
-
+            
             $nodeclass StartRecovery : StateNode : doStart {
                 $reference PerceptualMultiplexor::currentTask;
                 std::cout << "[" << getName() << "]\n";
                 std::cout << "Perceptual Recovery starting...\n";
+                // the signal type decides which recovery is started
                 postStateSignal<Kodu::PerceptualTaskType_t>(currentTask->getType());
             }
 
@@ -532,34 +519,36 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     std::cout << "[" << getName() << "]: getting the gripper monitor task\n";
                     $reference PerceptualMultiplexor::currentTask;
                     $reference ObjectManipRecovery::gTask;
+                    // cast the current task, and point to it
                     gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
                     postStateCompletion();
                 }
 
                 $nodeclass OpenGripper : ArmNode : doStart {
                     std::cout << "[" << getName() << "]: opening the gripper\n";
+                    // opens the gripper in case it detected a false positive (the object is
+                    // still in the gripper, but the robot detected a failure)
                     getMC()->openGripper(0.9f);
                 }
 
                 $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
                     std::cout << "[" << getName() << "]: ";
+                    $reference ObjectManipRecovery::gTask;
                     $reference ObjectManipRecovery::kReverseDist;
-                    
-
+                    // get the current and last positions
                     Point lastPos = gTask->getLastSuccessfulPos();
                     Point currPos = VRmixin::theAgent->getCentroid();
                     float additionalDist = std::fabs(currPos.coordX() - lastPos.coordX());
+                    // if the robot travelled forward between the last and current points,
+                    // include that distance
                     pilotreq.dx = (-1.0f * kReverseDist) - additionalDist;
-
                     std::cout << "reversing by " << std::fabs(pilotreq.dx) << "mm (" << kReverseDist
                         << " + " << additionalDist << ")\n";
                 }
 
                 $nodeclass LocateLostObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
-                    //$reference PerceptualMultiplexor::currentTask;
                     $reference ObjectManipRecovery::gTask;
                     std::cout << "[" << getName() << "]: creating mapbuilder request to find object\n";
-                    //gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
                     // get the robot's state when it last saw the april tag in the correct location
                     // PosOrientIterator lastSuccessfulState = gTask->getLastSuccessfulState();
                     Point lastPos = gTask->getLastSuccessfulPos();
@@ -942,7 +931,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     // states condition evaluated true (no matter if action can execute or not)
                     rule->setConditionEvalResult(true);
                     
-                    // check if the action cannot run
+                    // check if the action can run
                     if (!(act->agentCanUsePrimitive())) {
                         continue;
                     }
@@ -967,12 +956,16 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         case Kodu::KoduAction::AT_DROP:
                         {
                             std::cout << "drop; ";
-                            // check if the agent is holding an object, it executing another
-                            // manipulation action
+                            // a drop action can only execute if the agent is:
+                            // 1) holding an object,
+                            // 2) not executing another manipulation action
+                            // 3) not executing a motion action
                             if (thisAgent->isHoldingAnObject() && !thisAgent->isExecutingManipAction()
                                 && !thisAgent->isWalking())
                             {
                                 std::cout << "Agent wants to drop item.\n";
+                                // signal that a drop action is executing (prevents any motion or 
+                                // other manipulation actions from executing)
                                 thisAgent->signalDropActionStart();
                             }
                             break;
@@ -982,17 +975,20 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         case Kodu::KoduAction::AT_GRAB:
                         {
                             std::cout << "grab; ";
-                            // make sure the agent is not walking, and it is not manipulating an object
+                            // a grab action can only execute if the agent is:
+                            // 1) not executing a motion action,
+                            // 2) not executing another manipulation action
+                            // 3) the target shape is valid
+                            // 4) the target shapes is not the same shape in the gripper
                             if (!thisAgent->isWalking() && !thisAgent->isExecutingManipAction()) {
                                 // get the target object
                                 ShapeRoot targetObject =
                                     static_cast<Kodu::KoduActionGrab*>(act)->getTargetObject();
-                                // make sure the target object is:
-                                // 1) valid, and
-                                // 2) the target object is not the same as the one in the gripper now
-                                // 3) the agent is not executing another manipulation action
+                                
                                 if (targetObject.isValid() && targetObject != thisAgent->gripperObject)
                                 {
+                                    // signal that a grab action wants to execute (prevents any motion
+                                    // or other manipulation actions from executing)
                                     thisAgent->signalGrabActionStart();
                                     thisAgent->gripperObject = targetObject;
                                     std::cout << "Selected an object " << targetObject
@@ -1009,10 +1005,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             // get the current motion command
                             Kodu::MotionCommand cmd =
                                 static_cast<Kodu::KoduActionMotion*>(act)->getMotionCommand();
-                            // make sure:
-                            // 1) the agent is not walking
-                            // 2) the agent does not have a motion command
-                            // 3) the "current" motion command (cmd) is valid
+                            
+                            // TODO
+                            // should the interpreter check if the robot is executing a manip action here
+                            // or in the action runner node?
                             if (!thisAgent->isWalking() && !thisAgent->hasMotionCommand()
                                 && cmd.isValid())
                             {
@@ -1179,7 +1175,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         $nodeclass DropActionStart : StateNode : doStart {
             std::cout << "[" << getName() << "]: initiating drop action.\n";
             std::cout << "Searching for the gripper monitor task.\n";
-            
+            // locate the gripper monitor task
             $reference KoduInterp::thisAgent;
             $reference DropActionRunner::gTask;
             gTask = NULL;
@@ -1207,12 +1203,11 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
         $nodeclass ExecuteDrop : StateNode {
             $provide Point objFutureEgoPos;
-            $provide float kReverseDist(100.0f);
+            $provide float kReverseDist(120.0f);
 
-            //$nodeclass DropItem : GrasperNode(GrasperRequest::release) : doStart {
             $nodeclass DropItem : ArmNode : doStart {
                 std::cout << "[" << getName() << "]: releasing the item.\n";
-                //graspreq.allowBodyMotion = false;
+                // open the gripper
                 getMC()->openGripper(0.9f);
             }
 
@@ -1220,7 +1215,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 std::cout << "[" << getName() << "]: looking for released object's april tag\n";
                 $reference DropActionRunner::gTask;
                 // create a mapbuilder request to locate the april tag one more time.
-                // will be used repositioning the object once it is released
+                // will be used to identify the correct object if more than one are in view
+                // once the object is released.
                 mapreq.setAprilTagFamily();
                 NEW_SHAPE(gazePoint, PointData, new PointData(localShS, gTask->getTagCentroid()));
                 mapreq.searchArea = gazePoint;
@@ -1261,11 +1257,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 std::cout << pilotreq.dx << "mm\n";
             }
 
-            $nodeclass LocalizeAgent(const unsigned int kNumbOfStarsRequested) : PilotNode : doStart {
+            $nodeclass LocalizeAgent(unsigned int numbOfStarsRequested) : PilotNode : doStart {
                 std::cout << "[" << getName() << "]: attempting to localize\n";
                 $reference KoduInterp::theWorld;
+                // create a localization task, and execute it before adding the shape in the world
                 Kodu::VisualLocalizationTask localizeTask(theWorld->getStarConstellation(),
-                                                          kNumbOfStarsRequested);
+                                                          numbOfStarsRequested);
                 pilotreq = localizeTask.getPilotRequest();
             }
 
@@ -1339,7 +1336,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 localize3:   LocalizeAgent(Kodu::VisualLocalizationTask::kMinStarsRequiredToLocalize + 1)
                 attempRepos: RepositionReleasedObject
 
-                //drop =GRASP(noError)=> lookAtTag =C=> recordATPos =S=> reverse =C=> localize2
                 drop =C=> lookAtTag =C=> recordATPos =S=> reverse =C=> { localize2, parkArm }
                 drop =F=> SpeechNode("error occurred while dropping object") =C=> PostMachineFailure
 
@@ -1929,7 +1925,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 std::size_t numbOfTasks = thisAgent->ptasks.size();
                 std::cout << "ptasks queue has " << numbOfTasks << " task(s)...\n";
                 Kodu::PerceptualTaskType_t type;
-                while (numbOfTasks-- > 0) {
+                while (numbOfTasks > 0) {
                     type = thisAgent->ptasks.front()->getType();
                     if (type == Kodu::PT_VIS_GRIPPER_MONITOR || type == Kodu::PT_VIS_LOCALIZATION) {
                         std::cout << "\tadding task #" << thisAgent->ptasks.front()->getTaskId()
@@ -1941,7 +1937,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         GeneralFncs::deletePtr(thisAgent->ptasks.front());
                     }
                     thisAgent->ptasks.pop();
-                    //numbOfTasks--;
+                    numbOfTasks--;
                 }
             } else {
                 std::cout << "the perceptual tasks queue is empty... continuing.\n";
@@ -1979,7 +1975,35 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
 // end of PageSwitchActionRunner
 
-// Play Actuator
+// PlayActionRunner
+
+    $nodeclass PlayActionRunner : StateNode {
+
+        $nodeclass PlayStart : StateNode : doStart {
+            $reference KoduInterp::thisAgent;
+            std::string wavfile = thisAgent->playQueue.front();
+            thisAgent->playQueue.pop();
+            postStateSignal<std::string>(wavfile);
+        }
+
+        $nodeclass PlayEnd : StateNode : doStart {
+            $reference KoduInterp::thisAgent;
+            if (thisAgent->hasSoundsToPlay()) {
+                postStateCompletion();
+            } else {
+                std::cout << "All play actions complete.\n";
+                postParentCompletion();
+            }
+        }
+
+        $setupmachine {
+            pStart:     PlayStart
+            pEnd:       PlayEnd
+
+            pStart =S<std::string>=> SoundNode =T(50)=> pEnd
+            pEnd =C=> pStart
+        }
+    }
 
     $nodeclass PlayActuator : StateNode : doStart {
         $reference KoduInterp::thisAgent;
@@ -2027,37 +2051,17 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     
     virtual void setup() {
         $statemachine {
-            //initAgent:  InitializeAgent
-            //parser:     KoduParser
-            //snapImgs:   SnapImage
-            //park:       ParkArm
-            //lookFwd:    PointHeadFwd
-            //findNS:     CheckForNorthStar
-            
-            initAgent:  InitializeAgent
-            walkMon:    WalkMonitor
-            mplex:      PerceptualMultiplexor
-            evaluator:  KoduConditionEvaluator
-            runner:     KoduActionRunner
+            initAgent:  InitializeAgent         // initializes the agent
+            walkMon:    WalkMonitor             // accumulates the distance the agent has walked
+            mplex:      PerceptualMultiplexor   // divides the robot's attention among different tasks
+            evaluator:  KoduConditionEvaluator  // evaluates all the rules for the current page
+            runner:     KoduActionRunner        // initiates execution of runnable actions
             
             endState:   StateNode
             
-            //initAgent =C=> parser
-
-            //parser =C=> { snapImgs, park }
-            //parser =F=> findNS
-            
-            //snapImgs =C=> findNS
-            //park =C=> endState
-            
-            //findNS =C=> lookFwd =C=> { evaluator, walkMon }
             initAgent =C=> { evaluator, walkMon }
             walkMon =T(500)=> walkMon
-            //findNS =C=> lookFwd =C=> evaluator
-            //findNS =C=> lookFwd =C=> mplex 
-            //mplex =C=> evaluator
             
-            //lookFwd =C=> endState
             evaluator =C=> runner
             evaluator =F=> endState
 
