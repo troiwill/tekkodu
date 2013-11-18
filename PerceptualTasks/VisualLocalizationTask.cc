@@ -17,6 +17,7 @@
 namespace Kodu {
 
     unsigned int VisualLocalizationTask::idCount = 50000;
+    const unsigned int VisualLocalizationTask::kMinStarsRequiredToLocalize = 2;
 
     bool VisualLocalizationTask::canExecute(const KoduWorld& kWorldState) {
         if (localizationPoints.size() < 2) {
@@ -42,9 +43,9 @@ namespace Kodu {
 
             // the amount of stars the robot needs to localize (should be the same value as the
             // minimum shapes the pilot needs in the localShS to localize)
-            const int kNumbOfStarsNeeded = 2;
+            //const int kNumbOfStarsNeeded = 2;
             // a count of the number of stars added to the vector
-            int numbOfStarsInVector = 0;
+            unsigned int numbOfStarsInVector = 0;
             // iterate over all the stars in the map
             for (std::map<unsigned int, DualCoding::Point>::iterator it = localizationPoints.begin();
                 it != localizationPoints.end(); ++it)
@@ -63,9 +64,14 @@ namespace Kodu {
                         starCen.coordZ(), starCen.getRefFrameType()));
                     //**********
                     // if there is enough stars in the vector, exit
-                    if ((++numbOfStarsInVector) == kNumbOfStarsNeeded) break;
+                    if ((++numbOfStarsInVector) == maxStarsRequested) break;
                 }
             }
+            if (numbOfStarsInVector < maxStarsRequested) {
+                std::cout << "VisualLocalizationTask: WARNING---you requested " << maxStarsRequested
+                    << " stars, but there were only " << numbOfStarsInVector << " 'visible'.\n";
+            }
+
             std::cout << "generating localization polygon\n";
             NEW_SHAPE(localizePolygon, DualCoding::PolygonData,
                 new DualCoding::PolygonData(DualCoding::VRmixin::localShS, starLocs, false));
