@@ -47,6 +47,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     $provide Kodu::KoduWorld* theWorld(NULL);
     $provide Kodu::KoduAgent* thisAgent(NULL);
     
+    $provide DropActionRunner* dropActRef(NULL);
     $provide GrabActionRunner* grabActRef(NULL);
     $provide MotionActionRunner* motionActRef(NULL);
     $provide PageSwitchActionRunner* pageSwitchActRef(NULL);
@@ -466,6 +467,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference KoduInterp::evaluatorRef;
                 $reference KoduInterp::runnerRef;
                 $reference KoduInterp::motionActRef;
+                $reference KoduInterp::dropActRef;
                 $reference KoduInterp::grabActRef;
                 $reference KoduInterp::needToHaltExecution;
                 
@@ -478,9 +480,15 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     needToHaltExecution = true;
                 }
                 
+                // stop the drop action runner
+                if (dropActRef->isActive()) {
+                    std::cout << "Stopping the Grasper (drop action).\n";
+                    dropActRef->stop();
+                }
+
                 // stop the grab action runner
                 if (grabActRef->isActive()) {
-                    std::cout << "Stopping the Grasper.\n";
+                    std::cout << "Stopping the Grasper (grab action).\n";
                     grabActRef->stop();
                 }
 
@@ -520,17 +528,38 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     gTask = NULL;
                 }
 
+                $nodeclass GetGripMonTask : StateNode : doStart {
+                    std::cout << "[" << getName() << "]: getting the gripper monitor task\n";
+                    $reference PerceptualMultiplexor::currentTask;
+                    $reference ObjectManipRecovery::gTask;
+                    gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
+                    postStateCompletion();
+                }
+
+                $nodeclass OpenGripper : ArmNode : doStart {
+                    std::cout << "[" << getName() << "]: opening the gripper\n";
+                    getMC()->openGripper(0.9f);
+                }
+
                 $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
+                    std::cout << "[" << getName() << "]: ";
                     $reference ObjectManipRecovery::kReverseDist;
-                    std::cout << "[" << getName() << "]: reversing by " << kReverseDist << "mm\n";
-                    pilotreq.dx = -1.0f * kReverseDist;
+                    
+
+                    Point lastPos = gTask->getLastSuccessfulPos();
+                    Point currPos = VRmixin::theAgent->getCentroid();
+                    float additionalDist = std::fabs(currPos.coordX() - lastPos.coordX());
+                    pilotreq.dx = (-1.0f * kReverseDist) - additionalDist;
+
+                    std::cout << "reversing by " << std::fabs(pilotreq.dx) << "mm (" << kReverseDist
+                        << " + " << additionalDist << ")\n";
                 }
 
                 $nodeclass LocateLostObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
-                    $reference PerceptualMultiplexor::currentTask;
+                    //$reference PerceptualMultiplexor::currentTask;
                     $reference ObjectManipRecovery::gTask;
                     std::cout << "[" << getName() << "]: creating mapbuilder request to find object\n";
-                    gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
+                    //gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
                     // get the robot's state when it last saw the april tag in the correct location
                     // PosOrientIterator lastSuccessfulState = gTask->getLastSuccessfulState();
                     Point lastPos = gTask->getLastSuccessfulPos();
@@ -571,10 +600,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     // float lastOrient = lastSuccessfulState->orientation;
                     float thetaIncrement = 0.0f;
                     float const kIncrementVal = deg2rad(15.0f);
-                    float absOrientDiff = std::fabs(lastOrient - currOrient);
-                    if (absOrientDiff > M_PI) {
+                    if (std::fabs(lastOrient - currOrient) > M_PI) {
                         std::cout << "Robot crossed over the 360 deg mark (abs(orientDiff) = "
-                            << absOrientDiff << ")\n";
+                            << std::fabs(lastOrient - currOrient) << ")\n";
                         if (currOrient < lastOrient) {
                             std::cout << "currOrient (" << currOrient << ") < lastOrient ("
                                 << lastOrient << ")\n";
@@ -587,12 +615,17 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         std::cout << "new values: currOrient = " << currOrient
                             << "; lastOrient = " << lastOrient << std::endl;
                     }
+                    
+                    float absOrientDiff = std::fabs(lastOrient - currOrient);
                     if (currOrient > lastOrient) {
                         thetaIncrement = -1.0f * kIncrementVal;
                         std::cout << "Robot was turning left between last successful state and now; ";
-                    } else {
+                    } else if (currOrient < lastOrient) {
                         thetaIncrement = kIncrementVal;
                         std::cout << "Robot was turning right between last successful state and now; ";
+                    } else {
+                        thetaIncrement = 0.0f;
+                        std::cout << "The object should be in front of the gripper; ";
                     }
                     std::cout << "thetaIncrement = " << thetaIncrement << " rads (= "
                             << rad2deg(thetaIncrement) << " degs)\n";
@@ -701,6 +734,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                 $setupmachine {
                     pause:      PauseEvaluator
+                    getTask:    GetGripMonTask
+                    openGrip:   OpenGripper
                     rvrs:       Reverse
                     find:       LocateLostObject
                     retrv:      RetrieveLostObject
@@ -708,10 +743,11 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     getLoc:     GetTagLocation
 
                     pause =T(300)=> pause
-                    pause =C=> rvrs =C=> find =C=> retrv =GRASP(noError)=> LookAtGripper =C=> look
+                    pause =C=> getTask =C=> openGrip =C=> rvrs =C=> find =C=> retrv
+                    
+                    retrv =GRASP(noError)=> LookAtGripper =C=> look =C=> getLoc
                     retrv =GRASP(someError)=> SpeechNode("recovery failed") =C=> PostMachineFailure
 
-                    look =C=> getLoc
                     getLoc =S=> PostMachineSuccess
                     getLoc =F=> PostMachineFailure
                 }
@@ -722,29 +758,15 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             $nodeclass WalkRecovery : StateNode {
 
-                $nodeclass AskForHelp : SpeechNode : doStart {
-                    std::cout << "[" << getName() << "]: asking the user for help.\n";
-                    textstream << "I need some help I am stuck";
-                }
-
                 $nodeclass CreateLocalizeTask : StateNode : doStart {
                     $reference PerceptualMultiplexor::currentTask;
                     $reference KoduInterp::theWorld;
                     std::cout << "[" << getName() << "]\n";
-                    /*
-                    // get the robot's position when the error occurred
-                    const Point& kAgentPos = static_cast<Kodu::VisualWalkProgressTask*>
-                                                (currentTask)->getPositionDuringError();
-                    // get the robot's orientation when the error occurred
-                    float orient = static_cast<Kodu::VisualWalkProgressTask*>
-                                    (currentTask)->getOrientationDuringError();
-                    // delete the walk progress task (it is no longer needed)
-                    */
                     std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
+                    // remove old walk progress task
                     GeneralFncs::deletePtr(currentTask);
                     // make the localization task the new current task
                     std::cout << "Creating a localization task\n";
-                    //currentTask = new Kodu::VisualLocalizationTask(kAgentPos, orient);
                     currentTask = new Kodu::VisualLocalizationTask(theWorld->getStarConstellation());
                     postParentCompletion();
                 }
@@ -903,14 +925,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 // point to the current condition and action
                 cond = rule->condition;
                 act = rule->action;
-
                 
                 // check if the agent can evaluate the condition
                 if (!cond->agentCanUsePrimitive()) {
                     std::cout << "cannot evaluate condition... continuing.\n";
                     continue;
                 }
-                
                 
                 // TODO (05/July/2013) Figure out how to cancel a running pilot request
                 if (cond->evaluate(*theWorld) == true) {
@@ -934,6 +954,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     }
                     
                     // check the action type
+                    std::cout << "checking actions: ";
                     switch(act->getActionType()) {
                         // Kodu Action Do Nothing
                         case Kodu::KoduAction::AT_DO_NOTHING:
@@ -942,22 +963,40 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             break;
                         }
 
+                        // Kodu Action Drop
+                        case Kodu::KoduAction::AT_DROP:
+                        {
+                            std::cout << "drop; ";
+                            // check if the agent is holding an object, it executing another
+                            // manipulation action
+                            if (thisAgent->isHoldingAnObject() && !thisAgent->isExecutingManipAction()
+                                && !thisAgent->isWalking())
+                            {
+                                std::cout << "Agent wants to drop item.\n";
+                                thisAgent->signalDropActionStart();
+                            }
+                            break;
+                        }
+
                         // Kodu Action Grab
                         case Kodu::KoduAction::AT_GRAB:
                         {
-                            // make sure the agent is not walking
-                            if (!thisAgent->isWalking()) {
+                            std::cout << "grab; ";
+                            // make sure the agent is not walking, and it is not manipulating an object
+                            if (!thisAgent->isWalking() && !thisAgent->isExecutingManipAction()) {
                                 // get the target object
                                 ShapeRoot targetObject =
                                     static_cast<Kodu::KoduActionGrab*>(act)->getTargetObject();
                                 // make sure the target object is:
                                 // 1) valid, and
                                 // 2) the target object is not the same as the one in the gripper now
+                                // 3) the agent is not executing another manipulation action
                                 if (targetObject.isValid() && targetObject != thisAgent->gripperObject)
                                 {
+                                    thisAgent->signalGrabActionStart();
                                     thisAgent->gripperObject = targetObject;
                                     std::cout << "Selected an object " << targetObject
-                                              << " to be grabbed.\n";
+                                        << " to be grabbed.\n";
                                 }
                             }
                             break;
@@ -966,6 +1005,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         // Kodu Action Motion
                         case Kodu::KoduAction::AT_MOTION:
                         {
+                            std::cout << "motion; ";
                             // get the current motion command
                             Kodu::MotionCommand cmd =
                                 static_cast<Kodu::KoduActionMotion*>(act)->getMotionCommand();
@@ -989,16 +1029,20 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         // Kodu Action Page Switch
                         case Kodu::KoduAction::AT_PAGE_SWITCH:
                         {
+                            std::cout << "page switch; ";
                             // get the new requested page number (agent will switch to it immediately)
-                            thisAgent->newReqdPage =
-                                static_cast<Kodu::KoduActionPageSwitch*>(act)->getPageNumber();
-                            std::cout << "Switching to another page!\n";
+                            if (!thisAgent->hasNewPageNumber()) {
+                                thisAgent->newReqdPage =
+                                    static_cast<Kodu::KoduActionPageSwitch*>(act)->getPageNumber();
+                                std::cout << "Switching to another page!\n";
+                            }
                             break;
                         }
 
                         // Kodu Action Play
                         case Kodu::KoduAction::AT_PLAY:
                         {
+                            std::cout << "play; ";
                             // get the sound file
                             std::string soundFile =
                                 static_cast<Kodu::KoduActionPlay*>(act)->getSoundFile();
@@ -1011,13 +1055,14 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         // Kodu Action Say
                         case Kodu::KoduAction::AT_SAY:
                         {
+                            std::cout << "say; ";
                             // make sure the agent does not have anything to say first
                             if (!thisAgent->hasTextToSay()) {
                                 // give the string to the agent
                                 thisAgent->stringToSpeak =
                                     static_cast<Kodu::KoduActionSay*>(act)->getStringToSpeak();
                                 std::cout << "Added literal string: \""
-                                          << thisAgent->stringToSpeak << "\".\n";
+                                    << thisAgent->stringToSpeak << "\".\n";
                             }
                             break;
                         }
@@ -1025,6 +1070,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         // Kodu Action Score
                         case Kodu::KoduAction::AT_SCORING:
                         {
+                            std::cout << "score; ";
                             // add the score change to the score queue
                             thisAgent->scoreQueue.push(
                                 static_cast<Kodu::KoduActionScore*>(act)->getScoreChange());
@@ -1058,7 +1104,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                      * rule again. if not, the rule is disabled for some time (temp fix)
                     **/
                     if (cond->getConditionType() == Kodu::KoduCondition::CT_BUMP
-                        && !thisAgent->isAttemptingGrab())
+                        && !thisAgent->isExecutingManipAction())
                     {
                         thisAgent->ptasks.push(new Kodu::VisualBumpDetectionTask(
                             static_cast<Kodu::KoduConditionBump*>(cond)));
@@ -1085,6 +1131,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     //! Kodu Action Runner
     $nodeclass KoduActionRunner : StateNode : doStart {
         $reference KoduInterp::thisAgent;
+        $reference KoduInterp::dropActRef;
         $reference KoduInterp::grabActRef;
         $reference KoduInterp::motionActRef;
         $reference KoduInterp::pageSwitchActRef;
@@ -1093,11 +1140,14 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         $reference KoduInterp::scoreActRef;
         
         std::cout << "=== [Kodu Action Runner] ===\n";
-        if (thisAgent->hasNewObjectToGrab())
+        if (thisAgent->wantsToDropObject())
+            dropActRef->start();
+
+        if (thisAgent->wantsToGrabObject())
             grabActRef->start();
 
-        if (thisAgent->hasMotionCommand() && !thisAgent->hasNewObjectToGrab()
-            && !thisAgent->hasNewPageNumber())
+        if (thisAgent->hasMotionCommand() && !thisAgent->hasNewPageNumber()
+            && !thisAgent->isExecutingManipAction())
         {
             motionActRef->start();
         }
@@ -1111,16 +1161,233 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         if (thisAgent->hasNewScoreChanges())
             scoreActRef->start();
 
-        if (thisAgent->hasNewPageNumber()) {
+        if (thisAgent->hasNewPageNumber())
             pageSwitchActRef->start();
-            //**** temp fix
-            //std::cout << "new page to switch to... posting completion\n";
-            //postStateCompletion();
-            //****
-        }
     }
 
 // ================================ Action Handlers ========================================= //
+
+// DropActionRunner
+
+    $nodeclass DropActionRunner : StateNode {
+        $provide Kodu::VisualGripperMonitorTask* gTask(NULL);
+
+        ~DropActionRunner() {
+            gTask = NULL;
+        }
+
+        $nodeclass DropActionStart : StateNode : doStart {
+            std::cout << "[" << getName() << "]: initiating drop action.\n";
+            std::cout << "Searching for the gripper monitor task.\n";
+            
+            $reference KoduInterp::thisAgent;
+            $reference DropActionRunner::gTask;
+            gTask = NULL;
+            unsigned int tasksToExecute = thisAgent->ptasks.size();
+            while (tasksToExecute > 0) {
+                if (thisAgent->ptasks.front()->getType() == Kodu::PT_VIS_GRIPPER_MONITOR) {
+                    gTask = static_cast<Kodu::VisualGripperMonitorTask*>(thisAgent->ptasks.front());
+                    thisAgent->ptasks.pop();
+                } else {
+                    thisAgent->ptasks.push(thisAgent->ptasks.front());
+                    thisAgent->ptasks.pop();
+                }
+                tasksToExecute--;
+            }
+
+            // should never happen, but just in case...
+            if (gTask == NULL) {
+                std::cout << "THIS IS A SERIOUS ERROR!!!---the gripper task should not be null!\n";
+                postStateFailure();
+                return;
+            }
+            std::cout << "GripMonTask id = " << gTask->getTaskId() << std::endl;
+            postStateCompletion();
+        }
+
+        $nodeclass ExecuteDrop : StateNode {
+            $provide Point objFutureEgoPos;
+            $provide float kReverseDist(100.0f);
+
+            //$nodeclass DropItem : GrasperNode(GrasperRequest::release) : doStart {
+            $nodeclass DropItem : ArmNode : doStart {
+                std::cout << "[" << getName() << "]: releasing the item.\n";
+                //graspreq.allowBodyMotion = false;
+                getMC()->openGripper(0.9f);
+            }
+
+            $nodeclass LookAtObjectAprilTag : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                std::cout << "[" << getName() << "]: looking for released object's april tag\n";
+                $reference DropActionRunner::gTask;
+                // create a mapbuilder request to locate the april tag one more time.
+                // will be used repositioning the object once it is released
+                mapreq.setAprilTagFamily();
+                NEW_SHAPE(gazePoint, PointData, new PointData(localShS, gTask->getTagCentroid()));
+                mapreq.searchArea = gazePoint;
+                mapreq.clearLocal = true;
+                mapreq.pursueShapes = true;
+            }
+
+            $nodeclass RecordAprilTagPos : StateNode : doStart {
+                std::cout << "[" << getName() << "]: attempting to record april tag's position.\n";
+                // find the object's april tag position and log it
+                $reference DropActionRunner::gTask;
+                NEW_SHAPE(objTag, AprilTagData, find_if<AprilTagData>(localShS,
+                    Kodu::HasAprilTagID(gTask->getTagId())));
+                // check if the shape is valid (that means the tag was found)
+                if (objTag.isValid()) {
+                    $reference KoduInterp::thisAgent;
+                    $reference ExecuteDrop::objFutureEgoPos;
+                    $reference ExecuteDrop::kReverseDist;
+                    std::cout << "found the tag @ " << objTag->getCentroid() << "; logging it\n";
+                    const Point& kTagCurrPos = objTag->getCentroid();
+                    const float kCylHeight
+                        = ShapeRootTypeConst(thisAgent->gripperObject, CylinderData)->getHeight();
+                    objFutureEgoPos = Point(kTagCurrPos.coordX() + kReverseDist, kTagCurrPos.coordY(),
+                                            (kCylHeight / 2.0f), egocentric);
+                    postStateSuccess();
+                }
+                // else, report an error... lighting could be an issue if this did happen though
+                else {
+                    std::cout << "DID NOT FIND THE APRIL TAG!!!\n";
+                    postStateFailure();
+                }
+            }
+
+            $nodeclass ReverseBody : PilotNode(PilotTypes::walk) : doStart {
+                std::cout << "[" << getName() << "]: reversing body by ";
+                $reference ExecuteDrop::kReverseDist;
+                pilotreq.dx = -1.0f * kReverseDist;
+                std::cout << pilotreq.dx << "mm\n";
+            }
+
+            $nodeclass LocalizeAgent(const unsigned int kNumbOfStarsRequested) : PilotNode : doStart {
+                std::cout << "[" << getName() << "]: attempting to localize\n";
+                $reference KoduInterp::theWorld;
+                Kodu::VisualLocalizationTask localizeTask(theWorld->getStarConstellation(),
+                                                          kNumbOfStarsRequested);
+                pilotreq = localizeTask.getPilotRequest();
+            }
+
+            $nodeclass RepositionReleasedObject : StateNode {
+
+                $nodeclass LookForObjectAgain : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                    std::cout << "[" << getName() << "]: looking for object again\n";
+                    $reference KoduInterp::thisAgent;
+                    $reference ExecuteDrop::objFutureEgoPos;
+                    // create the point the agent should look at
+                    NEW_SHAPE(gazePoint, PointData, new PointData(localShS, objFutureEgoPos));
+                    const float kCylRadius
+                        = ShapeRootTypeConst(thisAgent->gripperObject, CylinderData)->getRadius();
+
+                    // construct the mapbuilder request
+                    mapreq.addAttributes(thisAgent->gripperObject);
+                    mapreq.searchArea = gazePoint;
+                    mapreq.maxDist = objFutureEgoPos.xyNorm() + (kCylRadius * 2.0f);
+                    mapreq.pursueShapes = true;
+                    mapreq.clearLocal = true;
+                }
+
+                $nodeclass RepositionObject : StateNode : doStart {
+                    std::cout << "[" << getName() << "]: attempting to 'reposition' the object\n";
+                    $reference KoduInterp::thisAgent;
+                    $reference ExecuteDrop::objFutureEgoPos;
+                    // iterate over all the shapes in the localShS
+                    std::vector<ShapeRoot> localShapes(localShS.allShapes(
+                        thisAgent->gripperObject->getType()));
+
+                    // should not ever happen, but just in case...
+                    if (localShapes.empty()) {
+                        std::cout << "THIS IS A SERIOUS ERROR!\n";
+                        postStateFailure();
+                        return;
+                    }
+
+                    // iterate over all the shapes in the vector to find the object closest to
+                    // logged point
+                    ShapeRoot closestMatch = localShapes[0];
+                    float minCenDiff = localShapes[0]->getCentroid().xyDistanceFrom(objFutureEgoPos);
+                    for (std::size_t i = 1; i < localShapes.size(); i++) {
+                        float cenDiff = localShapes[i]->getCentroid().xyDistanceFrom(objFutureEgoPos);
+                        if (cenDiff < minCenDiff) {
+                            closestMatch = localShapes[i];
+                            minCenDiff = cenDiff;
+                        }
+                    }
+                    // "reposition" the object by importing the "closestMatch" object to worldShS
+                    std::cout << "importing the closest match to the worldShS\n";
+                    VRmixin::mapBuilder->importLocalShapeToWorld(closestMatch);
+                    postStateSuccess();
+                }
+
+                $setupmachine {
+                    lookAgain:      LookForObjectAgain
+                    reposition:     RepositionObject
+
+                    lookAgain =C=> reposition =S=> PostMachineSuccess
+                    reposition =F=> SpeechNode("could not find any local shapes") =C=> PostMachineFailure
+                }
+            }
+
+            $setupmachine {
+                drop:        DropItem
+                lookAtTag:   LookAtObjectAprilTag
+                recordATPos: RecordAprilTagPos
+                reverse:     ReverseBody
+                parkArm:     ParkArm
+                localize2:   LocalizeAgent(Kodu::VisualLocalizationTask::kMinStarsRequiredToLocalize)
+                localize3:   LocalizeAgent(Kodu::VisualLocalizationTask::kMinStarsRequiredToLocalize + 1)
+                attempRepos: RepositionReleasedObject
+
+                //drop =GRASP(noError)=> lookAtTag =C=> recordATPos =S=> reverse =C=> localize2
+                drop =C=> lookAtTag =C=> recordATPos =S=> reverse =C=> { localize2, parkArm }
+                drop =F=> SpeechNode("error occurred while dropping object") =C=> PostMachineFailure
+
+                recordATPos =F=> SpeechNode("could not record the tag position") =C=> PostMachineFailure
+
+                localize2 =PILOT(noError)=> attempRepos
+                localize2 =PILOT(cantLocalize)=> localize3
+
+                parkArm =C=> StateNode
+
+                localize3 =PILOT(noError)=> attempRepos
+                localize3 =PILOT(cantLocalize)=> SpeechNode("localize failed") =C=> PostMachineFailure
+
+                attempRepos =S=> PostMachineSuccess
+                attempRepos =F=> PostMachineFailure
+            }
+        }
+
+        $nodeclass DropActionEnd : StateNode : doStart {
+            $reference KoduInterp::thisAgent;
+            $reference DropActionRunner::gTask;
+            // delete the gripper monitor task
+            GeneralFncs::deletePtr(gTask);
+            // invalid the object reference by deleting the gripper object reference
+            std::cout << "deleting the old object (thisAgent->gripperObject)\n";
+            worldShS.deleteShape(thisAgent->gripperObject);
+            // states the object is no longer in the gripper, and release the hold on
+            // executing manipulation actions (and implicitly motion too)
+            thisAgent->manipulationComplete();
+            postStateCompletion();
+        }
+
+        $setupmachine {
+            dStart:     DropActionStart
+            exec:       ExecuteDrop
+            dEnd:       DropActionEnd
+
+            dStart =C=> exec
+
+            exec =S=> dEnd
+            exec =F=> SpeechNode("failure during drop execution") =C=> dEnd
+
+            dEnd =C=> PostMachineCompletion
+        }
+
+    private:
+        DISALLOW_COPY_ASSIGN(DropActionRunner);
+    }
 
 // GrabActionRunner
 
@@ -1129,9 +1396,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         $nodeclass GrabActionStart : StateNode {
 
             $nodeclass SetIsAttemptingGrabStatus : StateNode : doStart {
-                $reference KoduInterp::thisAgent;
                 std::cout << "[" << getName() << "]: setting grab action status to 'attempting grab'\n";
-                thisAgent->setIsAttemptingGrabFlag(true);
                 postStateCompletion();
             }
             
@@ -1188,10 +1453,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $reference KoduInterp::thisAgent;
                 std::cout << "[" << getName() << "]: reversing body ";
                 float const kArmMaxLength = 210.0f;
-                //float const kArmInflatedMaxLength = kArmMaxLength + 50.0f;
                 float distInBtwObjects = Kodu::distanceInBetweenAgentAndObject(thisAgent->gripperObject);
-                //pilotreq.dx = -1.0f * (kArmInflatedMaxLength - distInBtwObjects);
-                //pilotreq.dx = -1.0f * (kArmMaxLength - distInBtwObjects);
                 pilotreq.dx = -1.0f * kArmMaxLength;
                 std::cout << std::fabs(pilotreq.dx) << "mm (" << kArmMaxLength << " + "
                     << distInBtwObjects << ")\n";
@@ -1243,7 +1505,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 Shape<AprilTagData> tag = find_if<AprilTagData>(localShS);
                 std::cout << "creating perceptual task; ";
                 thisAgent->ptasks.push(
-                    new Kodu::VisualGripperMonitorTask(thisAgent->gripperObject,tag));
+                    new Kodu::VisualGripperMonitorTask(thisAgent->gripperObject, tag));
                 std::cout << "centroid = " << tag->getCentroid() << "; id = " << tag->getTagID();
                 std::cout << "; angle = " << tag->getCentroid().atanYX() << std::endl;
                 postStateCompletion();
@@ -1264,13 +1526,18 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             std::cout << "[" << getName() << "]: finishing up grab action\n";
 
             //********* temp fix
-            thisAgent->gripperObject->setPosition(Point(3000.0f, 3000.0f, 0.0f, allocentric));
+            if (thisAgent->gripperObject.isValid()) {
+                thisAgent->gripperObject->setPosition(Point(3000.0f, 3000.0f, 0.0f, allocentric));
+                std::cout << "repositioning the robot's body to "
+                    << thisAgent->gripperObject->getCentroid() << std::endl;
+            } else {
+                std::cout << "the gripper reference was not valid... some error occurred!\n";
+            }
             //*********
 
             // the agent is not longer attempting to grab the object--the agent succeeded in grabbing it
-            thisAgent->setIsAttemptingGrabFlag(false);
             // the target object is (should be) in the gripper
-            thisAgent->setTargetInGripperFlag(true);
+            thisAgent->manipulationComplete();
             std::cout << "Grab action complete.\n";
             postStateCompletion();
         }
@@ -1280,14 +1547,13 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             prep:       PrepareBody
             exec:       ExecuteGrabAction
             gEnd:       GrabActionEnd
-            fail:       SpeechNode("grab action failed")
-
+            
             gStart =S=> prep
-            gStart =F=> fail
+            gStart =F=> SpeechNode("failure during start node in grab action") =C=> gEnd
 
             prep =C=> exec
             exec =S=> gEnd =C=> PostMachineCompletion
-            exec =F=> fail
+            exec =F=> SpeechNode("failure during execution node in grab action") =C=> gEnd
         }
     }
 
@@ -1593,16 +1859,22 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $reference KoduInterp::multiplexorRef;
             $reference KoduInterp::evaluatorRef;
             $reference KoduInterp::thisAgent;
+            $reference KoduInterp::needToHaltExecution;
 
             PRINT_ATTRS("Multiplexor is active?", multiplexorRef->isActive());
             PRINT_ATTRS("Multiplexor is in recovery?", multiplexorRef->isInRecovery());
             PRINT_ATTRS("Evaluator is active?", evaluatorRef->isActive());
             PRINT_ATTRS("Agent is walking?", VRmixin::isWalkingFlag);
-            PRINT_ATTRS("Attempting grab?", thisAgent->isAttemptingGrab());
+            PRINT_ATTRS("Attempting manipulation?", thisAgent->isExecutingManipAction());
 
             if (multiplexorRef->isActive() && !multiplexorRef->isInRecovery()) {
                 std::cout << "stopping multiplexor (it is active, but not in recovery mode).\n";
                 multiplexorRef->stop();
+            }
+
+            if (needToHaltExecution == false) {
+                std::cout << "requesting evaluator to stop... (needToHaltExecution = true)\n";
+                needToHaltExecution = true;
             }
 
             if (evaluatorRef->isActive()) {
@@ -1610,13 +1882,13 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 evaluatorRef->stop();
             }
 
-            if (VRmixin::isWalkingFlag == true && !thisAgent->isAttemptingGrab()) {
+            if (VRmixin::isWalkingFlag == true && !thisAgent->isExecutingManipAction()) {
                 std::cout << "aborting the current motion command.\n";
                 VRmixin::pilot->pilotAbort();
             }
 
             if (!evaluatorRef->isActive() && !multiplexorRef->isActive()
-                && VRmixin::isWalkingFlag == false && !thisAgent->isAttemptingGrab())
+                && VRmixin::isWalkingFlag == false && !thisAgent->isExecutingManipAction())
             {
                 $reference PageSwitchActionRunner::waitCount;
                 if ((++waitCount) == 2) {
@@ -1680,8 +1952,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
         $nodeclass PageSwitchEnd : StateNode : doStart {
             $reference KoduInterp::evaluatorRef;
+            $reference KoduInterp::needToHaltExecution;
             
             std::cout << "[" << getName() << "]: restarting evaluator. ";
+            needToHaltExecution = false;
             evaluatorRef->start();
 
             std::cout << "Page Switch action completion.\n";
@@ -1789,6 +2063,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             runner =T(150)=> evaluator
             mplex =C=> endState
+
+            // drop action runner
+            dropAct:    DropActionRunner
+            dropAct =C=> endState
             
             // grab actuator
             grabAct:    GrabActionRunner
@@ -1827,7 +2105,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         evaluatorRef = evaluator;
         runnerRef = runner;
         
-        // actuator references
+        // action runner references
+        dropActRef = dropAct;
         grabActRef = grabAct;
         motionActRef = motionAct;
         pageSwitchActRef = pageSwitchAct;
