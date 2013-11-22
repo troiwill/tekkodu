@@ -25,10 +25,8 @@ namespace Kodu {
     }
 
     void VisualWalkProgressTask::examineTaskResults() {
-        //********* temp fix
         if (IsBehindAgent()(targets[0]))
             return;
-        //*********
         // get all the objects in the local shape space
         std::vector<DualCoding::ShapeRoot> lclShapes(DualCoding::VRmixin::localShS);
         // import the target shape into the local shape space
@@ -50,7 +48,7 @@ namespace Kodu {
         // check if the robot turned; sometimes that can cause an error (no match)
         const float kTurningError = 3.0f * M_PI / 180.0f;
         float agentCurrentOrientation = DualCoding::VRmixin::theAgent->getOrientation();
-        if (std::fabs(AngSignPi(agentLastOrientation - agentCurrentOrientation)) > kTurningError) {
+        if (std::fabs(AngTwoPi(agentLastOrientation - agentCurrentOrientation)) > kTurningError) {
             std::cout << "Turning may have caused a matching error... ignoring error\n";
             return;
         }
@@ -59,13 +57,6 @@ namespace Kodu {
         errorCount++;
         std::stringstream stream;
         stream << "task #" << id << ": recording (error) strike #" << errorCount << ". ";
-        // record the agent's position when error occurred
-        if (errorCount == 1) {
-            agentPosDuringFirstError = DualCoding::VRmixin::theAgent->getCentroid();
-            agentOrientationDuringFirstError = DualCoding::VRmixin::theAgent->getOrientation();
-            stream << "Recorded robot's position @ " << agentPosDuringFirstError << ".";
-        }
-
         if (errorCount == kMaxErrorOccurences) {
             taskStatus = TS_FAILURE;
             stream << " Task failed!";
@@ -103,14 +94,6 @@ namespace Kodu {
                 DualCoding::Point(x, y, z, DualCoding::egocentric)));
         mapreq.searchArea = gazePoint;
         return mapreq;
-    }
-
-    float VisualWalkProgressTask::getOrientationDuringError() const {
-        return agentOrientationDuringFirstError;
-    }
-
-    const DualCoding::Point& VisualWalkProgressTask::getPositionDuringError() const {
-        return agentPosDuringFirstError;
     }
 
     bool VisualWalkProgressTask::taskIsComplete(const KoduWorld& kWorldState) {

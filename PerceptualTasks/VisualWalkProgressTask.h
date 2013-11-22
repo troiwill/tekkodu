@@ -12,7 +12,7 @@ namespace Kodu {
 
     // tekkodu forward declarations
     class PerceptualTaskBase;
-
+    
     /**
      * ASSUMPTIONS:
      * - The target shape passed to the constructor is in the world shape space.
@@ -24,11 +24,7 @@ namespace Kodu {
         VisualWalkProgressTask(const DualCoding::ShapeRoot& kTargetShape)
           : PerceptualTaskBase(PT_VIS_WALK_PROGRESS, ++idCount),
             errorCount(0),
-            agentPosDuringFirstError(),
-            agentOrientationDuringFirstError(0.0f),
             targets(),
-
-            firstRun(true),
             agentLastOrientation(0.0f)
         {
             targets.push_back(kTargetShape);
@@ -39,11 +35,7 @@ namespace Kodu {
         VisualWalkProgressTask(const std::vector<DualCoding::ShapeRoot>& kTargetShapes)
           : PerceptualTaskBase(PT_VIS_WALK_PROGRESS, ++idCount),
             errorCount(0),
-            agentPosDuringFirstError(),
-            agentOrientationDuringFirstError(0.0f),
             targets(kTargetShapes),
-
-            firstRun(true),
             agentLastOrientation(0.0f)
         { }
 
@@ -51,11 +43,7 @@ namespace Kodu {
         VisualWalkProgressTask(const VisualWalkProgressTask& kTask)
           : PerceptualTaskBase(kTask),
             errorCount(kTask.errorCount),
-            agentPosDuringFirstError(kTask.agentPosDuringFirstError),
-            agentOrientationDuringFirstError(kTask.agentOrientationDuringFirstError),
             targets(kTask.targets),
-
-            firstRun(kTask.firstRun),
             agentLastOrientation(kTask.agentLastOrientation)
         { }
 
@@ -69,11 +57,7 @@ namespace Kodu {
             if (this != &kTask) {
                 PerceptualTaskBase::operator=(kTask);
                 errorCount = kTask.errorCount;
-                agentPosDuringFirstError = kTask.agentPosDuringFirstError;
-                agentOrientationDuringFirstError = kTask.agentOrientationDuringFirstError;
                 targets = kTask.targets;
-
-                firstRun = kTask.firstRun;
                 agentLastOrientation = kTask.agentLastOrientation;
             }
             return *this;
@@ -88,24 +72,16 @@ namespace Kodu {
         //! Dynamically generates the point the agent should fixate on
         virtual const DualCoding::MapBuilderRequest& getMapBuilderRequest();
 
-        //! Returns the agent's orientation when the lastest first error occurred
-        float getOrientationDuringError() const;
-
-        //! Returns the agent's position when the lastest first error occurred
-        const DualCoding::Point& getPositionDuringError() const;
-
         //! Checks if the task is complete
         virtual bool taskIsComplete(const KoduWorld&);
 
         //! The max number of cumulative errors (error: when the agent did not find a match)
         static unsigned int const kMaxErrorOccurences;
+
     private:
         static unsigned int idCount;                //!< Used to generate id numbers
         unsigned int errorCount;                    //!< Cumulative error count
-        DualCoding::Point agentPosDuringFirstError; //!< Position of agent at each "first" error
-        float agentOrientationDuringFirstError;     //!< Orientation of agent at each "first" error 
         std::vector<DualCoding::ShapeRoot> targets; //!< The shapes the agent needs to look at
-        bool firstRun;
         float agentLastOrientation;
     };
 
