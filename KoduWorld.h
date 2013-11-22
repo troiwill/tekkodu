@@ -1,39 +1,33 @@
 #ifndef KODU_WORLD_H_
 #define KODU_WORLD_H_
 
-// c++ library
+// INCLUDES
+// c++
 #include <map>
+#include <queue>
+#include <vector>
 
-// Tekkodu Library
-#include "Kodu/KoduAgent.h"
-#include "Kodu/Keepers/ScoreKeeper.h"
-#include "Kodu/General/GeneralFncs.h"
-
-// Tekkotsu Library
+// tekkotsu
 #include "DualCoding/PolygonData.h"
 #include "DualCoding/ShapeAprilTag.h"
 #include "DualCoding/ShapePolygon.h"
 #include "DualCoding/ShapeRoot.h"
+using namespace DualCoding;
+
+// tekkodu
+#include "Kodu/KoduAgent.h"
+#include "Kodu/General/GeneralMacros.h"
+#include "Kodu/Keepers/ScoreKeeper.h"
 
 namespace Kodu {
 
     class KoduWorld {
     public:
         //! Constructor
-        KoduWorld()
-          : thisAgent(),
-            northStarLocation(),
-            northStarIsArtifical(true),
-            starConstellation(),
-            worldBoundsPolygon(),
-            worldSideLength(2000.0f)    // 2 meters (area = 2m sq)
-        { }
+        KoduWorld();
 
         //! Destructor
-        ~KoduWorld() {
-            // reinitialize score board
-            globalScoreKeeper.initialize();
-        }
+        ~KoduWorld();
 
         /// ================================ Scoring functions ================================ ///
         //! Applies the scores changes to the global score keeper
@@ -42,22 +36,32 @@ namespace Kodu {
         //! Returns the value of a particular score (identified by the designator)
         static int getScoreValue(const std::string&);
 
+        /// ================================ Shape-Tag Pair functions ========================= ///
+        //! Returns the april tag id corresponding to a particular shape id
+        int getTagIdForShape(int);
+
+        //! Checks if a shapt-tag pair exists
+        bool shapeTagPairExists(int) const;
+
+        //! Pairs an april tag with a particular shape
+        void pairShapeWithTag(int, int);
+
         /// ================================ World Bounds and North Star functions =========== ///
         //! Returns the world North Star
-        const DualCoding::Point& getNorthStarLocation() const;
+        const Point& getNorthStarLocation() const;
 
         //! Returns the "stars" seen and their location
-        const std::map<unsigned int, DualCoding::Point>& getStarConstellation() const;
+        const std::map<int, Point>& getStarConstellation() const;
 
         //! Returns the world bounds polygon
-        const DualCoding::Shape<DualCoding::PolygonData>& getWorldBoundsPolygon() const;
+        const Shape<PolygonData>& getWorldBoundsPolygon() const;
 
         //! Sets the "North Star"
         //void setNorthStar(const DualCoding::ShapeRoot&, bool);
-        void generateWorldBoundsPolygon(const DualCoding::ShapeRoot& = DualCoding::ShapeRoot());
+        void generateWorldBoundsPolygon(const ShapeRoot& = ShapeRoot());
 
         //! Sets the "stars" seen and their allocentric locations
-        void setStarConstellation(const std::vector<DualCoding::ShapeRoot>&);
+        void setStarConstellation(const std::vector<ShapeRoot>&);
 
         //! Returns whether or not the north star was seen by the camera
         bool theNorthStarIsArtificial() const;
@@ -74,18 +78,20 @@ namespace Kodu {
         //! Local copy of the Score Keeper
         static ScoreKeeper globalScoreKeeper;
 
+        //! Helps the robot discern between multiple objects of same type and color when near them
+        std::map<int, int> shapeToTagMap;
+
         //! The North Star - used for localization, and defines "north" in the world
-        //DualCoding::ShapeRoot northStar;
-        DualCoding::Point northStarLocation;
+        Point northStarLocation;
         
         //! States if the North Star was seen by the camera, or it is artifical
         bool northStarIsArtifical;
 
         //! A map of the april tag (used as stars) and their allocentric positions
-        std::map<unsigned int, DualCoding::Point> starConstellation;
+        std::map<int, Point> starConstellation;
 
         //! The world bounds polygon
-        DualCoding::Shape<DualCoding::PolygonData> worldBoundsPolygon;
+        Shape<PolygonData> worldBoundsPolygon;
 
         //! The length of the world's sides; all sides are the same length making the world a square
         const float worldSideLength;

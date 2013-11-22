@@ -1,18 +1,33 @@
-// Tekkodu Library
+// INCLUDES
+// tekkodu
 #include "Kodu/KoduWorld.h"
+#include "Kodu/General/GeneralFncs.h"
 
-// Tekkotsu Library
+// tekkotsu Library
 #include "DualCoding/Point.h"
 #include "DualCoding/ShapeFuns.h"
-
-// C++ Library
-#include <vector>
-
+#include "DualCoding/VRmixin.h"
 using namespace DualCoding;
 
 namespace Kodu {
 
     ScoreKeeper KoduWorld::globalScoreKeeper;
+
+    KoduWorld::KoduWorld()
+      : thisAgent(),
+        shapeToTagMap(),
+        northStarLocation(),
+        northStarIsArtifical(true),
+        starConstellation(),
+        worldBoundsPolygon(),
+        worldSideLength(2000.0f)    // 2 meters (area = 2m sq)
+    { }
+
+    //! Destructor
+    KoduWorld::~KoduWorld() {
+        // reinitialize score board
+        globalScoreKeeper.initialize();
+    }
     
     void KoduWorld::applyGlobalScoreChanges(std::queue<ScoreChange>& queue) {
         while (!queue.empty()) {
@@ -43,19 +58,36 @@ namespace Kodu {
         return globalScoreKeeper.checkScoreValue(kDesignator);
     }
 
+    int KoduWorld::getTagIdForShape(int worldShapeId) {
+        if (shapeTagPairExists(worldShapeId))
+            return shapeToTagMap[worldShapeId];
+        else
+            return (-1);
+    }
+
+    void KoduWorld::pairShapeWithTag(int worldShapeId, int aprilTagId) {
+        if (!shapeTagPairExists(worldShapeId)) {
+            shapeToTagMap.insert(std::pair<int, int>(worldShapeId, aprilTagId));
+        }
+    }
+
+    bool KoduWorld::shapeTagPairExists(int worldShapeId) const {
+        return static_cast<bool>(shapeToTagMap.count(worldShapeId));
+    }
+
     // const DualCoding::ShapeRoot& KoduWorld::getNorthStar() const {
     //     return northStar;
     // }
 
-    const DualCoding::Point& KoduWorld::getNorthStarLocation() const {
+    const Point& KoduWorld::getNorthStarLocation() const {
         return northStarLocation;
     }
 
-    const std::map<unsigned int, DualCoding::Point>& KoduWorld::getStarConstellation() const {
+    const std::map<int, Point>& KoduWorld::getStarConstellation() const {
         return starConstellation;
     }
 
-    const DualCoding::Shape<DualCoding::PolygonData>& KoduWorld::getWorldBoundsPolygon() const {
+    const Shape<PolygonData>& KoduWorld::getWorldBoundsPolygon() const {
         return worldBoundsPolygon;
     }
 
@@ -75,15 +107,10 @@ namespace Kodu {
         std::cout << "North star is " << (northStarIsArtifical ? "artificial" : "real") << ".\n\n";
     }
 */
-    void KoduWorld::setStarConstellation(const std::vector<DualCoding::ShapeRoot>& kConstellation)
-    {
+    void KoduWorld::setStarConstellation(const std::vector<ShapeRoot>& kConstellation) {
         for (std::size_t i = 0; i < kConstellation.size(); i++) {
-            const DualCoding::Shape<DualCoding::AprilTagData>& kTag
-                = ShapeRootTypeConst(kConstellation[i], DualCoding::AprilTagData);
-
-            starConstellation.insert(std::pair<unsigned int, DualCoding::Point>(
-                kTag->getTagID(), kTag->getCentroid()));
-
+            const Shape<AprilTagData>& kTag = ShapeRootTypeConst(kConstellation[i], AprilTagData);
+            starConstellation.insert(std::pair<int, Point>(kTag->getTagID(), kTag->getCentroid()));
             std::cout << "inserted pair: {" << kTag->getTagID() << ", "
                 << kTag->getCentroid() << "}\n";
         }
@@ -147,9 +174,9 @@ namespace Kodu {
     }
     */
 
-    void KoduWorld::generateWorldBoundsPolygon(const DualCoding::ShapeRoot& kNorthStar) {
+    void KoduWorld::generateWorldBoundsPolygon(const ShapeRoot& kNorthStar) {
         // create world bounds
-        std::vector<DualCoding::Point> worldBounds;
+        std::vector<Point> worldBounds;
         const float kSideLength = 2000.0f;   // assumes the world is a square (all sides are equal)
         const float kHalfSideLength = kSideLength / 2.0f;
         // float minX = 0.0f;
@@ -157,10 +184,10 @@ namespace Kodu {
         // float minY = 0.0f;
         // float maxY = 0.0f;
         // check if the north star is real (or artificial)
-        if (kNorthStar.isValid() && kNorthStar->getType() == DualCoding::aprilTagDataType) {
+        if (kNorthStar.isValid() && kNorthStar->getType() == aprilTagDataType) {
             // state that the north star is real, and setup the world bounds based on star's location
             northStarIsArtifical = false;
-            northStarLocation = DualCoding::Point(kNorthStar->getCentroid());
+            northStarLocation = Point(kNorthStar->getCentroid());
             
         } else if (!starConstellation.empty() && starConstellation.find(0) != starConstellation.end()) {
             northStarIsArtifical = false;
@@ -168,8 +195,7 @@ namespace Kodu {
             // state that the north star is artificial, and setup generic world bounds
             northStarIsArtifical = true;
             const float kNorthStarGenericMaxX = 1500.0f;
-            northStarLocation = DualCoding::Point(kNorthStarGenericMaxX, 0.0f, 0.0f,
-                DualCoding::allocentric);
+            northStarLocation = Point(kNorthStarGenericMaxX, 0.0f, 0.0f, allocentric);
         }
         // create the max and min coordinates of the world bounds
         // const float maxX = northStarLocation.coordX();
@@ -182,15 +208,14 @@ namespace Kodu {
         const float minY = -1.0f * kHalfSideLength; // minY = maxY - kSideLength
 
         // add the points of the square polygon to the vector
-        worldBounds.push_back(DualCoding::Point(minX, maxY, 0, DualCoding::allocentric)); // bottom left
-        worldBounds.push_back(DualCoding::Point(maxX, maxY, 0, DualCoding::allocentric)); // top left
-        worldBounds.push_back(DualCoding::Point(maxX, minY, 0, DualCoding::allocentric)); // top right
-        worldBounds.push_back(DualCoding::Point(minX, minY, 0, DualCoding::allocentric)); // bottom right
+        worldBounds.push_back(Point(minX, maxY, 0, allocentric)); // bottom left
+        worldBounds.push_back(Point(maxX, maxY, 0, allocentric)); // top left
+        worldBounds.push_back(Point(maxX, minY, 0, allocentric)); // top right
+        worldBounds.push_back(Point(minX, minY, 0, allocentric)); // bottom right
         worldBounds.push_back(worldBounds[0]);  // close the polygon
         
         // create a Shape<PolygonData> object and use it as the world bounds.
-        NEW_SHAPE(wBoundPolygon, DualCoding::PolygonData,
-            new DualCoding::PolygonData(DualCoding::VRmixin::worldShS, worldBounds, true));
+        NEW_SHAPE(wBoundPolygon, PolygonData, new PolygonData(VRmixin::worldShS, worldBounds, true));
         worldBoundsPolygon = wBoundPolygon;
         worldBoundsPolygon->setName("worldBoundsPolygon");
         worldBoundsPolygon->setObstacle(true);
