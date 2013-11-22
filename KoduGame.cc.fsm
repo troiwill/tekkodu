@@ -858,18 +858,31 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 DISALLOW_COPY_ASSIGN(ObjectManipRecovery);
             }
 
-            $nodeclass WalkRecovery : StateNode {
+            $nodeclass LocalizeAgent : StateNode {
 
                 $nodeclass CreateLocalizeTask : StateNode : doStart {
                     $reference PerceptualMultiplexor::currentTask;
                     $reference KoduInterp::theWorld;
                     std::cout << "[" << getName() << "]\n";
                     std::cout << "Deleting task #" << currentTask->getTaskId() << std::endl;
-                    // remove old walk progress task
-                    GeneralFncs::deletePtr(currentTask);
-                    // make the localization task the new current task
-                    std::cout << "Creating a localization task\n";
-                    currentTask = new Kodu::VisualLocalizationTask(theWorld->getStarConstellation());
+                    std::cout << "creating a localization task ";
+                    if (currentTask->getType() == Kodu::PT_VIS_LOCALIZATION) {
+                        // remove old task
+                        GeneralFncs::deletePtr(currentTask);
+                        // make the localization task the new current task
+                        //********* temp fix
+                        std::cout << " with max amount of stars ("
+                            << theWorld->getStarConstellation().size() << ")";
+                        currentTask = new Kodu::VisualLocalizationTask(theWorld->getStarConstellation(),
+                            theWorld->getStarConstellation().size());
+                        //*********
+                    } else {
+                        // remove old task
+                        GeneralFncs::deletePtr(currentTask);
+                        // make the localization task the new current task
+                        currentTask = new Kodu::VisualLocalizationTask(theWorld->getStarConstellation());
+                    }
+                    std::cout << "\n";
                     postParentCompletion();
                 }
 
@@ -891,33 +904,26 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             $setupmachine {
                 startRec:   StartRecovery
-                //************* temp fix
-                //locRec:     LocalizeRecovery
-                //*************
+                locAgent:   LocalizeAgent
                 manipRec:   ObjectManipRecovery
-                walkRec:    WalkRecovery
+                //walkRec:  WalkRecovery
                 endRec:     EndRecovery
 
-                //startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locRec
+                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locAgent
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_GRIPPER_MONITOR)=> manipRec
-                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> walkRec
+                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> locAgent
                 
                 //************* temp fix
                 bumpRec: SpeechNode("unhandled recovery for bump detection")
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_BUMP_DETECTION)=> bumpRec
                 //*************
 
-                //************* temp fix
-                //locRec =C=> endRec
-                //locRec =F=> SpeechNode("failed to do localization using global gaze polygon")
-                //*************
-                
                 manipRec =S=> endRec
                 //*********** temp fix
                 manipRec =F=> SpeechNode("unhandled failure recovery for manipulation")
                 //***********
 
-                walkRec =C=> endRec
+                locAgent =C=> endRec
             }
         }
 
@@ -1423,7 +1429,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     
                     // reposition the gripper object
                     thisAgent->gripperObject->setPosition(closestMatchPt);
-                    thisAgent->gripperObject = ShapeRoot();
+                    thisAgent->gripperObject.setInvalid();
                     postStateSuccess();
                 }
 
@@ -1467,6 +1473,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         $nodeclass DropActionEnd : StateNode : doStart {
             $reference KoduInterp::thisAgent;
             $reference DropActionRunner::gTask;
+            std::cout << "[" << getName() << "]: finishing up drop action\n";
+            // delete the april tag's created during localization
+            std::vector<ShapeRoot> tagVec = worldShS.allShapes(aprilTagDataType);
+            worldShS.deleteShapes(tagVec);
             // delete the gripper monitor task
             GeneralFncs::deletePtr(gTask);
             // states the object is no longer in the gripper, and release the hold on
@@ -1961,6 +1971,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $reference KoduInterp::thisAgent;
             $reference MotionActionRunner::cmd;
             std::cout << "[" << getName() << "]: simple motion complete.\n";
+            // if (cmd.targetObjectIsValid()) {
+            //     cmd.getTargetObject()->setObstacle();
+            // }
             cmd = Kodu::MotionCommand();
             thisAgent->agentIsWalking = false;
             postParentCompletion();
