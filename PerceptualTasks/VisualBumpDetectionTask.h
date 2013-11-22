@@ -17,9 +17,10 @@ namespace Kodu {
     class VisualBumpDetectionTask : public PerceptualTaskBase {
     public:
         //! Constructor
-        VisualBumpDetectionTask(KoduConditionBump* bmpCondition)
+        VisualBumpDetectionTask(KoduConditionBump* bmpCondition, KoduWorld* worldState)
           : PerceptualTaskBase(PT_VIS_BUMP_DETECTION, ++idCount),
-            condition(bmpCondition)
+            condition(bmpCondition),
+            wState(worldState)
         {
             condition->setAgentCanUsePrimitive(false);
             std::cout << "Created task #" << id << " to detect a(n) " << condition->getObjectColor()
@@ -29,12 +30,14 @@ namespace Kodu {
         //! Copy constructor
         VisualBumpDetectionTask(const VisualBumpDetectionTask& kTask)
           : PerceptualTaskBase(kTask),
-            condition(kTask.condition)
+            condition(kTask.condition),
+            wState(kTask.wState)
         { }
 
         //! Destructor
         ~VisualBumpDetectionTask() {
             condition = NULL;
+            wState = NULL;
         }
 
         //! Assignment operator
@@ -42,6 +45,7 @@ namespace Kodu {
             if (this != &kTask) {
                 PerceptualTaskBase::operator=(kTask);
                 condition = kTask.condition;
+                wState = kTask.wState;
             }
             return *this;
         }
@@ -58,6 +62,7 @@ namespace Kodu {
     private:
         static unsigned int idCount;    //!< Used to generate id numbers for VisualBumpDetectionTask
         KoduConditionBump* condition;   //!< The bump condition that needs to detect the bump
+        KoduWorld* wState;
     };
 }
 

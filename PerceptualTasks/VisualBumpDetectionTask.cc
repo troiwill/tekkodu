@@ -23,25 +23,39 @@ namespace Kodu {
         // this task can execute if:
         // 1) the agent is near the matching object
         // 2) the agent is not walking
-        //**************** temp fix
         return ((condition->agentIsNearMatchingObject(kWorldState.thisAgent.gripperObject))
             && (!kWorldState.thisAgent.isWalking()));
-        //****************
-        //return ((condition->agentIsNearMatchingObject()) && (!kWorldState.thisAgent.isWalking()));
     }
 
     void VisualBumpDetectionTask::examineTaskResults() {
         std::cout << "Examining visual bump detection results...";
         // create an AprilTagData shape
-        NEW_SHAPE(aprilTag, DualCoding::AprilTagData,
-            DualCoding::find_if<DualCoding::AprilTagData>(DualCoding::VRmixin::localShS));
+        NEW_SHAPEROOTVEC(aprilTags, DualCoding::subset(DualCoding::VRmixin::localShS,
+            IsShapeOfType(DualCoding::aprilTagDataType)));
         // check if the shape is valid (if it is then the task was successful)
-        if (aprilTag.isValid()) {
+        if (!aprilTags.empty()) {
             std::cout << "found the tag!\n";
             // confirm the agent saw the object
             condition->setVisualBumpDetection(true);
             // tell the interpreter that it can evaluate the condition again
             condition->setAgentCanUsePrimitive(true);
+
+            // check if there is not a relationship between the target object and the april tag seen,
+            // add the relationship in the map
+            int shapeId = condition->getTargetObject().getId();
+            if (!wState->shapeTagPairExists(shapeId)) {
+                // find the april tag belonging to the bumped target object
+                Point targetLoc = condition->getTargetObject()->getCentroid();
+                targetLoc.applyTransform(VRmixin::mapBuilder->worldToLocalMatrix, egocentric);
+                
+                // store the relationship between the target object and the marker
+                ShapeRoot bumpedObjectTag = getClosestObjectToPoint(aprilTags, targetLoc);
+                int tagId = ShapeRootTypeConst(bumpedObjectTag, AprilTagData)->getTagID();
+                wState->pairShapeWithTag(shapeId, tagId);
+
+                std::cout << "added pair { " << shapeId << ", " << tagId << " } to the shape-tag map\n";
+            }
+
             // state the task is successful
             taskStatus = TS_SUCCESSFUL;
         }
