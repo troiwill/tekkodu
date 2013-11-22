@@ -17,11 +17,11 @@
 namespace Kodu {
 
     unsigned int VisualLocalizationTask::idCount = 50000;
-    const unsigned int VisualLocalizationTask::kMinStarsRequiredToLocalize = 2;
+    const int VisualLocalizationTask::kMinStarsRequiredToLocalize = 2;
 
     bool VisualLocalizationTask::canExecute(const KoduWorld& kWorldState) {
         if (localizationPoints.size() < 2) {
-            std::cout << "!!! ERROR! the localizationPoints map is empty!\n";
+            std::cout << "!!! ERROR! There is not enough shapes to localize!\n";
             return false;
         }
         return (!kWorldState.thisAgent.isWalking() && !localizationPoints.empty());
@@ -41,13 +41,10 @@ namespace Kodu {
             std::cout << "creating the localization point vector for " << localizationPoints.size()
                 << " points.\n";
 
-            // the amount of stars the robot needs to localize (should be the same value as the
-            // minimum shapes the pilot needs in the localShS to localize)
-            //const int kNumbOfStarsNeeded = 2;
             // a count of the number of stars added to the vector
-            unsigned int numbOfStarsInVector = 0;
+            int numbOfStarsInVector = 0;
             // iterate over all the stars in the map
-            for (std::map<unsigned int, DualCoding::Point>::iterator it = localizationPoints.begin();
+            for (std::map<int, DualCoding::Point>::iterator it = localizationPoints.begin();
                 it != localizationPoints.end(); ++it)
             {
                 AngSignPi dtheta = bearingFromAgentToPoint(it->second);

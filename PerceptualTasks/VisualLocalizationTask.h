@@ -20,13 +20,13 @@ namespace Kodu {
     class VisualLocalizationTask : public PerceptualTaskBase {
     public:
         //! Constructor
-        VisualLocalizationTask(const std::map<unsigned int, DualCoding::Point>& kStarConstellation,
-            unsigned int maxStarsNeededToLocalize = kMinStarsRequiredToLocalize)
+        VisualLocalizationTask(const std::map<int, DualCoding::Point>& kStarConstellation,
+            int maxStarsNeededToLocalize = kMinStarsRequiredToLocalize)
           : PerceptualTaskBase(PT_VIS_LOCALIZATION, ++idCount),
             localizationPoints(kStarConstellation),
             maxStarsRequested(maxStarsNeededToLocalize)
         {
-            if (maxStarsNeededToLocalize > localizationPoints.size()) {
+            if (maxStarsNeededToLocalize > static_cast<int>(localizationPoints.size())) {
                 std::cout << "VisualLocalizationTask: WARNING---you are requesting a max of "
                     << maxStarsNeededToLocalize << " stars, but there are only "
                     << localizationPoints.size() << " stars in the constellation (available).\n";
@@ -68,12 +68,12 @@ namespace Kodu {
         //! Generates the Pilot request the agent needs to localize
         virtual const DualCoding::PilotRequest& getPilotRequest();
 
-        static const unsigned int kMinStarsRequiredToLocalize;
+        static const int kMinStarsRequiredToLocalize;
         
     private:
         static unsigned int idCount;    //!< used to create an id for each task
-        std::map<unsigned int, DualCoding::Point> localizationPoints;   //!< a copy of the constellation
-        unsigned int maxStarsRequested;
+        std::map<int, DualCoding::Point> localizationPoints;   //!< a copy of the constellation
+        int maxStarsRequested;
     };
 }
 
