@@ -5,7 +5,7 @@
 
 namespace Kodu {
 
-    const float KoduConditionBump::kMaxDistanceAwayToSenseBump = 80.0f; // millimeters
+    const float KoduConditionBump::kMaxDistanceAwayToSenseBump = 40.0f; // millimeters
     //const float KoduConditionBump::kMaxDistInBtwToSenseBump = 100.0f;
 
     bool KoduConditionBump::evaluate(const KoduWorld& kWorldState) {
