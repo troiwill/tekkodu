@@ -7,15 +7,15 @@ namespace Kodu {
     }
 
     bool ScoreChange::operator>(const ScoreChange& rhs) {
-        return (this->timeCreated > rhs.timeCreated);
+        return (timeCreated > rhs.timeCreated);
     }
 
     bool ScoreChange::operator<(const ScoreChange& rhs) {
-        return (this->timeCreated < rhs.timeCreated);
+        return (timeCreated < rhs.timeCreated);
     }
 
     bool ScoreChange::operator==(const ScoreChange& rhs) {
-        return (this->timeCreated == rhs.timeCreated);
+        return (timeCreated == rhs.timeCreated);
     }
 
     bool ScoreChange::operator!=(const ScoreChange& rhs) {
