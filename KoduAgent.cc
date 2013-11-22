@@ -1,16 +1,98 @@
-// Tekkodu
-#include "Kodu/KoduAgent.h"
-#include "Kodu/Primitives/PerceptionSearch.h"
+// INCLUDES
+// tekkodu
+#include "Kodu/KoduPage.h"
+#include "Kodu/General/GeneralFncs.h"
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
+#include "Kodu/Primitives/PerceptionSearch.h"
 
-// Tekkotsu
+#include "Kodu/KoduAgent.h"
+
+// tekkotsu
 #include "DualCoding/ShapeTypes.h"
 #include "Shared/get_time.h"
 #include "Shared/mathutils.h"
+using namespace DualCoding;
 
 namespace Kodu {
+
+    KoduAgent::KoduAgent()
+      : gripperObject(),
+        agentIsExecutingManipAction(false),
+        agentWantsToDropObject(false),
+        agentWantsToGrabObject(false),
+        targetObjectIsInGripper(false),
+        agentIsWalking(false),
+        currMotionCmd(),
+        distanceTravelled(0.0f),
+        pages(),
+        currPageIndex(0),
+        newReqdPage(0),
+        ptasks(),
+        scoreQueue(),
+        stringToSpeak(""),
+        playQueue(),
+        agentGazePoints()
+    {
+        // generate the gaze points
+        generateGazePoints();
+    }
+
+    KoduAgent::~KoduAgent() {
+        GeneralFncs::destroyAllPtrsInQueue(ptasks);
+        GeneralFncs::destroyAllPtrsInVector(pages);
+        stringToSpeak.clear();
+    }
+
+    KoduAgent& KoduAgent::operator=(const KoduAgent& kAgent) {
+        if (this != &kAgent) {
+            gripperObject = kAgent.gripperObject;
+            agentIsExecutingManipAction = kAgent.agentIsExecutingManipAction;
+            agentWantsToDropObject = kAgent.agentWantsToDropObject;
+            agentWantsToGrabObject = kAgent.agentWantsToGrabObject;
+            targetObjectIsInGripper = kAgent.targetObjectIsInGripper;
+            agentIsWalking = kAgent.agentIsWalking;
+            currMotionCmd = kAgent.currMotionCmd;
+            distanceTravelled = kAgent.distanceTravelled;
+            pages = kAgent.pages;
+            currPageIndex = kAgent.currPageIndex;
+            newReqdPage = kAgent.newReqdPage;
+            ptasks = kAgent.ptasks;
+            scoreQueue = kAgent.scoreQueue;
+            stringToSpeak = kAgent.stringToSpeak;
+            playQueue = kAgent.playQueue;
+            agentGazePoints = kAgent.agentGazePoints;
+        }
+        return *this;
+    }
+
     /// ================================ Static initializations ================================ ///
     const float KoduAgent::kLocalizationDistanceThreshold = 1000.0f;
+
+    /// ================================ Gaze functions ================================ ///
+    void KoduAgent::generateGazePoints() {
+        // SA: the search area (in degrees)--(from -SA/2 to SA/2)
+        const float kSearchArea = mathutils::deg2rad(200.0f);
+        const float kAngleIncrement = mathutils::deg2rad(25.0f);
+        // the search radius
+        float radius = 750.0f;
+        // the beginning angle
+        float currAngle = -1.0f * kSearchArea / 2.0f;
+        // loop until all the search points have been generated
+        while (currAngle <= (kSearchArea / 2.0f)) {
+            agentGazePoints.push_back(
+                Point(
+                    cos(currAngle) * radius,  // x-value
+                    sin(currAngle) * radius,  // y-value
+                    0.0f,                     // z-value
+                    DualCoding::egocentric    // point is relative to agent body
+                ));
+            currAngle += kAngleIncrement; // increment the current angle after generating each point
+        }
+    }
+
+    const std::vector<Point>& KoduAgent::getGazePoints() const {
+        return agentGazePoints;
+    }
 
     /// ================================ Grasper functions ================================ ///
     bool KoduAgent::isExecutingManipAction() const {
@@ -19,41 +101,6 @@ namespace Kodu {
 
     bool KoduAgent::isHoldingAnObject() const {
         return targetObjectIsInGripper;
-    }
-
-    void KoduAgent::setIsExecutingManipActionFlag(bool bval = true) {
-        agentIsExecutingManipAction = bval;
-    }
-
-    void KoduAgent::setTargetInGripperFlag(bool bval = true) {
-        targetObjectIsInGripper = bval;
-    }
-
-    void KoduAgent::setWantsToDropObjectFlag(bool bval = true) {
-        agentWantsToDropObject = bval;
-    }
-
-    void KoduAgent::setWantsToGrabObjectFlag(bool bval = true) {
-        agentWantsToGrabObject = bval;
-    }
-
-    bool KoduAgent::wantsToDropObject() const {
-        return agentWantsToDropObject;
-    }
-
-    bool KoduAgent::wantsToGrabObject() const {
-        //return (gripperObject.isValid() && !targetObjectIsInGripper);//&& !agentIsExecutingManipAction);
-        return agentWantsToGrabObject;
-    }
-
-    void KoduAgent::signalDropActionStart() {
-        setIsExecutingManipActionFlag();    // states the robot is executing a manipulation action
-        setWantsToDropObjectFlag();         // the robot wants to drop an object
-    }
-
-    void KoduAgent::signalGrabActionStart() {
-        setIsExecutingManipActionFlag();    // states the robot is executing a manipulation action
-        setWantsToGrabObjectFlag();         // the robot wants to grab an object
     }
 
     void KoduAgent::manipulationComplete() {
@@ -68,6 +115,40 @@ namespace Kodu {
             setTargetInGripperFlag();           // (implicit true) object is in the gripper
         }
         setIsExecutingManipActionFlag(false);   // the manipulation action is no longer executing
+    }
+
+    void KoduAgent::setIsExecutingManipActionFlag(bool bval) {
+        agentIsExecutingManipAction = bval;
+    }
+
+    void KoduAgent::setTargetInGripperFlag(bool bval) {
+        targetObjectIsInGripper = bval;
+    }
+
+    void KoduAgent::setWantsToDropObjectFlag(bool bval) {
+        agentWantsToDropObject = bval;
+    }
+
+    void KoduAgent::setWantsToGrabObjectFlag(bool bval) {
+        agentWantsToGrabObject = bval;
+    }
+
+    void KoduAgent::signalDropActionStart() {
+        setIsExecutingManipActionFlag();    // states the robot is executing a manipulation action
+        setWantsToDropObjectFlag();         // the robot wants to drop an object
+    }
+
+    void KoduAgent::signalGrabActionStart() {
+        setIsExecutingManipActionFlag();    // states the robot is executing a manipulation action
+        setWantsToGrabObjectFlag();         // the robot wants to grab an object
+    }
+
+    bool KoduAgent::wantsToDropObject() const {
+        return agentWantsToDropObject;
+    }
+
+    bool KoduAgent::wantsToGrabObject() const {
+        return agentWantsToGrabObject;
     }
 
     /// ================================ Motion functions ================================ ///
@@ -119,40 +200,4 @@ namespace Kodu {
     bool KoduAgent::hasSoundsToPlay() const {
         return (!playQueue.empty());
     }
-
-    /// ================================ Gaze functions ================================ ///
-    const DualCoding::Shape<DualCoding::PolygonData>& KoduAgent::getGazePolygon() const {
-        return agentGazePolygon;
-    }
-
-    void KoduAgent::generateGazePolygon() {
-        // SA: the search area (in degrees)--(from -SA/2 to SA/2)
-        const float kSearchArea = mathutils::deg2rad(200.0f);
-        const float kAngleIncrement = mathutils::deg2rad(25.0f);
-        
-        float radius = 750.0f;
-
-        float currAngle = -1.0f * kSearchArea / 2.0f;
-        while (currAngle <= (kSearchArea / 2.0f)) {
-            gazePoints.push_back(DualCoding::Point(
-                cos(currAngle) * radius,  // x-value
-                sin(currAngle) * radius,  // y-value
-                0.0f,                     // z-value
-                DualCoding::egocentric    // point is relative to agent body
-                ));
-            currAngle += kAngleIncrement;
-        }
-
-        /*
-        // create a polygon search area
-        NEW_SHAPE(gazePolygon, DualCoding::PolygonData,
-            new DualCoding::PolygonData(DualCoding::VRmixin::localShS, gazePoints, false));
-        // make sure the polygon is not an obstacle (in the localShS) nor viewable (in the local view)
-        gazePolygon->setObstacle(false);
-        gazePolygon->setViewable(false);
-        // assign gazePolygon to agentaGzePoints
-        agentGazePolygon = gazePolygon;
-        */
-    }
-    
 }

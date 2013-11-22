@@ -1,133 +1,78 @@
 #ifndef KODU_AGENT_H_
 #define KODU_AGENT_H_
 
-// Tekkodu Library
-#include "Kodu/KoduPage.h"
-#include "Kodu/General/GeneralFncs.h"
-#include "Kodu/General/GeneralMacros.h"
-#include "Kodu/Keepers/ScoreKeeper.h"
-#include "Kodu/Primitives/KoduActionMotion.h"
-
-#include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
-
-// Tekkotsu Library
-#include "DualCoding/Point.h"
-#include "DualCoding/PolygonData.h"
-#include "DualCoding/ShapePolygon.h"
-#include "DualCoding/VRmixin.h"
-
-// C++ Library
+// INCLUDES
+// c++
 #include <cmath>
 #include <iostream>
 #include <queue>
 #include <string>
 #include <vector>
 
+// tekkotsu
+#include "DualCoding/Point.h"
+#include "DualCoding/ShapeRoot.h"
+using namespace DualCoding;
+
+// tekkodu
+#include "Kodu/General/GeneralMacros.h"
+#include "Kodu/Keepers/ScoreKeeper.h"
+#include "Kodu/Primitives/KoduActionMotion.h"
+
 namespace Kodu {
 
-    class PerceptualTaskBase;
+    // forward declarations
+    class KoduPage;             // KoduPage.h
+    class PerceptualTaskBase;   // PerceptualTaskBase.h
     
     class KoduAgent {
     public:
         //! Constructor
-        KoduAgent()
-          : gripperObject(),
-            agentIsExecutingManipAction(false),
-
-            agentWantsToDropObject(false),
-            agentWantsToGrabObject(false),
-
-            targetObjectIsInGripper(false),
-            agentIsWalking(false),
-            currMotionCmd(),
-
-            distanceTravelled(0.0f),
-
-            pages(),
-            currPageIndex(0),
-            newReqdPage(0),
-            ptasks(),
-            scoreQueue(),
-            stringToSpeak(""),
-            playQueue(),
-            agentGazePolygon(),
-
-            gazePoints()
-        {
-            // generate the gaze polygon
-            generateGazePolygon();
-        }
+        KoduAgent();
 
         //! Destructor
-        ~KoduAgent() {
-            GeneralFncs::destroyAllPtrsInQueue(ptasks);
-            GeneralFncs::destroyAllPtrsInVector(pages);
-            stringToSpeak.clear();
-        }
+        ~KoduAgent();
 
         //! Assignment operator
-        KoduAgent& operator=(const KoduAgent& kAgent) {
-            if (this != &kAgent) {
-                gripperObject = kAgent.gripperObject;
-                agentIsExecutingManipAction = kAgent.agentIsExecutingManipAction;
-
-                agentWantsToDropObject = kAgent.agentWantsToDropObject;
-                agentWantsToGrabObject = kAgent.agentWantsToGrabObject;
-
-                targetObjectIsInGripper = kAgent.targetObjectIsInGripper;
-                agentIsWalking = kAgent.agentIsWalking;
-                currMotionCmd = kAgent.currMotionCmd;
-
-                distanceTravelled = kAgent.distanceTravelled;
-                
-                pages = kAgent.pages;
-                currPageIndex = kAgent.currPageIndex;
-                newReqdPage = kAgent.newReqdPage;
-                ptasks = kAgent.ptasks;
-                scoreQueue = kAgent.scoreQueue;
-                stringToSpeak = kAgent.stringToSpeak;
-                playQueue = kAgent.playQueue;
-                agentGazePolygon = kAgent.agentGazePolygon;
-
-                gazePoints = kAgent.gazePoints;
-            }
-            return *this;
-        }
+        KoduAgent& operator=(const KoduAgent&);
 
         /// ================================ Gazing functions ================================ ///
-        //! Returns the gaze polygon (the egocentric points the agent should look at in space)
-        const DualCoding::Shape<DualCoding::PolygonData>& getGazePolygon() const;
+        //! Returns the gaze points
+        const std::vector<Point>& getGazePoints() const;
         
         /// ================================ Grasper functions ================================ ///
-        //! Sets the "(agent) is attempting grab" flag
-        void setIsExecutingManipActionFlag(bool);
-
-        //! Sets the "target object is in gripper" flag
-        void setTargetInGripperFlag(bool);
-
-        //! Signals that the agent wants to drop something
-        void setWantsToDropObjectFlag(bool);
-
-        //! Signals that the agent wants to grab something
-        void setWantsToGrabObjectFlag(bool);
-
         //! States if the agent is attempting to grab an object
         bool isExecutingManipAction() const;
 
         //! States whether or not the agent is (supposed to be) holding something
         bool isHoldingAnObject() const;
 
+        //! Signals the robot has completed the manipulation task (sets a particular set of flags)
+        void manipulationComplete();
+
+        //! Sets the "(agent) is attempting grab" flag
+        void setIsExecutingManipActionFlag(bool bval = true);
+
+        //! Sets the "target object is in gripper" flag
+        void setTargetInGripperFlag(bool bval = true);
+
+        //! Signals that the agent wants to drop something
+        void setWantsToDropObjectFlag(bool bval = true);
+
+        //! Signals that the agent wants to grab something
+        void setWantsToGrabObjectFlag(bool bval = true);
+
+        //! Signals the robot wants to drop an object (sets a particular set of flags)
+        void signalDropActionStart();
+
+        //! Signals the robot wants to grab an object (sets a particular set of flags)
+        void signalGrabActionStart();
+
         //! States whether or not the agent wants to drop an object
         bool wantsToDropObject() const;
 
         //! States whether or not the agent has an object it wants to grab
         bool wantsToGrabObject() const;
-
-        void signalDropActionStart();
-
-        void signalGrabActionStart();
-
-        void manipulationComplete();
 
         /// ================================ Motion functions ================================ ///
         //! Checks if the agent has a valid motion command
@@ -167,17 +112,17 @@ namespace Kodu {
     private:
         /// ================================ Gaze functions ================================ ///
         //! Generates the agent's gaze points (the points in space to search for objects)
-        void generateGazePolygon();
+        void generateGazePoints();
 
         // Disallows the copy constructor
         DISALLOW_COPY(KoduAgent);
 
     public: //// ================= The Public Agent Variables ================= ////
         // === Grasp variables === //
-        DualCoding::ShapeRoot gripperObject;//!< The object the agent is holding/will be holding
+        ShapeRoot gripperObject;        //!< The object the agent is holding/will be holding
         bool agentIsExecutingManipAction; //!< (flag) States if the agent is attempting to grab an object
         bool agentWantsToDropObject;    //!< (flag) States if the agent wants to drop an object
-        bool agentWantsToGrabObject;
+        bool agentWantsToGrabObject;    //!< (flag) States if the agent wants to grab an object
         bool targetObjectIsInGripper;   //!< (flag) States if the target object is in the gripper
 
         // === Motion variables === //
@@ -185,7 +130,7 @@ namespace Kodu {
         static const float kLocalizationDistanceThreshold;
         bool agentIsWalking;                //!< A flag stating whether or not the agent is walking
         MotionCommand currMotionCmd;        //!< The current motion command
-        float distanceTravelled;
+        float distanceTravelled;            //!< The accumulated distance the robot has travelled
         
         // === Page variables === //
         std::vector<KoduPage*> pages;       //!< The vector of pages containing kode
@@ -193,7 +138,7 @@ namespace Kodu {
         unsigned int newReqdPage;           //!< Stores the page number the agent wants to switch to
 
         // === Perceptual Tasks container === //
-        std::queue<PerceptualTaskBase*> ptasks;
+        std::queue<PerceptualTaskBase*> ptasks; //!< A queue containing all the perceptual tasks
 
         // === Score variables === //
         std::queue<ScoreChange> scoreQueue; //!< The queue of score operations and their value
@@ -205,12 +150,9 @@ namespace Kodu {
         std::queue<std::string> playQueue;  //!< The queue of sound files the agent wants to play
 
     private: //// ================= The Private Agent Variables ================= ////
-        // === Gaze polygon variables === //
-        //! egocentric (relative to the robot's body) "directions" to look at (they are really points)
-        DualCoding::Shape<DualCoding::PolygonData> agentGazePolygon;
-
-    public:
-        std::vector<DualCoding::Point> gazePoints;
+        // === Gaze points variables === //
+        //! egocentric (relative to the robot's body) points to look at
+        std::vector<Point> agentGazePoints;
     };
 }
 
