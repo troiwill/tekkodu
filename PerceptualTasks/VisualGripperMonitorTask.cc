@@ -1,6 +1,7 @@
 // INCLUDES
 // tekkotsu
 #include "Kodu/KoduWorld.h"
+//#include "Kodu/PosOrientState.h"
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
 #include "Kodu/PerceptualTasks/VisualGripperMonitorTask.h"
 
@@ -27,28 +28,21 @@ namespace Kodu {
 
     void VisualGripperMonitorTask::examineTaskResults() {
         std::cout << "Examining visual gripper monitor results...\n";
+        // search for the gripper object's April Tag in the local shape space
         DualCoding::Shape<DualCoding::AprilTagData> objectTag
             = DualCoding::find_if<DualCoding::AprilTagData>(DualCoding::VRmixin::localShS,taskPred);
 
         std::cout << "objectTag reference valid? ";
+        // if the tag was found, log the agent's current state
         if (objectTag.isValid()) {
-            lastSuccessfulPos = DualCoding::VRmixin::theAgent->getCentroid();
-            lastSuccessfulOrient = DualCoding::VRmixin::theAgent->getOrientation();
-            //lastSuccessfulState = posOrientDeque.end();
-            std::cout << "yes, it is. state logged at: " << lastSuccessfulPos << " w/ orient = "
-                << lastSuccessfulOrient << std::endl;
+            float orient = DualCoding::VRmixin::theAgent->getOrientation();
+            lastSuccessfulState = PosOrientState(DualCoding::VRmixin::theAgent->getCentroid(), orient);
+            std::cout << "yes, it is. state logged at: " << lastSuccessfulState.position
+                << " w/ orient = " << lastSuccessfulState.orientation << std::endl;
         } else {
-            std::cout << "no, reporting failure.\n";
-            // add code to make sure  robot isn't dropping the object when executing this function
-            /*
-            std::cout << "no, reporting failure. last successful state: ";
-            if (lastSuccessfulState != posOrientDeque.end()) {
-                std::cout << "pos = " << lastSuccessfulState->position << "; orient = "
-                    << lastSuccessfulState->orientation << std::endl;
-            } else {
-                std::cout << "none recorded!!!\n";
-            }
-            */
+            std::cout << "no, reporting failure. last successful state: pos = "
+                << lastSuccessfulState.position << "; orient = " << lastSuccessfulState.orientation
+                << std::endl;
             taskStatus = TS_FAILURE;
         }
     }
@@ -57,19 +51,9 @@ namespace Kodu {
         return objInGripper;
     }
 
-    const DualCoding::Point& VisualGripperMonitorTask::getLastSuccessfulPos() const {
-        return lastSuccessfulPos;
-    }
-
-    float VisualGripperMonitorTask::getLastSuccessfulOrient() const {
-        return lastSuccessfulOrient;
-    }
-
-    /*
     const PosOrientState& VisualGripperMonitorTask::getLastSuccessfulState() const {
         return lastSuccessfulState;
     }
-    */
 
     const DualCoding::MapBuilderRequest& VisualGripperMonitorTask::getMapBuilderRequest() {
         NEW_SHAPE(tagApproxPosition, DualCoding::PointData,

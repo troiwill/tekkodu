@@ -9,11 +9,16 @@
 // tekkotsu
 #include "DualCoding/ShapeAprilTag.h"
 #include "DualCoding/ShapeRoot.h"
+#include "DualCoding/VRmixin.h"
+
+// tekkodu
+#include "Kodu/PosOrientState.h"
 
 namespace Kodu {
     // tekkodu forward declarations
     class KoduWorld;
     class PerceptualTaskBase;
+    class PosOrientState;
 
     //! A functor that will check if the object is still in the robot's gripper
     class MatchesObjectTagInGripper : public DualCoding::UnaryShapeRootPred {
@@ -68,9 +73,7 @@ namespace Kodu {
           : PerceptualTaskBase(PT_VIS_GRIPPER_MONITOR, ++idCount),
             taskPred(),
             objInGripper(kObjInGripper),
-            lastSuccessfulPos(),
-            lastSuccessfulOrient()
-            //lastSuccessfulState()
+            lastSuccessfulState()
         {
             int tagId = -1;
             DualCoding::Point tagCen;
@@ -99,6 +102,8 @@ namespace Kodu {
             }
             taskPred.aprTagId = tagId;
             taskPred.aprTagCentroid = tagCen;
+            float orient = VRmixin::theAgent->getOrientation();
+            lastSuccessfulState = PosOrientState(VRmixin::theAgent->getCentroid(), orient);
         }
 
         //! Copy constructor
@@ -106,9 +111,7 @@ namespace Kodu {
           : PerceptualTaskBase(kTask),
             taskPred(kTask.taskPred),
             objInGripper(kTask.objInGripper),
-            lastSuccessfulPos(kTask.lastSuccessfulPos),
-            lastSuccessfulOrient(kTask.lastSuccessfulOrient)
-            //lastSuccessfulState(kTask.lastSuccessfulState)
+            lastSuccessfulState(kTask.lastSuccessfulState)
         {
             if (!objInGripper.isValid()) std::cerr << "The objInGripper reference is not valid.\n";
         }
@@ -124,9 +127,7 @@ namespace Kodu {
                 PerceptualTaskBase::operator=(kTask);
                 taskPred = kTask.taskPred;
                 objInGripper = kTask.objInGripper;
-                lastSuccessfulPos = kTask.lastSuccessfulPos;
-                lastSuccessfulOrient = kTask.lastSuccessfulOrient;
-                //lastSuccessfulState = kTask.lastSuccessfulState;
+                lastSuccessfulState = kTask.lastSuccessfulState;
             }
             return *this;
         }
@@ -140,11 +141,8 @@ namespace Kodu {
         //! Returns the object in the robot's gripper
         const DualCoding::ShapeRoot& getGripperObject() const;
 
-        const DualCoding::Point& getLastSuccessfulPos() const;
-        float getLastSuccessfulOrient() const;
-
         //! Returns the last successful state where the object was still in the robot gripper
-        //const PointOrientState& getLastSuccessfulState() const;
+        const PosOrientState& getLastSuccessfulState() const;
 
         //! Returns the MapBuilder request telling the robot where to look at the gripper
         virtual const DualCoding::MapBuilderRequest& getMapBuilderRequest();
@@ -165,9 +163,7 @@ namespace Kodu {
         static unsigned int idCount;    //!< Used to generate id numbers for VisualGripperMonitorTask
         MatchesObjectTagInGripper taskPred;
         DualCoding::ShapeRoot objInGripper; //!< The reference to the object in the gripper
-        DualCoding::Point lastSuccessfulPos;
-        float lastSuccessfulOrient;
-        //PosOrientIterator lastSuccessfulState;
+        PosOrientState lastSuccessfulState;
     };
 }
 
