@@ -75,6 +75,7 @@ namespace Kodu {
                         > KoduConditionBump::kMaxDistanceAwayToSenseBump)
                     {
                         motionCmd.targetObject = ObjectKeeper::tempObject;
+                        motionCmd.cmdValid = true;
                         break;
                     }
                 }
