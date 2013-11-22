@@ -30,7 +30,7 @@ namespace Kodu {
             case cylinderDataType:
             {
                 const Shape<CylinderData>& kCyl = ShapeRootTypeConst(kWShape, CylinderData);
-                if ((kCyl->getRadius() < 40.0f) || (kCyl->getRadius() > 70.0f))
+                if ((kCyl->getRadius() < 40.0f) || (kCyl->getRadius() > 75.0f))
                     return true;
                 break;
             }
@@ -38,10 +38,6 @@ namespace Kodu {
             // if it's an april tag, it must be the north star
             case aprilTagDataType:
             {
-                //const Shape<AprilTagData>& kTag = ShapeRootTypeConst(kWShape, AprilTagData);
-                //if (kTag->getTagID() > 4)
-                //    return true;
-                //break;
                 return (!IsStar()(kWShape));
             }
 
@@ -66,11 +62,9 @@ namespace Kodu {
         return (kShape->getType() == targetShapeType);
     }
 
-    //********* temp fix
     bool IsNotExcludedShape::operator()(const DualCoding::ShapeRoot& kShape) const {
         return (excludedShape.getId() != kShape.getId());
     }
-    //**********
     
     bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape and return the result
@@ -238,6 +232,30 @@ namespace Kodu {
                 }
             }
             return nearestObject;
+        }
+    }
+
+    ShapeRoot getClosestObjectToPoint(const std::vector<ShapeRoot>& kShapes,
+        const Point& kComparisonPoint)
+    {
+        const std::size_t kSize = kShapes.size();
+        // if the vector is empty, return an invalid shape
+        if (kSize == 0) {
+            return ShapeRoot();
+        }
+        // else iterate over the vector and find the closest shape to the comparison point
+        else {
+            ShapeRoot closestMatch = kShapes[0];
+            float minCenDiff = closestMatch->getCentroid().xyDistanceFrom(kComparisonPoint);
+
+            for (std::size_t i = 1; i < kSize; i++) {
+                float cenDiff = kShapes[i]->getCentroid().xyDistanceFrom(kComparisonPoint);
+                if (cenDiff < minCenDiff) {
+                    closestMatch = kShapes[i];
+                    minCenDiff = cenDiff;
+                }
+            }
+            return closestMatch;
         }
     }
 

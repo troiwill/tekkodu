@@ -15,7 +15,7 @@
 // C++ Library
 #include <cstdlib>
 
-//using namespace DualCoding;
+using namespace DualCoding;
 
 namespace Kodu {
 
@@ -175,6 +175,8 @@ namespace Kodu {
     //! Returns the closest shape/object to the agent
     template<typename Type>
     Type getClosestObject(const std::vector<Type>&);
+
+    ShapeRoot getClosestObjectToPoint(const std::vector<ShapeRoot>&, const Point&);
 
     //! Returns the objects located in the specified region(s) relative to the agent orientation
     template<typename Type>
