@@ -29,17 +29,10 @@ namespace Kodu {
         return rv;
     }
 
-    //******************* temp fix
     bool KoduConditionBump::agentIsNearMatchingObject(const DualCoding::ShapeRoot& kExcludedShape) {
-    //*******************
-    //bool KoduConditionBump::agentIsNearMatchingObject() {
         DualCoding::Shape<DualCoding::CylinderData> obj;
         // get the closest object that matches what this condition is searching for
-        //**************** temp fix
         obj = getClosestObjectMatching(objColor, searchLocation, kExcludedShape);
-        //****************
-        //obj = getClosestObjectMatching(objColor, searchLocation);
-        
         // If there is one valid remaining and it is within some distance to the agent,
         // then the robot will react to that object
         std::cout << "Checking if the agent is near a matching object...";
