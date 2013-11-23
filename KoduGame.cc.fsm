@@ -559,7 +559,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         postStateCompletion();
                     }
                 }
-                // else, wait for the timeout transitions
+                // else, wait for the timeout transition
                 else {
                     PRINT_ATTRS("Evaluator is active?", evaluatorRef->isActive());
                     PRINT_ATTRS("Runner is active?", runnerRef->isActive());
@@ -715,7 +715,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     mapreq.searchArea = objSearchPoints;
                     mapreq.clearLocal = true;
                     mapreq.maxDist = kMaxSearchRadius;
-                    mapreq.pursueShapes = true;
+                    //mapreq.pursueShapes = true;
                     mapreq.removePts = false;
                     mapreq.setAprilTagFamily();
                     mapreq.addObjectColor(lostCyl->getType(), lostCyl->getColor());
@@ -1725,6 +1725,19 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         $provide MotionApproachSegment_t segment;
         $provide const float kInitAppOffset(Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump + 30);
 
+        virtual void stop() {
+            $reference KoduInterp::thisAgent;
+            // set is walking flag to false
+            thisAgent->agentIsWalking = false;
+            // invalidate the current motion command
+            thisAgent->currMotionCmd.invalidate();
+            cmd = Kodu::MotionCommand();
+            // abort the pilot
+            VRmixin::pilot->pilotAbort();
+            // call statenode stop function
+            StateNode::stop();
+        }
+
         $nodeclass MotionStart : StateNode {
             /**
              * If the agent is walking towards a shape, it should first check if it can "simply" turn
@@ -2006,6 +2019,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             std::cout << "[" << getName() << "]\n";
             
             $reference KoduInterp::multiplexorRef;
+            $reference KoduInterp::motionActRef;
             $reference KoduInterp::evaluatorRef;
             $reference KoduInterp::thisAgent;
             $reference KoduInterp::needToHaltExecution;
@@ -2033,7 +2047,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             if (VRmixin::isWalkingFlag == true && !thisAgent->isExecutingManipAction()) {
                 std::cout << "aborting the current motion command.\n";
+                thisAgent->agentIsWalking = false;
+                thisAgent->currMotionCmd.invalidate();
                 VRmixin::pilot->pilotAbort();
+                motionActRef->stop();
             }
 
             if (!evaluatorRef->isActive() && !multiplexorRef->isActive()
