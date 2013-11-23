@@ -48,7 +48,14 @@ namespace Kodu {
         // any modifier
         koduKeywords.insert("any");
 
+        // direction specifiers
+        koduKeywords.insert("east");
+        koduKeywords.insert("north");
+        koduKeywords.insert("south");
+        koduKeywords.insert("west");
+
         // motion modifiers
+        koduKeywords.insert("direction");
         koduKeywords.insert("forward");
         koduKeywords.insert("left");
         koduKeywords.insert("right");
