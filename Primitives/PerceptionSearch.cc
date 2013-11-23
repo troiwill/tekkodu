@@ -1,26 +1,25 @@
 // INCLUDES
 // tekkotsu
 #include "DualCoding/AprilTagData.h"
+using namespace DualCoding;
 
 // Tekkodu Library
 #include "Kodu/Primitives/PerceptionSearch.h"
 
-using namespace DualCoding;
-
 namespace Kodu {
 
-    bool HasAprilTagID::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool HasAprilTagID::operator()(const ShapeRoot& kShape) const {
         return (kShape->getType() == aprilTagDataType
             && static_cast<const AprilTagData&>(kShape.getData()).getTagID() == id);
     }
 
-    bool IsMatchForTargetObject::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsMatchForTargetObject::operator()(const ShapeRoot& kShape) const {
         // check if the objects match each other
         return (targetObject->isMatchFor(kShape));
     }
 
 /*
-    bool IsNotStar::operator()(const DualCoding::ShapeRoot& kWShape) const {
+    bool IsNotStar::operator()(const ShapeRoot& kWShape) const {
         return (!(kWShape->getType() && ShapeRootTypeConst(kWShape, AprilTagData)->getTagID() <= 4));
     }
 */
@@ -53,30 +52,30 @@ namespace Kodu {
         return false;
     }
 
-    bool IsStar::operator()(const DualCoding::ShapeRoot& kWShape) const {
+    bool IsStar::operator()(const ShapeRoot& kWShape) const {
         return (kWShape.isValid() && kWShape->getType() == aprilTagDataType
             && static_cast<const AprilTagData&>(kWShape.getData()).getTagID() <= 4);
     }
 
-    bool IsShapeOfType::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsShapeOfType::operator()(const ShapeRoot& kShape) const {
         return (kShape->getType() == targetShapeType);
     }
 
-    bool IsNotExcludedShape::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsNotExcludedShape::operator()(const ShapeRoot& kShape) const {
         return (excludedShape.getId() != kShape.getId());
     }
     
-    bool IsLeftOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsLeftOfAgent::operator()(const ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape and return the result
         return (bearingFromAgentToObject(kShape) > 0.0f ? true : false);
     }
 
-    bool IsRightOfAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsRightOfAgent::operator()(const ShapeRoot& kShape) const {
         // is right of agent is simply the opposite of what is left of agent would return
         return (!(IsLeftOfAgent()(kShape)));
     }
 
-    bool IsInFrontAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsInFrontAgent::operator()(const ShapeRoot& kShape) const {
         // get the bearing from the agent to the shape
         AngSignPi dtheta = bearingFromAgentToObject(kShape);
         // since the last calculation would produce a value between -pi/2 and +pi/2,
@@ -87,38 +86,38 @@ namespace Kodu {
         return (dtheta > 0.0f ? true : false);
     }
 
-    bool IsBehindAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsBehindAgent::operator()(const ShapeRoot& kShape) const {
         // is behind agent is simply the opposite of what is in front agent would return
         return (!(IsInFrontAgent()(kShape)));
     }
 
-    bool IsCloseByAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsCloseByAgent::operator()(const ShapeRoot& kShape) const {
         // get the distance between the shape and the agent
         return (distanceFromAgentToObject(kShape) <= 700.0f);
     }
 
-    bool IsFarAwayFromAgent::operator()(const DualCoding::ShapeRoot& kShape) const {
+    bool IsFarAwayFromAgent::operator()(const ShapeRoot& kShape) const {
         // get the distance between the shape and the agent
         return (distanceFromAgentToObject(kShape) >= 1050.0f);
     }
 
-    float bearingFromAgentToPoint(const DualCoding::Point& kPoint) {
+    float bearingFromAgentToPoint(const Point& kPoint) {
         float dtheta = 0.0f;
         switch (kPoint.getRefFrameType()) {
             // take the agent's centroid into consideration if the point is allocentric
-            case DualCoding::allocentric:
+            case allocentric:
             {
                 // calculate the bearing between some point "kPoint" and the agent's position
                 // bearing2ThisPoint = arctan(dy/dx)
-                const DualCoding::Point& kAgentPt = DualCoding::VRmixin::theAgent->getCentroid();
+                const Point& kAgentPt = VRmixin::theAgent->getCentroid();
                 AngSignPi bearing2ThisPoint = (kPoint - kAgentPt).atanYX();
                 // subtract the agent's orientation (heading) from the bearing to get the point's angle
                 // relative ot the agent
-                dtheta = bearing2ThisPoint - AngSignPi(DualCoding::VRmixin::theAgent->getOrientation());
+                dtheta = bearing2ThisPoint - AngSignPi(VRmixin::theAgent->getOrientation());
                 break;
             }
             // simply calculate the arctan of the point...
-            case DualCoding::egocentric:
+            case egocentric:
             {
                 dtheta = kPoint.atanYX();
                 break;
@@ -132,19 +131,19 @@ namespace Kodu {
         return dtheta;
     }
 
-    float bearingFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
+    float bearingFromAgentToObject(const ShapeRoot& kShape) {
         return bearingFromAgentToPoint(kShape->getCentroid());
     }
 
-    float distanceFromAgentToPoint(const DualCoding::Point& kPoint) {
+    float distanceFromAgentToPoint(const Point& kPoint) {
         float dx = kPoint.coordX();
         float dy = kPoint.coordY();
         switch (kPoint.getRefFrameType()) {
             // since the point is allocentric, take the agent's centroid into consideration.
-            case DualCoding::allocentric:
+            case allocentric:
             {
                 // get the agent's point
-                DualCoding::Point agentPoint = DualCoding::VRmixin::theAgent->getCentroid();
+                Point agentPoint = VRmixin::theAgent->getCentroid();
                 // calculate the differences in the shape's and agent's positions
                 dx = dx - agentPoint.coordX();
                 dy = dy - agentPoint.coordY();
@@ -152,7 +151,7 @@ namespace Kodu {
             }
             // since the point is egocentric, there is nothing more to calculate (the agent's centroid
             // is { 0, 0 }).
-            case DualCoding::egocentric:
+            case egocentric:
                 break;
 
             // this handles all other Reference Frame Types...
@@ -164,15 +163,15 @@ namespace Kodu {
         return sqrt((dx * dx) + (dy * dy));
     }
 
-    float distanceFromAgentToObject(const DualCoding::ShapeRoot& kShape) {
+    float distanceFromAgentToObject(const ShapeRoot& kShape) {
         return distanceFromAgentToPoint(kShape->getCentroid());
     }
 
-    float distanceInBetweenAgentAndObject(const DualCoding::ShapeRoot& kShape) {
+    float distanceInBetweenAgentAndObject(const ShapeRoot& kShape) {
         static float const kRobotInflatedRadius = 205.0f;
         float distBtwObjects = 0.0f;
         switch(kShape->getType()) {
-            case DualCoding::cylinderDataType:
+            case cylinderDataType:
             {
                 // get the radius of the cylinder
                 float radius = objectRadius(kShape);
@@ -189,12 +188,12 @@ namespace Kodu {
         return (distBtwObjects > 0.0f ? distBtwObjects : 0.0f);
     }
 
-    float objectRadius(const DualCoding::ShapeRoot& kShape) {
+    float objectRadius(const ShapeRoot& kShape) {
         static float const kErrValue = -1.0f;
         float radius = 0.0f;
         switch(kShape->getType()) {
-            case DualCoding::cylinderDataType:
-                radius = ShapeRootTypeConst(kShape, DualCoding::CylinderData)->getRadius();
+            case cylinderDataType:
+                radius = ShapeRootTypeConst(kShape, CylinderData)->getRadius();
                 break;
 
             default:
@@ -268,57 +267,49 @@ namespace Kodu {
         // test if the search location should be limited to the front or back
         if (location & SL_IN_FRONT) {
             std::cout << " [in front]";
-            result = DualCoding::subset(result, IsInFrontAgent());
+            result = subset(result, IsInFrontAgent());
         } else if (location & SL_BEHIND) {
             std::cout << " [behind]";
-            result = DualCoding::subset(result, IsBehindAgent());
+            result = subset(result, IsBehindAgent());
         }
             
         // test if the search location should be limited to the left or right sides
         if (location & SL_TO_LEFT) {
             std::cout << " [to the left]";
-            result = DualCoding::subset(result, IsLeftOfAgent());
+            result = subset(result, IsLeftOfAgent());
         } else if (location & SL_TO_RIGHT) {
             std::cout << " [to the right]";
-            result = DualCoding::subset(result, IsRightOfAgent());
+            result = subset(result, IsRightOfAgent());
         }
 
         // test if the search location is limited to "close by" or "far away (from)" the agent
         if (location & SL_CLOSE_BY) {
             std::cout << " [close by]";
-            result = DualCoding::subset(result, IsCloseByAgent());
+            result = subset(result, IsCloseByAgent());
         }
         else if (location & SL_FAR_AWAY) {
             std::cout << " [far away]";
-            result = DualCoding::subset(result, IsFarAwayFromAgent());
+            result = subset(result, IsFarAwayFromAgent());
         }
         std::cout << std::endl;
         return result;
     }
 
-    //************* temp fix
-    DualCoding::Shape<DualCoding::CylinderData> getClosestObjectMatching(const std::string& color,
-        SearchLocation_t location, const DualCoding::ShapeRoot& kExcludedShape)
-    //*************
-    /*
-    DualCoding::Shape<DualCoding::CylinderData> getClosestObjectMatching(const std::string& color,
-        SearchLocation_t location, const DualCoding::ShapeRoot& kExcludedShape = DualCoding::ShapeRoot())
-    */
+    Shape<CylinderData> getClosestObjectMatching(const std::string& color, SearchLocation_t location,
+        const ShapeRoot& kExcludedShape)
     {
         // The closest object that matches the specified criteria
         // (if not assigned a value it is invalid)
-        DualCoding::Shape<DualCoding::CylinderData> closestMatch;
+        Shape<CylinderData> closestMatch;
 
         // Tekkotsu function. Returns all the objects that are Cylinders
-        NEW_SHAPEVEC(matchingObjects, DualCoding::CylinderData,
-                     DualCoding::select_type<DualCoding::CylinderData>(DualCoding::VRmixin::worldShS));
+        NEW_SHAPEVEC(matchingObjects, CylinderData,
+                     select_type<CylinderData>(VRmixin::worldShS));
 
-        //********** temp fix
         if (matchingObjects.size() > 0 && kExcludedShape.isValid()) {
-            matchingObjects = DualCoding::subset(matchingObjects, IsNotExcludedShape(kExcludedShape));
+            matchingObjects = subset(matchingObjects, IsNotExcludedShape(kExcludedShape));
         }
-        //**********
-
+        
         // get objects with a particular color
         if (matchingObjects.size() > 0) {
             matchingObjects = getObjectsWithColor(matchingObjects, color);

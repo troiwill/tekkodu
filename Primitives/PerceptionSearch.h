@@ -11,13 +11,32 @@
 #include "DualCoding/VRmixin.h"
 #include "Crew/MapBuilder.h"
 #include "Shared/Measures.h"
+using namespace DualCoding;
 
 // C++ Library
 #include <cstdlib>
 
-using namespace DualCoding;
-
 namespace Kodu {
+
+    //! Specifies the four main directions (north, east, south, and west)
+    enum Direction_t {
+        DT_EAST         = 0,
+        DT_NORTH        = 1L << 1,
+        DT_SOUTH        = 1L << 2,
+        DT_WEST         = 1L << 3
+    };
+
+    //! Logical OR operation
+    inline
+    Direction_t operator|(Direction_t dt1, Direction_t dt2) {
+        return Direction_t(static_cast<int>(dt1) | static_cast<int>(dt2));
+    }
+
+    //! Logical AND operation
+    inline
+    Direction_t operator&(Direction_t dt1, Direction_t dt2) {
+        return Direction_t(static_cast<int>(dt1) & static_cast<int>(dt2));
+    }
 
     //! Specifies what region(s) the agent should focus on when using conditions such as see and bump
     enum SearchLocation_t {
@@ -48,99 +67,97 @@ namespace Kodu {
         return SearchLocation_t(static_cast<int>(rs1) & static_cast<int>(rs2));
     }
 
-    class HasAprilTagID : public DualCoding::UnaryShapeRootPred {
+    class HasAprilTagID : public UnaryShapeRootPred {
     public:
         HasAprilTagID(int aprilTagId)
-          : DualCoding::UnaryShapeRootPred(),
+          : UnaryShapeRootPred(),
             id(aprilTagId)
         { }
 
         ~HasAprilTagID() { }
 
-        bool operator()(const DualCoding::ShapeRoot&) const;
+        bool operator()(const ShapeRoot&) const;
 
     private:
         int id;
     };
 
-    class IsMatchForTargetObject : public DualCoding::UnaryShapeRootPred {
+    class IsMatchForTargetObject : public UnaryShapeRootPred {
     public:
-        IsMatchForTargetObject(const DualCoding::ShapeRoot& kTargetObject)
-          : DualCoding::UnaryShapeRootPred(),
+        IsMatchForTargetObject(const ShapeRoot& kTargetObject)
+          : UnaryShapeRootPred(),
             targetObject(kTargetObject)
         { }
 
         ~IsMatchForTargetObject() { }
 
-        bool operator()(const DualCoding::ShapeRoot&) const;
+        bool operator()(const ShapeRoot&) const;
 
     private:
-        DualCoding::ShapeRoot targetObject;
+        ShapeRoot targetObject;
     };
 
-    class IsNotWorldShape : public DualCoding::UnaryShapeRootPred {
+    class IsNotWorldShape : public UnaryShapeRootPred {
     public:
         IsNotWorldShape()
-          : DualCoding::UnaryShapeRootPred()
+          : UnaryShapeRootPred()
         { }
 
         ~IsNotWorldShape() { }
 
-        bool operator()(const DualCoding::ShapeRoot&) const;
+        bool operator()(const ShapeRoot&) const;
     };
 
-    class IsStar : public DualCoding::UnaryShapeRootPred {
+    class IsStar : public UnaryShapeRootPred {
     public:
         IsStar()
-          : DualCoding::UnaryShapeRootPred()
+          : UnaryShapeRootPred()
         { }
 
         ~IsStar() { }
 
-        bool operator()(const DualCoding::ShapeRoot&) const;
+        bool operator()(const ShapeRoot&) const;
     };
 
-    class IsShapeOfType : public DualCoding::UnaryShapeRootPred {
+    class IsShapeOfType : public UnaryShapeRootPred {
     public:
-        IsShapeOfType(DualCoding::ShapeType_t shapeType)
-          : DualCoding::UnaryShapeRootPred(),
+        IsShapeOfType(ShapeType_t shapeType)
+          : UnaryShapeRootPred(),
             targetShapeType(shapeType)
         { }
 
         ~IsShapeOfType() { }
 
-        bool operator()(const DualCoding::ShapeRoot&) const;
+        bool operator()(const ShapeRoot&) const;
 
     private:
-        DualCoding::ShapeType_t targetShapeType;
+        ShapeType_t targetShapeType;
     };
 
-    //********** temp fix
-    class IsNotExcludedShape : public DualCoding::UnaryShapeRootPred {
+    class IsNotExcludedShape : public UnaryShapeRootPred {
     public:
-        IsNotExcludedShape(const DualCoding::ShapeRoot& kExecption)
-          : DualCoding::UnaryShapeRootPred(),
+        IsNotExcludedShape(const ShapeRoot& kExecption)
+          : UnaryShapeRootPred(),
             excludedShape(kExecption)
         { }
 
         ~IsNotExcludedShape() { }
 
-        bool operator()(const DualCoding::ShapeRoot&) const;
+        bool operator()(const ShapeRoot&) const;
 
     private:
-        DualCoding::ShapeRoot excludedShape;
+        ShapeRoot excludedShape;
     };
-    //**********
-
+    
     // Assumes the "Agent" data is always valid
 #define PERCEPTION_SEARCH(Dir)                                                  \
-    class Is##Dir##Agent : public DualCoding::UnaryShapeRootPred {              \
+    class Is##Dir##Agent : public UnaryShapeRootPred {              \
     public:                                                                     \
-        Is##Dir##Agent() : DualCoding::UnaryShapeRootPred() { }                 \
+        Is##Dir##Agent() : UnaryShapeRootPred() { }                 \
                                                                                 \
         ~Is##Dir##Agent() { }                                                   \
                                                                                 \
-        bool operator()(const DualCoding::ShapeRoot&) const;                    \
+        bool operator()(const ShapeRoot&) const;                    \
     };
 
     // Creates IsLeftOfAgent and IsRightOfAgent
@@ -156,26 +173,28 @@ namespace Kodu {
     PERCEPTION_SEARCH(FarAwayFrom);
 
     //! Calculate the bearing from the agent's position and orientation to a specified point
-    float bearingFromAgentToPoint(const DualCoding::Point&);
+    float bearingFromAgentToPoint(const Point&);
 
-    //! Calcaulate the bearing from the agent's position and orientation to a specified shape/object
-    float bearingFromAgentToObject(const DualCoding::ShapeRoot&);
+    //! Calcaulate the bearing from the agent's position and orientation to a specified shape
+    float bearingFromAgentToObject(const ShapeRoot&);
 
-    //! Calculates the distance between the agent and a specified point
-    float distanceFromAgentToPoint(const DualCoding::Point&);
+    //! Calculates the distance between the agent's and a specified point's centroids
+    float distanceFromAgentToPoint(const Point&);
 
-    //! Calculates the distance between the agent and a specified shape/object
-    float distanceFromAgentToObject(const DualCoding::ShapeRoot&);
+    //! Calculates the distance between the agent's and a specified shape's centroids
+    float distanceFromAgentToObject(const ShapeRoot&);
 
-    //! 
-    float distanceInBetweenAgentAndObject(const DualCoding::ShapeRoot&);
+    //! Calculates the length of the open space in between the agent and a specified shape
+    float distanceInBetweenAgentAndObject(const ShapeRoot&);
 
-    float objectRadius(const DualCoding::ShapeRoot&);
+    //! Calculates the perceived radius of a target shape
+    float objectRadius(const ShapeRoot&);
 
     //! Returns the closest shape/object to the agent
     template<typename Type>
     Type getClosestObject(const std::vector<Type>&);
 
+    //! Returns the closest object to a specified point (ASSUMES point and shapes are in SAME shape space)
     ShapeRoot getClosestObjectToPoint(const std::vector<ShapeRoot>&, const Point&);
 
     //! Returns the objects located in the specified region(s) relative to the agent orientation
@@ -186,19 +205,12 @@ namespace Kodu {
     template<typename Type>
     inline
     std::vector<Type> getObjectsWithColor(const std::vector<Type>& kObjects, const std::string& kColor) {
-        return DualCoding::subset(kObjects, DualCoding::IsColor(kColor));
+        return subset(kObjects, IsColor(kColor));
     }
 
-    //! Returns the closest object that matches the specified criteria
-    //*************** temp fix
-    DualCoding::Shape<DualCoding::CylinderData>
-    getClosestObjectMatching(const std::string&, SearchLocation_t, 
-        const DualCoding::ShapeRoot& = DualCoding::ShapeRoot());
-    //***************
-    /*
-    DualCoding::Shape<DualCoding::CylinderData>
-    getClosestObjectMatching(const std::string&, SearchLocation_t);
-    */
+    //! Returns the closest object that matches the specified criteria (excluding the specified shape)
+    Shape<CylinderData>
+    getClosestObjectMatching(const std::string&, SearchLocation_t, const ShapeRoot& = ShapeRoot());
 }
 
 #endif // PERCEPTION_SEARCH_H_
