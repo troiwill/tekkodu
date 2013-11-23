@@ -1,10 +1,78 @@
+// INCLUDES
+// tekkotsu
+#include "DualCoding/VRmixin.h"
+using namespace DualCoding;
+
+// tekkodu
 #include "Kodu/Primitives/KoduActionMotion.h"
 #include "Kodu/Primitives/KoduConditionBump.h"
 #include "Kodu/Primitives/PerceptionSearch.h"
 
-#include "DualCoding/VRmixin.h"
-
 namespace Kodu {
+
+/// ================================= Motion Command ================================= ///
+
+    MotionCommand::MotionCommand()
+      : targetObject(),
+        dx(0),
+        da(0),
+        forwardSpeed(0),
+        turnSpeed(0),
+        cmdValid(false)
+    { }
+
+    MotionCommand::MotionCommand(const Shape<CylinderData>& kTarget, float fwdSpeed, float trnSpeed)
+      : targetObject(kTarget),
+        dx(0.0f),
+        da(0.0f),
+        forwardSpeed(fwdSpeed),
+        turnSpeed(trnSpeed),
+        cmdValid(true)
+    { }
+
+    MotionCommand::MotionCommand(float fwdDist, float trnAngle, float fwdSpeed, float trnSpeed)
+      : targetObject(Shape<CylinderData>()),
+        dx(fwdDist),
+        da(trnAngle),
+        forwardSpeed(fwdSpeed),
+        turnSpeed(trnSpeed),
+        cmdValid(true)
+    { }
+
+    MotionCommand::MotionCommand(const DualCoding::Shape<DualCoding::CylinderData>& kTarget,
+        float fwdDist, float trnAngle, float fwdSpeed, float trnSpeed)
+      : targetObject(kTarget),
+        dx(fwdDist),
+        da(trnAngle),
+        forwardSpeed(fwdSpeed),
+        turnSpeed(trnSpeed),
+        cmdValid(true)
+    { }
+
+    MotionCommand::MotionCommand(const MotionCommand& kCommand)
+      : targetObject(kCommand.targetObject),
+        dx(kCommand.dx),
+        da(kCommand.da),
+        forwardSpeed(kCommand.forwardSpeed),
+        turnSpeed(kCommand.turnSpeed),
+        cmdValid(kCommand.cmdValid)
+    { }
+
+    MotionCommand::~MotionCommand() {
+        // no explicit implementation
+    }
+
+    MotionCommand& MotionCommand::operator=(const MotionCommand& kCommand) {
+        if (this != &kCommand) {
+            targetObject = kCommand.targetObject;
+            dx = kCommand.dx;
+            da = kCommand.da;
+            forwardSpeed = kCommand.forwardSpeed;
+            turnSpeed = kCommand.turnSpeed;
+            cmdValid = kCommand.cmdValid;
+        }
+        return *this;
+    }
 
     bool MotionCommand::operator==(const MotionCommand& kCommand) {
         return (//forwardSpeed == kCommand.forwardSpeed
@@ -44,11 +112,80 @@ namespace Kodu {
         return targetObject.isValid();
     }
 
-    const DualCoding::Shape<DualCoding::CylinderData>& MotionCommand::getTargetObject() const {
+    const Shape<CylinderData>& MotionCommand::getTargetObject() const {
         return targetObject;
     }
 
-    const float KoduActionMotion::kWalkingSpeed = 150.0f;
+/// ================================= Kodu Action Motion ================================= ///
+
+    KoduActionMotion::KoduActionMotion(MotionType_t type, MotionRate_t rate, unsigned int motionMagCount)
+      : KoduAction("KoduActionMotion", KoduAction::AT_MOTION, false, false),
+        motionType(type),
+        motionCmd(),
+        angleGen(0,0),
+        distGen(0,0),
+        directionToFace()
+    {
+        // motion type is move
+        if (type < MT_EMPTY_MOTION_TYPE) {
+            motionCmd.turnSpeed = 0.0f;
+
+            if (type == MT_MOVE_WANDER) {
+                angleGen.setNumericValues(0, M_PI * 2.0f);
+                distGen.setNumericValues(500, 300);
+            }
+            else if (type == MT_MOVE_FORWARD) {
+                distGen.setNumericValues(500, 0);
+            }
+        }
+        // motion type is turn
+        else {
+            if (type == MT_TURN_LEFT)
+                angleGen.setNumericValues(-M_PI, 0);    
+            else if (type == MT_TURN_RIGHT)
+                angleGen.setNumericValues(M_PI, 0);
+        }
+        motionCmd.cmdValid = true;
+    }
+
+    KoduActionMotion::KoduActionMotion(Direction_t direction, MotionRate_t rate,
+        unsigned int motionMagCount)
+      : KoduAction("KoduActionMotion", KoduAction::AT_MOTION, false, false),
+        motionType(MT_TURN_DIRECTION),
+        motionCmd(),
+        angleGen(0,0),
+        distGen(0,0),
+        directionToFace(direction)
+    {
+        motionCmd.cmdValid = true;
+    }
+
+    KoduActionMotion::KoduActionMotion(const KoduActionMotion& kAction)
+      : KoduAction(kAction),
+        motionType(kAction.motionType),
+        motionCmd(kAction.motionCmd),
+        angleGen(kAction.angleGen),
+        distGen(kAction.distGen),
+        directionToFace(kAction.directionToFace)
+    { }
+
+    //! Destructor
+    KoduActionMotion::~KoduActionMotion() {
+        // no explicit implementation
+    }
+
+    //! Assignment operator
+    KoduActionMotion& KoduActionMotion::operator=(const KoduActionMotion& kAction) {
+        if (this != &kAction) {
+            KoduAction::operator=(kAction);
+            motionType = kAction.motionType;
+            motionCmd = kAction.motionCmd;
+            angleGen = kAction.angleGen;
+            distGen = kAction.distGen;
+            directionToFace = kAction.directionToFace;
+        }
+        return *this;
+    }
 
     const MotionCommand& KoduActionMotion::getMotionCommand() {
         switch (motionType) {
@@ -88,6 +225,35 @@ namespace Kodu {
             case MT_EMPTY_MOTION_TYPE:
                 break;
 
+            // turning to a particular direction
+            case MT_TURN_DIRECTION:
+            {
+                float requestedHeading = 0.0f;
+                // calculations assume the robot has recently localized
+                if (directionToFace & DT_EAST) {
+                    requestedHeading = (1.5f * M_PI);
+                } else if (directionToFace & DT_WEST) {
+                    requestedHeading = (0.5f * M_PI);
+                }
+
+                if (directionToFace & DT_NORTH) {
+                    requestedHeading = (2.0f * M_PI);
+                } else if (directionToFace & DT_SOUTH) {
+                    requestedHeading = (1.0f * M_PI);
+                }
+                // get the robot's current orientation, and the difference between the requested angle
+                // and the current orientation
+                float currOrient = VRmixin::theAgent->getOrientation();
+                float minTurnAngle = requestedHeading - currOrient;
+                // if the difference is greater than pi, do NUMB % PI then multiply by -1
+                if (std::fabs(minTurnAngle) > M_PI) {
+                    float angleDiff = std::fabs(minTurnAngle) - M_PI;
+                    minTurnAngle = (minTurnAngle > 0.0f ? (-1.0f * angleDiff) : angleDiff);
+                }
+                motionCmd.da = minTurnAngle;
+                break;
+            }
+
             // turning left
             case MT_TURN_LEFT:
             {
@@ -107,10 +273,6 @@ namespace Kodu {
 
     KoduActionMotion::MotionType_t KoduActionMotion::getMotionType() const {
         return motionType;
-    }
-
-    bool KoduActionMotion::isSameTypeAs(const KoduPrimitive* kPrimitive) {
-        return (dynamic_cast<const KoduActionMotion*>(kPrimitive) != NULL);
     }
 
     bool KoduActionMotion::motionTypeIsMove() const {
