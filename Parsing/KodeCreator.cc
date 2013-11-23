@@ -1,4 +1,6 @@
 #include "Kodu/Parsing/Parser.h"
+#include "Kodu/Primitives/KoduCondition.h"
+#include "Kodu/Primitives/KoduAction.h"
 
 namespace Kodu {
         
@@ -72,26 +74,16 @@ namespace Kodu {
                           << " to Page " << koduPage->getPageNumber() << ".\n";
 
                 // check if this page requires vision
-                /*
-                if (KoduConditionSee::isSameTypeAs(koduRule->condition)) {
-                    KoduConditionSee* seeCondition = dynamic_cast<KoduConditionSee*>(koduRule->condition);
-                    koduPage->addObjectDescriptor(seeCondition->getObjectColor());
-                }
-                else if (KoduConditionBump::isSameTypeAs(koduRule->condition)) {
-                    KoduConditionBump* bumpCondition = dynamic_cast<KoduConditionBump*>(koduRule->condition);
-                    koduPage->addObjectDescriptor(bumpCondition->getObjectColor());
-                }
-                */
                 if (currentPageRequiresVision == false) {
                     // check if the condition is see
-                    if (KoduConditionSee::isSameTypeAs(koduRule->condition)
+                    if ((koduRule->condition->getConditionType() == KoduCondition::CT_SEE)
                         // check if the condition is bump
-                        || KoduConditionBump::isSameTypeAs(koduRule->condition)
+                        || (koduRule->condition->getConditionType() == KoduCondition::CT_BUMP)
                         // check if the action is move (and not turn)
-                        || (KoduActionMotion::isSameTypeAs(koduRule->action)
-                            && dynamic_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMove())
+                        || (koduRule->action->getActionType() == KoduAction::AT_MOTION
+                            && static_cast<KoduActionMotion*>(koduRule->action)->motionTypeIsMove())
                         // check if the action is grab
-                        || KoduActionGrab::isSameTypeAs(koduRule->action))
+                        || (koduRule->action->getActionType() == KoduAction::AT_GRAB))
                     {
                         // if any of the above statements is true, then the page requires vision
                         currentPageRequiresVision = true;
