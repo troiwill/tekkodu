@@ -56,15 +56,11 @@ namespace Kodu {
         //! Returns the world bounds polygon
         const Shape<PolygonData>& getWorldBoundsPolygon() const;
 
-        //! Sets the "North Star"
-        //void setNorthStar(const DualCoding::ShapeRoot&, bool);
-        void generateWorldBoundsPolygon(const ShapeRoot& = ShapeRoot());
+        //! Creates the world bounds polygon
+        void generateWorldBoundsPolygon();
 
         //! Sets the "stars" seen and their allocentric locations
         void setStarConstellation(const std::vector<ShapeRoot>&);
-
-        //! Returns whether or not the north star was seen by the camera
-        bool theNorthStarIsArtificial() const;
 
     private:
         //! Disallows the copy constructor and assignment operator
@@ -80,12 +76,6 @@ namespace Kodu {
 
         //! Helps the robot discern between multiple objects of same type and color when near them
         std::map<int, int> shapeToTagMap;
-
-        //! The North Star - used for localization, and defines "north" in the world
-        Point northStarLocation;
-        
-        //! States if the North Star was seen by the camera, or it is artifical
-        bool northStarIsArtifical;
 
         //! A map of the april tag (used as stars) and their allocentric positions
         std::map<int, Point> starConstellation;
