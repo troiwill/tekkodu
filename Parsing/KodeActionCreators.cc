@@ -87,7 +87,7 @@ namespace Kodu {
         int tokenCount = 1;
         bool parsedMotionType = false;
         bool parsedMotionRate = false;
-
+        
         // parsing loop
         while (!mods.empty()) {
             // if it is a keyword
@@ -402,6 +402,7 @@ namespace Kodu {
         // Optional modifiers
         KoduActionMotion::MotionType_t motionType;
         KoduActionMotion::MotionRate_t motionRate;
+        Direction_t directionToFace;
         std::string tempMotionRate;
         unsigned int motionRateCount = 0;
 
@@ -409,6 +410,7 @@ namespace Kodu {
         int tokenCount = 1;
         bool parsedMotionType = false;
         bool parsedMotionRate = false;
+        bool parsedDirection = false;
 
         // parsing loop
         while (!mods.empty()) {
@@ -435,16 +437,45 @@ namespace Kodu {
                     motionRateCount++;
                 }
                 // check if it is one of the move action's modifiers
-                else if (keyword == "left" || keyword == "right") {
+                else if (keyword == "left" || keyword == "right" || keyword == "direction") {
                     // ASSERTION: A motion type was not previously selected
                     PARSER_ASSERT((parsedMotionType == false),
                         errorMessage << "A turn type for this action was already selected (There can only "
                             << "be one). Second turn type found: " << keyword << ".");
                     if (keyword == "left")
                         motionType = KoduActionMotion::MT_TURN_LEFT;
-                    else //if (keyword == "right")
+                    else if (keyword == "right")
                         motionType = KoduActionMotion::MT_TURN_RIGHT;
+                    else
+                        motionType = KoduActionMotion::MT_TURN_DIRECTION;
                     parsedMotionType = true;
+                }
+                // check if it is one of the directions
+                else if (keyword == "east" || keyword == "north" || keyword == "south"
+                    || keyword == "west")
+                {
+                    // ASSERTION: the turn type was already parsed
+                    PARSER_ASSERT((parsedMotionType == true),
+                        errorMessage << "The keyword \"direction\" must be specified before the "
+                            << "direction specifier " << keyword << ".");
+                    // ASSERTION: the turn type is direction
+                    PARSER_ASSERT((motionType == KoduActionMotion::MT_TURN_DIRECTION),
+                        errorMessage << "Direction specifiers such as " << keyword
+                            << " can only be used with the turn modifier \"direction\".");
+                    // ASSERTION: a direction was not parsed already
+                    PARSER_ASSERT((parsedDirection == false),
+                        errorMessage << "A direction type was already parsed. (There can only "
+                            << "be one). Second direction type found: " << keyword << ".");
+
+                    if (keyword == "east")
+                        directionToFace = DT_EAST;
+                    else if (keyword == "north")
+                        directionToFace = DT_NORTH;
+                    else if (keyword == "south")
+                        directionToFace = DT_SOUTH;
+                    else
+                        directionToFace = DT_WEST;
+                    parsedDirection = true;
                 }
                 // user used the wrong keyword
                 else {
@@ -479,6 +510,14 @@ namespace Kodu {
                 motionRate = KoduActionMotion::MR_QUICKLY;
             else    
                 motionRate = KoduActionMotion::MR_SLOWLY;
+        }
+
+        if (motionType == KoduActionMotion::MT_TURN_DIRECTION) {
+            PARSER_ASSERT((parsedDirection == true),
+                errorMessage << "A direction specifier such as north or east must be specified"
+                    << "when using the direction modifier.");
+
+            return (new KoduActionMotion(directionToFace, motionRate, motionRateCount));
         }
 
         // create the action
