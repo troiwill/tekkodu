@@ -24,7 +24,7 @@ namespace Kodu {
         // 1) the agent is near the matching object
         // 2) the agent is not walking
         return ((condition->agentIsNearMatchingObject(kWorldState.thisAgent.gripperObject))
-            && (!kWorldState.thisAgent.isWalking()));
+            && (!kWorldState.thisAgent.isExecutingMotionAction()));
     }
 
     void VisualBumpDetectionTask::examineTaskResults() {
@@ -69,7 +69,7 @@ namespace Kodu {
     }
 
     const DualCoding::MapBuilderRequest& VisualBumpDetectionTask::getMapBuilderRequest() {
-        const float kSearchRadius = 250.0f;
+        const float kSearchRadius = 300.0f;
         const float kSideAngle = mathutils::deg2rad(10.0f);
         
         std::vector<DualCoding::Point> searchPoints;
