@@ -23,7 +23,9 @@ namespace Kodu {
     }
 
     bool VisualGripperMonitorTask::canExecute(const KoduWorld& kWorldState) {
-        return (kWorldState.thisAgent.isHoldingAnObject() && kWorldState.thisAgent.isWalking());
+        // return (kWorldState.thisAgent.isHoldingAnObject() && kWorldState.thisAgent.isWalking());
+        return (kWorldState.thisAgent.isHoldingAnObject() && kWorldState.thisAgent.bodyIsInMotion()
+            && kWorldState.thisAgent.isExecutingMotionAction());
     }
 
     void VisualGripperMonitorTask::examineTaskResults() {
