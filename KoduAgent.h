@@ -75,14 +75,29 @@ namespace Kodu {
         bool wantsToGrabObject() const;
 
         /// ================================ Motion functions ================================ ///
+        //! Checks if the robot's body is moving (during motion action the body may stop)
+        bool bodyIsInMotion() const;
+
         //! Checks if the agent has a valid motion command
         bool hasMotionCommand() const;
 
         //! Checks if the agent is walking (returns value of "agent is walking" flag)
-        bool isWalking() const;
+        bool isExecutingMotionAction() const;
 
         //! Checks if the agent needs to localize
         bool needsToLocalize() const;
+
+        //! Signals the robot has completed a motion command
+        void motionComplete();
+
+        //! Signals the robot is executing a motion command
+        void signalMotionActionStart();
+
+        //! Sets the 'agent is executing motion command' flag (default value = true)
+        void setIsExecutingMotionActionFlag(bool bval = true);
+
+        //! Sets the current motion command
+        void setMotionCommand(const MotionCommand&);
 
         /// ================================ Page functions ================================ ///
         //! Returns the page currently being evaluated (determined by current page index variable)
@@ -128,7 +143,7 @@ namespace Kodu {
         // === Motion variables === //
         //! The mininum travelling distance (including turns) to consider performing localization
         static const float kLocalizationDistanceThreshold;
-        bool agentIsWalking;                //!< A flag stating whether or not the agent is walking
+        bool agentIsExecutingMotionAction;
         MotionCommand currMotionCmd;        //!< The current motion command
         float distanceTravelled;            //!< The accumulated distance the robot has travelled
         

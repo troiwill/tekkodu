@@ -21,7 +21,8 @@ namespace Kodu {
         agentWantsToDropObject(false),
         agentWantsToGrabObject(false),
         targetObjectIsInGripper(false),
-        agentIsWalking(false),
+        //agentIsWalking(false),
+        agentIsExecutingMotionAction(false),
         currMotionCmd(),
         distanceTravelled(0.0f),
         pages(),
@@ -50,7 +51,8 @@ namespace Kodu {
             agentWantsToDropObject = kAgent.agentWantsToDropObject;
             agentWantsToGrabObject = kAgent.agentWantsToGrabObject;
             targetObjectIsInGripper = kAgent.targetObjectIsInGripper;
-            agentIsWalking = kAgent.agentIsWalking;
+            //agentIsWalking = kAgent.agentIsWalking;
+            agentIsExecutingMotionAction = kAgent.agentIsExecutingMotionAction;
             currMotionCmd = kAgent.currMotionCmd;
             distanceTravelled = kAgent.distanceTravelled;
             pages = kAgent.pages;
@@ -152,16 +154,41 @@ namespace Kodu {
     }
 
     /// ================================ Motion functions ================================ ///
+    bool KoduAgent::bodyIsInMotion() const {
+        return VRmixin::isWalkingFlag;
+    }
+
     bool KoduAgent::hasMotionCommand() const {
         return currMotionCmd.isValid();
     }
 
-    bool KoduAgent::isWalking() const {
-        return agentIsWalking;
+    //bool KoduAgent::isWalking() const {
+    //    return agentIsWalking;
+    //}
+    bool KoduAgent::isExecutingMotionAction() const {
+        return agentIsExecutingMotionAction;
     }
 
     bool KoduAgent::needsToLocalize() const {
         return (distanceTravelled >= kLocalizationDistanceThreshold);
+    }
+
+    void KoduAgent::motionComplete() {
+        // make sure the current motion command is invalid
+        currMotionCmd.invalidate();
+        setIsExecutingMotionActionFlag(false);
+    }
+
+    void KoduAgent::signalMotionActionStart() {
+        setIsExecutingMotionActionFlag();
+    }
+
+    void KoduAgent::setIsExecutingMotionActionFlag(bool bval) {
+        agentIsExecutingMotionAction = bval;
+    }
+
+    void KoduAgent::setMotionCommand(const MotionCommand& kCmd) {
+        currMotionCmd = kCmd;
     }
 
     /// ================================ Scoring functions ================================ ///
