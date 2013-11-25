@@ -238,8 +238,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             
             // check if a particular tag was seen
             NEW_SHAPE(tag, AprilTagData, find_if<AprilTagData>(localShS,
-                Kodu::HasAprilTagID(theWorld->getTagIdForShape(
-                    thisAgent->gripperObject.getId()))));
+                Kodu::HasAprilTagID(theWorld->getTagIdForShape(thisAgent->gripperObject.getId()))));
             
             // if the reference is not valid, post a failure
             if (!tag.isValid()) {
@@ -271,10 +270,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             std::cout << "[" << getName() << "]: attempting to locate object (again)\n";
             // generate points to look at (near the robot's body)
             std::vector<Point> pts;
-            pts.push_back(Point(  250,    0,    0, egocentric));
+            pts.push_back(Point(  300,    0,    0, egocentric));
             pts.push_back(Point(  500,    0,    0, egocentric));
             pts.push_back(Point(  500, -200,    0, egocentric));
-            pts.push_back(Point(  250, -200,    0, egocentric));
+            pts.push_back(Point(  300, -200,    0, egocentric));
             NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, pts, false));
             
             // construct the mapbuilder request
@@ -301,7 +300,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
     $nodeclass PerceptualMultiplexor : StateNode {
         $provide Kodu::PerceptualTaskBase* currentTask(NULL);
         $provide bool inRecovery(false);
-        
+
         ~PerceptualMultiplexor() {
             currentTask = NULL;
         }
@@ -543,15 +542,16 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
 
                 // abort/stop any node that may use motion (e.g. Pilot, Grasper)
-                if (thisAgent->isWalking()) {
+                if (thisAgent->isExecutingMotionAction()) {
                     std::cout << "Aborting current pilot request.\n";
                     VRmixin::pilot->pilotAbort();
-                    thisAgent->agentIsWalking = false;
+                    //thisAgent->agentIsWalking = false;
+                    thisAgent->motionComplete();
                     motionActRef->stop();
                 }
 
                 // make sure all are inactive before recovery proceeds
-                if (!evaluatorRef->isActive() && !thisAgent->isWalking()
+                if (!evaluatorRef->isActive() && !thisAgent->isExecutingMotionAction()
                     && !runnerRef->isActive() && !grabActRef->isActive())
                 {
                     if ((++waitCount) == 2) {
@@ -563,7 +563,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 else {
                     PRINT_ATTRS("Evaluator is active?", evaluatorRef->isActive());
                     PRINT_ATTRS("Runner is active?", runnerRef->isActive());
-                    PRINT_ATTRS("Agent is walking?", thisAgent->isWalking());
+                    PRINT_ATTRS("Agent is walking?", thisAgent->isExecutingMotionAction());
                     PRINT_ATTRS("Grab Action is active?", grabActRef->isActive());
                     waitCount = 0;
                 }
@@ -573,216 +573,424 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $provide float const kReverseDist(75.0f);
                 $provide Kodu::VisualGripperMonitorTask* gTask(NULL);
                 $provide ShapeRoot grasperTarget;
+                $provide int objectTagId(-1);
 
                 ~ObjectManipRecovery() {
                     gTask = NULL;
                 }
 
-                $nodeclass GetGripMonTask : StateNode : doStart {
-                    std::cout << "[" << getName() << "]: getting the gripper monitor task\n";
-                    $reference PerceptualMultiplexor::currentTask;
-                    $reference ObjectManipRecovery::gTask;
-                    // cast the current task, and point to it
-                    gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
-                    postStateCompletion();
+                $nodeclass InitiateManipRecovery : StateNode {
+
+                    $nodeclass GetObjectInfo : StateNode : doStart {
+                        $reference PerceptualMultiplexor::currentTask;
+                        $reference ObjectManipRecovery::gTask;
+                        $reference ObjectManipRecovery::objectTagId;
+                        
+                        std::cout << "[" << getName() << "]: getting the gripper monitor task\n";
+                        // cast the current task, and point to it
+                        gTask = static_cast<Kodu::VisualGripperMonitorTask*>(currentTask);
+                        objectTagId = gTask->getTagId();
+                        postStateCompletion();
+                    }
+
+                    $nodeclass OpenGripper : ArmNode : doStart {
+                        std::cout << "[" << getName() << "]: opening the gripper\n";
+                        // opens the gripper in case it detected a false positive (the object is
+                        // still in the gripper, but the robot detected a failure)
+                        getMC()->openGripper(1.0f);
+                    }
+
+                    $setupmachine {
+                        pause:      PauseEvaluator
+                        getInfo:    GetObjectInfo
+                        openGrip:   OpenGripper
+
+                        pause =T(300)=> pause
+                        pause =C=> getInfo =C=> openGrip =C=> PostMachineCompletion
+                    }
                 }
 
-                $nodeclass OpenGripper : ArmNode : doStart {
-                    std::cout << "[" << getName() << "]: opening the gripper\n";
-                    // opens the gripper in case it detected a false positive (the object is
-                    // still in the gripper, but the robot detected a failure)
-                    getMC()->openGripper(1.0f);
-                }
+                $nodeclass PrepareForFirstAttempt : StateNode {
 
-                $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
-                    std::cout << "[" << getName() << "]: ";
-                    $reference ObjectManipRecovery::gTask;
-                    $reference ObjectManipRecovery::kReverseDist;
-                    // get the current and last positions
-                    Point lastPos = gTask->getLastSuccessfulState().position;
-                    Point currPos = VRmixin::theAgent->getCentroid();
-                    float additionalDist = (currPos - lastPos).xyNorm();
-                    // if the robot travelled forward between the last and current points,
-                    // include that distance
-                    pilotreq.dx = (-1.0f * kReverseDist) - additionalDist;
-                    std::cout << "reversing by " << std::fabs(pilotreq.dx) << "mm (" << kReverseDist
-                        << " + " << additionalDist << ")\n";
-                }
+                    $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
+                        std::cout << "[" << getName() << "]: ";
+                        $reference ObjectManipRecovery::gTask;
+                        $reference ObjectManipRecovery::kReverseDist;
+                        // get the current and last positions
+                        Point lastPos = gTask->getLastSuccessfulState().position;
+                        Point currPos = VRmixin::theAgent->getCentroid();
+                        float additionalDist = (currPos - lastPos).xyNorm();
+                        // if the robot travelled forward between the last and current points,
+                        // include that distance
+                        pilotreq.dx = (-1.0f * kReverseDist) - additionalDist;
+                        std::cout << "reversing by " << std::fabs(pilotreq.dx) << "mm (" << kReverseDist
+                            << " + " << additionalDist << ")\n";
+                    }
 
-                $nodeclass LocateLostObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
-                    $reference ObjectManipRecovery::gTask;
-                    std::cout << "[" << getName() << "]: creating mapbuilder request to find object\n";
-                    // get the robot's state when it last saw the april tag in the correct location
-                    Kodu::PosOrientState lastState = gTask->getLastSuccessfulState();
-                    float lastOrient = lastState.orientation;
-                    
-                    // get the robot's current (position, orientation) state
-                    Kodu::PosOrientState currState(VRmixin::theAgent->getCentroid(),
-                       static_cast<float>(VRmixin::theAgent->getOrientation()));
-                    float currOrient = currState.orientation;
-                    
-                    // get the difference between the last and current orientations
-                    float orientDiff = AngTwoPi(lastOrient - currOrient);
-                    std::cout << "currOrient = " << currOrient << " rads (= " << rad2deg(currOrient)
-                        << " degs); lastOrient = " << lastOrient << " rads (= " << rad2deg(lastOrient)
-                        << " degs); orientDiff = " << orientDiff << " rads (= " << rad2deg(orientDiff)
-                        << " degs)\n";
+                    $nodeclass LocateLostObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                        $reference ObjectManipRecovery::gTask;
+                        std::cout << "[" << getName() << "]: "
+                            << "creating mapbuilder request to find object\n";
+                        // get the robot's state when it last saw the april tag in the correct location
+                        Kodu::PosOrientState lastState = gTask->getLastSuccessfulState();
+                        float lastOrient = lastState.orientation;
+                        
+                        // get the robot's current (position, orientation) state
+                        Kodu::PosOrientState currState(VRmixin::theAgent->getCentroid(),
+                           static_cast<float>(VRmixin::theAgent->getOrientation()));
+                        float currOrient = currState.orientation;
+                        
+                        // get the difference between the last and current orientations
+                        float orientDiff = AngTwoPi(lastOrient - currOrient);
+                        std::cout << "currOrient = " << currOrient << " rads (= " 
+                            << rad2deg(currOrient) << " degs); lastOrient = "
+                            << lastOrient << " rads (= " << rad2deg(lastOrient)
+                            << " degs); orientDiff = " << orientDiff << " rads (= "
+                            << rad2deg(orientDiff) << " degs)\n";
 
-                    const Shape<CylinderData>& lostCyl =
-                        ShapeRootTypeConst(gTask->getGripperObject(), CylinderData);
-                    
-                    // create constants that will be used to tell the robot where to search
-                    // the over approx. max reach the gripper has (measured from the robot's center)
-                    float const kMaxGripperReach = 400.0f;
-                    // the cylinder's height
-                    float const kCylHeight = lostCyl->getHeight();
-                    // the cylinder's radius
-                    float const kCylRadius = lostCyl->getRadius();
-                    // a fudge factor for the max search radius in case the calculation is a little off
-                    float const kFudgeFactor = kCylRadius;
-                    // the distance the robot reversed
-                    $reference ObjectManipRecovery::kReverseDist;
-                    // the max distance the robot should be away from the robot's centroid
-                    float const kDropRadius = kMaxGripperReach + kCylRadius + kReverseDist;
-                    // the max distance an object can be for the robot to consider it as the lost object
-                    float const kMaxSearchRadius = kDropRadius + kCylRadius + kFudgeFactor;
-                    
-                    // find out what the robot was doing when the object fell out of the gripper
-                    float const kInitAngle = gTask->getTagCentroid().atanYX();
-                    float thetaIncrement = 0.0f;
-                    float const kIncrementVal = deg2rad(15.0f);
-                    if (std::fabs(lastOrient - currOrient) > M_PI) {
-                        std::cout << "Robot crossed over the 360 deg mark (abs(orientDiff) = "
-                            << std::fabs(lastOrient - currOrient) << ")\n";
-                        if (currOrient < lastOrient) {
-                            std::cout << "currOrient (" << currOrient << ") < lastOrient ("
-                                << lastOrient << ")\n";
-                            currOrient = currOrient + (2 * M_PI);
-                        } else {
-                            std::cout << "currOrient (" << currOrient << ") > lastOrient ("
-                                << lastOrient << ")\n";
-                            lastOrient = lastOrient + (2 * M_PI);
+                        const Shape<CylinderData>& kLostCyl =
+                            ShapeRootTypeConst(gTask->getGripperObject(), CylinderData);
+                        
+                        // create constants that will be used to tell the robot where to search
+                        // the over approx. max reach the gripper has (measured from the robot's center)
+                        float const kMaxGripperReach = 400.0f;
+                        // the cylinder's height
+                        float const kCylHeight = kLostCyl->getHeight();
+                        // the cylinder's radius
+                        float const kCylRadius = kLostCyl->getRadius();
+                        // a fudge factor for the max search radius in case the calculation
+                        // is a little off
+                        float const kFudgeFactor = kCylRadius;
+                        // the distance the robot reversed
+                        $reference ObjectManipRecovery::kReverseDist;
+                        // the max distance the robot should be away from the robot's centroid
+                        float const kDropRadius = kMaxGripperReach + kCylRadius + kReverseDist;
+                        // the max distance an object can be for the robot to consider
+                        // it as the lost object
+                        float const kMaxSearchRadius = kDropRadius + kCylRadius + kFudgeFactor;
+                        
+                        // find out what the robot was doing when the object fell out of the gripper
+                        float const kInitAngle = gTask->getTagCentroid().atanYX();
+                        float thetaIncrement = 0.0f;
+                        float const kIncrementVal = deg2rad(15.0f);
+                        if (std::fabs(lastOrient - currOrient) > M_PI) {
+                            std::cout << "Robot crossed over the 360 deg mark (abs(orientDiff) = "
+                                << std::fabs(lastOrient - currOrient) << ")\n";
+                            if (currOrient < lastOrient) {
+                                std::cout << "currOrient (" << currOrient << ") < lastOrient ("
+                                    << lastOrient << ")\n";
+                                currOrient = currOrient + (2 * M_PI);
+                            } else {
+                                std::cout << "currOrient (" << currOrient << ") > lastOrient ("
+                                    << lastOrient << ")\n";
+                                lastOrient = lastOrient + (2 * M_PI);
+                            }
+                            std::cout << "new values: currOrient = " << currOrient
+                                << "; lastOrient = " << lastOrient << std::endl;
                         }
-                        std::cout << "new values: currOrient = " << currOrient
-                            << "; lastOrient = " << lastOrient << std::endl;
-                    }
-                    
-                    float absOrientDiff = std::fabs(lastOrient - currOrient);
-                    if (currOrient > lastOrient) {
-                        thetaIncrement = -1.0f * kIncrementVal;
-                        std::cout << "Robot was turning left between last successful state and now; ";
-                    } else if (currOrient < lastOrient) {
-                        thetaIncrement = kIncrementVal;
-                        std::cout << "Robot was turning right between last successful state and now; ";
-                    } else {
-                        thetaIncrement = 0.0f;
-                        std::cout << "The object should be in front of the gripper; ";
-                    }
-                    std::cout << "thetaIncrement = " << thetaIncrement << " rads (= "
-                            << rad2deg(thetaIncrement) << " degs)\n";
+                        
+                        float absOrientDiff = std::fabs(lastOrient - currOrient);
+                        if (currOrient > lastOrient) {
+                            thetaIncrement = -1.0f * kIncrementVal;
+                            std::cout << "Robot was turning left; ";
+                        } else if (currOrient < lastOrient) {
+                            thetaIncrement = kIncrementVal;
+                            std::cout << "Robot was turning right; ";
+                        } else {
+                            thetaIncrement = 0.0f;
+                            std::cout << "The object should be in front of the gripper; ";
+                        }
+                        std::cout << "thetaIncrement = " << thetaIncrement << " rads (= "
+                                << rad2deg(thetaIncrement) << " degs)\n";
 
-                    // start from the current orientation and progressively look to the last state
-                    std::vector<Point> pts;
-                    int const kNumbOfPoints = static_cast<int>(std::ceil(absOrientDiff / kIncrementVal));
-                    pts.reserve(kNumbOfPoints + 1);
-                    std::cout << "the robot will have to look " << (kNumbOfPoints + 1) << " time(s).\n";
-                    float currAngle = kInitAngle;
-                    std::cout << "currAngle = " << currAngle << " rads (= " << (rad2deg(currAngle))
-                        << " degs) ";
-                    
-                    // approx. position of the object if it was still in the gripper
-                    pts.push_back(Point(cos(currAngle) * kDropRadius, sin(currAngle) * kDropRadius,
-                        kCylHeight, egocentric));
-                    std::cout << "begin pt = " << pts[0] << std::endl;
-
-                    // generate the rest of the look points
-                    for (int i = 0; i < kNumbOfPoints; i++) {
-                        currAngle += thetaIncrement;
-                        std::cout << "currAngle = " << currAngle << " rads (= "
-                            << (rad2deg(currAngle)) << " degs) ";
+                        // start from the current orientation and progressively look to the last state
+                        std::vector<Point> pts;
+                        int const kNumbOfPoints = (int)(std::ceil(absOrientDiff / kIncrementVal));
+                        pts.reserve(kNumbOfPoints + 1);
+                        std::cout << "the robot will have to look " << (kNumbOfPoints + 1)
+                            << " time(s).\n";
+                        float currAngle = kInitAngle;
+                        std::cout << "currAngle = " << currAngle << " rads (= " << (rad2deg(currAngle))
+                            << " degs) ";
+                        
+                        // approx. position of the object if it was still in the gripper
                         pts.push_back(Point(cos(currAngle) * kDropRadius, sin(currAngle) * kDropRadius,
                             kCylHeight, egocentric));
-                        std::cout << "added pt #" << pts.size() << " = " << pts[pts.size() - 1]
-                            << std::endl;
-                    }
+                        std::cout << "begin pt = " << pts[0] << std::endl;
 
-                    // create the gaze polygon (the points the robot should look at)
-                    NEW_SHAPE(objSearchPoints, PolygonData, new PolygonData(localShS, pts, false));
-                    objSearchPoints->setViewable(true);
-                    objSearchPoints->setObstacle(false);
-                    
-                    // create the mapbuilder request
-                    mapreq.searchArea = objSearchPoints;
-                    mapreq.clearLocal = true;
-                    mapreq.maxDist = kMaxSearchRadius;
-                    //mapreq.pursueShapes = true;
-                    mapreq.removePts = false;
-                    mapreq.setAprilTagFamily();
-                    mapreq.addObjectColor(lostCyl->getType(), lostCyl->getColor());
-                }
-
-                // ASSUMPTION: there is only one tag in view (need to use ID to select correct object)
-                $nodeclass RetrieveLostObject : GrasperNode(GrasperRequest::grasp) : doStart {
-                    $reference KoduInterp::theWorld;
-                    $reference KoduInterp::thisAgent;
-                    std::cout << "[" << getName() << "]: going to retrieve the lost object...\n";
-                    
-                    int tagId = theWorld->getTagIdForShape(thisAgent->gripperObject.getId());
-                    ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(tagId));
-
-                    if (tag.isValid()) {
-                        std::cout << "object is valid!\n";
-                        $reference ObjectManipRecovery::grasperTarget;
-                        // check if the grasper target is in the localShS or worldShS
-                        if (!grasperTarget.isValid()) {
-                            // create a vector of cylinders from the localShS
-                            NEW_SHAPEROOTVEC(cyls, subset(localShS,
-                                Kodu::IsShapeOfType(cylinderDataType)));
-                            // look for the cylinder closest to the april tag
-                            grasperTarget = Kodu::getClosestObjectToPoint(cyls, tag->getCentroid());
-                            // import that cylinder into the world shape space
-                            grasperTarget = VRmixin::mapBuilder->importLocalShapeToWorld(grasperTarget);
+                        // generate the rest of the look points
+                        for (int i = 0; i < kNumbOfPoints; i++) {
+                            currAngle += thetaIncrement;
+                            std::cout << "currAngle = " << currAngle << " rads (= "
+                                << (rad2deg(currAngle)) << " degs) ";
+                            pts.push_back(Point(cos(currAngle) * kDropRadius,
+                                                sin(currAngle) * kDropRadius,
+                                                kCylHeight, egocentric));
+                            std::cout << "added pt #" << pts.size() << " = " << pts[pts.size() - 1]
+                                << std::endl;
                         }
-                        graspreq.object = grasperTarget;
-                        graspreq.allowBodyMotion = false;
-                    } else {
-                        std::cout << "object is NOT valid!!!\n";
-                        cancelThisRequest();
+
+                        // create the gaze polygon (the points the robot should look at)
+                        NEW_SHAPE(objSearchPoints, PolygonData, new PolygonData(localShS, pts, false));
+                        objSearchPoints->setViewable(true);
+                        objSearchPoints->setObstacle(false);
+                        
+                        // create the mapbuilder request
+                        mapreq.searchArea = objSearchPoints;
+                        mapreq.clearLocal = true;
+                        mapreq.maxDist = kMaxSearchRadius;
+                        //mapreq.pursueShapes = true;
+                        mapreq.removePts = false;
+                        mapreq.setAprilTagFamily();
+                        mapreq.addObjectColor(kLostCyl->getType(), kLostCyl->getColor());
+                    }
+
+                    $nodeclass SetGrasperTarget : StateNode : doStart {
+                        $reference KoduInterp::thisAgent;
+                        $reference ObjectManipRecovery::grasperTarget;
+                        $reference ObjectManipRecovery::objectTagId;
+
+                        std::cout << "[" << getName() << "]: " << "setting grasper target!\n";
+
+                        ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(objectTagId));
+                        NEW_SHAPEROOTVEC(cyls, subset(localShS, Kodu::IsShapeOfType(cylinderDataType)));
+                        
+                        if (tag.isValid()) {
+                            if (!cyls.empty()) {
+                                std::cout << "tag is valid!\n";
+                                grasperTarget = Kodu::getClosestObjectToPoint(cyls, tag->getCentroid());
+                            }
+                            // tag was seen, but not the cylinder
+                            else {
+                                const Shape<CylinderData>& kGripCyl
+                                    = ShapeRootTypeConst(thisAgent->gripperObject, CylinderData);
+                                const Point& kTagPt = tag->getCentroid();
+                                float cylHeight = kGripCyl->getHeight();
+                                float cylRadius = kGripCyl->getRadius();
+                                Point lclCylPt = Point(kTagPt.coordX(), kTagPt.coordY(),
+                                                       (kTagPt.coordZ() / 2.0f), egocentric);
+                                
+                                NEW_SHAPE(duplicate, CylinderData,
+                                    new CylinderData(localShS, lclCylPt, cylHeight, cylRadius));
+                                grasperTarget = duplicate;
+                            }
+                        }
+
+                        // the tag was not visible
+                        if (!cyls.empty()) {
+                            std::cout << "tag is NOT valid. getting the closest match.\n";
+                            grasperTarget = find_if(localShS, Kodu::IsShapeOfType(cylinderDataType));
+                        }
+
+                        if (grasperTarget.isValid()) {
+                            std::cout << "grasper target was valid!\n";
+                            grasperTarget = VRmixin::mapBuilder->importLocalShapeToWorld(grasperTarget);
+                            postStateSuccess();
+                        } else {
+                            std::cout << "grasper target was not valid!!!\n";
+                            postStateFailure();
+                        }
+                    }
+
+                    $setupmachine {
+                        rvrs:       Reverse
+                        find:       LocateLostObject
+                        setTarget:  SetGrasperTarget
+
+                        rvrs =C=> find =C=> setTarget
+
+                        setTarget =S=> PostMachineSuccess
+                        setTarget =F=> PostMachineFailure   // should not happen
                     }
                 }
 
-                $nodeclass RepositionBody : PilotNode(PilotTypes::walk) : doStart {
-                    $reference KoduInterp::theWorld;
+                // ASSUMPTION:
+                // --- there is only one tag in view (need to use ID to select correct object)
+                $nodeclass RetrieveLostObject : GrasperNode(GrasperRequest::grasp) : doStart {
                     $reference ObjectManipRecovery::grasperTarget;
-                    std::cout << "[" << getName() << "]: reversing by ";
+                    std::cout << "[" << getName() << "]: going to retrieve the lost object...\n";
+                    graspreq.object = grasperTarget;
+                    graspreq.allowBodyMotion = false;
+                }
 
-                    // get a particular april tag
-                    int tagId = theWorld->getTagIdForShape(theWorld->thisAgent.gripperObject.getId());
-                    ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(tagId));
+                $nodeclass VerifyObjectWasGrabbed : StateNode {
 
-                    // get the gripper location
-                    fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
-                    Point gripperPoint(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric);
-                    // if the tag is nearer to the body than the gripper, reverse by the
-                    // difference between the tag's and gripper's centroids
-                    if (tag->getCentroid().coordX() < gripperPoint.coordX()) {
-                        pilotreq.dx = -1.0f * (gripperPoint.coordX() - tag->getCentroid().coordX());
+                    $nodeclass LookAtTheGripper : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                        std::cout << "[" << getName() << "]: looking at tag\n";
+                        mapreq.clearLocal = true;
+                        // search for an april tag
+                        mapreq.setAprilTagFamily();
+                        // look at the gripper
+                        fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
+                        NEW_SHAPE(gazePoint, PointData, new PointData(localShS,
+                            Point(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric)));
+                        mapreq.searchArea = gazePoint;
                     }
-                    // reverse by 1.5x the radius of the cylinder
-                    float radius = ShapeRootTypeConst(grasperTarget, CylinderData)->getRadius();
-                    pilotreq.dx = pilotreq.dx - (1.5f * radius);
-                    std::cout << std::fabs(pilotreq.dx) << "mm)\n";
-                    
-                    // reposition the gripper target object
-                    const Point& kTagCen = tag->getCentroid();
-                    Point objFutureEgoPos(std::fabs(pilotreq.dx) + kTagCen.coordX(), kTagCen.coordY(),
-                                          kTagCen.coordZ() / 2.0f, egocentric);
-                    objFutureEgoPos.applyTransform(VRmixin::mapBuilder->localToWorldMatrix, allocentric);
-                    std::cout << "Repositioning the object to from "
-                        << grasperTarget->getCentroid() << " to " << objFutureEgoPos
-                        << std::endl;
-                    grasperTarget->setPosition(objFutureEgoPos);
-                    postStateCompletion();
+
+                    $nodeclass VerifyObjectInGripper : StateNode : doStart {
+                        $reference KoduInterp::theWorld;
+                        $reference KoduInterp::thisAgent;
+                        std::cout << "[" << getName() << "]: verifying object was grabbed.\n";
+                        
+                        // check if a particular tag was seen
+                        NEW_SHAPE(tag, AprilTagData, find_if<AprilTagData>(localShS,
+                            Kodu::HasAprilTagID(theWorld->getTagIdForShape(
+                                thisAgent->gripperObject.getId()))));
+                        
+                        // if the reference is not valid, post a failure
+                        if (!tag.isValid()) {
+                            std::cout << "THE TAG WAS NOT SEEN (FAILURE)!!!\n";
+                            postStateFailure();
+                            return;
+                        }
+
+                        //********** temp fix
+                        // 
+                        // get the gripper location
+                        fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
+                        Point gripperPoint(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric);
+                        
+                        // check if the object is in the gripper
+                        if (tag->getCentroid().xyDistanceFrom(gripperPoint)
+                            < (Kodu::objectRadius(thisAgent->gripperObject) * 1.25f))
+                        {
+                            std::cout << "successfully grabbed object\n";
+                            postStateSuccess();
+                        } else {
+                            std::cout << "failed to grab object... dist = "
+                                << tag->getCentroid().xyDistanceFrom(gripperPoint)
+                                << "mm; reattempting.\n";
+                            postStateFailure();
+                        }
+                        //***********
+                    }
+
+                    $setupmachine {
+                        lookAtGripper:      LookAtTheGripper
+                        verifyObjGrabbed:   VerifyObjectInGripper
+
+                        lookAtGripper =C=> verifyObjGrabbed
+
+                        verifyObjGrabbed =S=> PostMachineSuccess
+                        verifyObjGrabbed =F=> PostMachineFailure
+                    }
+                }
+
+                $nodeclass PrepareForAnotherAttempt : StateNode {
+                    $provide Point objFutureEgoPos;
+
+                    $nodeclass NeedToLookAround : StateNode : doStart {
+                        $reference ObjectManipRecovery::objectTagId;
+                        
+                        std::cout << "[" << getName() << "]: checking if robot needs to look around\n";
+                        // get a particular april tag
+                        ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(objectTagId));
+                        postStateSignal<bool>(!tag.isValid());
+                    }
+
+                     $nodeclass LookForTag : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                        std::cout << "[" << getName() << "]: attempting to locate object (again)\n";
+                        // generate points to look at (near the robot's body)
+                        // these points could also be generated by looking at the gripper's y-pos
+                        std::vector<Point> pts;
+                        pts.push_back(Point(  300,    0,    0, egocentric));
+                        pts.push_back(Point(  500,    0,    0, egocentric));
+                        pts.push_back(Point(  500, -200,    0, egocentric));
+                        pts.push_back(Point(  300, -200,    0, egocentric));
+                        NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, pts, false));
+                        
+                        // construct the mapbuilder request
+                        mapreq.searchArea = gazePoints;
+                        mapreq.setAprilTagFamily();
+                        mapreq.clearLocal = true;
+                    }
+
+                    $nodeclass RepositionBody : PilotNode(PilotTypes::walk) : doStart {
+                        $reference KoduInterp::thisAgent;
+                        $reference ObjectManipRecovery::objectTagId;
+                        $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                        
+                        std::cout << "[" << getName() << "]: walking distance = ";
+                        // get a particular april tag
+                        ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(objectTagId));
+
+                        // get the gripper location
+                        fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
+                        // where I would really want the objetc to be is the radial reach of the robot
+                        // plus 50 (or 60) mm
+                        float objDesiredXPos = gripperLoc[0] + 150.0f;
+                        
+                        const Point& kTagPt = tag->getCentroid();
+                        float objRadius = Kodu::objectRadius(thisAgent->gripperObject);
+                        
+                        pilotreq.dx = kTagPt.coordX() - objRadius - objDesiredXPos;
+                        std::cout << pilotreq.dx << "mm)\n";
+                        
+                        // reposition the gripper target object
+                        objFutureEgoPos = Point(objDesiredXPos, kTagPt.coordY(),
+                                                (kTagPt.coordZ() / 2.0f), egocentric);
+                        pilotreq.collisionAction = collisionIgnore;
+                    }
+
+                    $nodeclass FindObjectAgain : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                        $reference KoduInterp::thisAgent;
+                        $reference PrepareForAnotherAttempt::objFutureEgoPos;
+
+                        std::cout << "[" << getName() << "]: looking for gripper object (again)\n";
+                        // search for the object again using the point calculated previously
+                        NEW_SHAPE(gazePoint, PointData, new PointData(localShS, objFutureEgoPos));
+                        mapreq.searchArea = gazePoint;
+                        const ShapeRoot& targetShape = thisAgent->gripperObject;
+                        mapreq.addAttributes(targetShape);
+                        mapreq.maxDist = objFutureEgoPos.xyNorm()
+                                         + (Kodu::objectRadius(targetShape) * 2.5f);
+                        mapreq.pursueShapes = true;
+                    }
+
+                    $nodeclass RepositionGripperObject : StateNode : doStart {
+                        $reference KoduInterp::thisAgent;
+                        $reference ObjectManipRecovery::grasperTarget;
+                        $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                        
+                        std::cout << "[" << getName() << "]: attempting to reposition gripper object.\n";
+                        NEW_SHAPEROOTVEC(objs, subset(localShS,
+                            Kodu::IsShapeOfType(thisAgent->gripperObject->getType())));
+                        ShapeRoot targetShape = Kodu::getClosestObjectToPoint(objs, objFutureEgoPos);
+                        // check if the target shape is valid
+                        if (targetShape.isValid()) {
+                            std::cout << "target shape is valid. setting its allocentric position.\n";
+                            Point objAllocentricPt = targetShape->getCentroid();
+                            objAllocentricPt.applyTransform(VRmixin::mapBuilder->localToWorldMatrix,
+                                                           allocentric);
+                            std::cout << "Repositioning the object to from "
+                            << grasperTarget->getCentroid() << " to "
+                            << objAllocentricPt << std::endl;
+                            grasperTarget->setPosition(objAllocentricPt);
+                            postStateSuccess();
+                        }
+                        // should only fail if the robot did not see any cylinders
+                        else {
+                            std::cout << "target shape is NOT VALID!!!! Don't know what to do!\n";
+                            grasperTarget = ShapeRoot();
+                            postStateFailure();
+                        }
+                    }
+
+                    $setupmachine {
+                        needToLook:     NeedToLookAround
+                        lookForTag:     LookForTag
+                        reposBody:      RepositionBody
+                        findObjAgain:   FindObjectAgain
+                        reposGripObj:   RepositionGripperObject
+
+                        needToLook =S<bool>(true)=> lookForTag =C=> reposBody
+                        needToLook =S<bool>(false)=> reposBody
+
+                        reposBody =C=> findObjAgain =C=> reposGripObj
+
+                        reposGripObj =S=> PostMachineSuccess
+                        reposGripObj =F=> SpeechNode("error shape was not valid") =C=> PostMachineFailure
+                    }
                 }
 
                 // ASSUMPTION: only one tag is in view
@@ -828,30 +1036,25 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
 
                 $setupmachine {
-                    pause:      PauseEvaluator
-                    getTask:    GetGripMonTask
-                    openGrip:   OpenGripper
-                    rvrs:       Reverse
-                    find:       LocateLostObject
-                    retrv:      RetrieveLostObject
-                    
-                    verify:     VerifyObjectGrabbed
-                    posBody:    RepositionBody
+                    initMRec:       InitiateManipRecovery
+                    prepAttempt1:   PrepareForFirstAttempt
+                    retrvObj:       RetrieveLostObject
+                    verifyRetrv:    VerifyObjectWasGrabbed
+                    prepAttempt2:   PrepareForAnotherAttempt
+                    getLoc:         GetTagLocation
 
-                    getLoc:     GetTagLocation
+                    initMRec =C=> prepAttempt1
 
-                    pause =T(300)=> pause
-                    pause =C=> getTask =C=> openGrip =C=> rvrs =C=> find =C=> retrv =GRASP=> verify
-                    
-                    //retrv =GRASP(noError)=> LookAtGripper =C=> look =C=> getLoc
-                    //retrv =GRASP(someError)=> SpeechNode("recovery failed") =C=> PostMachineFailure
+                    prepAttempt1 =S=> retrvObj
+                    prepAttempt1 =F=> prepAttempt2
 
-                    verify =S=> getLoc
-                    verify =C=> posBody =C=> retrv
-                    verify =F=> SpeechNode("recovery failure") =F=> PostMachineFailure
-                    
-                    getLoc =S=> PostMachineSuccess
-                    getLoc =F=> PostMachineFailure
+                    prepAttempt2 =S=> retrvObj
+                    prepAttempt2 =F=> SpeechNode("could not find the object") =C=> PostMachineFailure
+
+                    retrvObj =GRASP=> verifyRetrv
+
+                    verifyRetrv =S=> getLoc =S=> PostMachineSuccess
+                    verifyRetrv =F=> prepAttempt2 =C=> retrvObj
                 }
 
             private:
@@ -1080,7 +1283,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             // 2) not executing another manipulation action
                             // 3) not executing a motion action
                             if (thisAgent->isHoldingAnObject() && !thisAgent->isExecutingManipAction()
-                                && !thisAgent->isWalking())
+                                && !thisAgent->isExecutingMotionAction())
                             {
                                 std::cout << "Agent wants to drop item.\n";
                                 // signal that a drop action is executing (prevents any motion or 
@@ -1099,7 +1302,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             // 2) not executing another manipulation action
                             // 3) the target shape is valid
                             // 4) the target shapes is not the same shape in the gripper
-                            if (!thisAgent->isWalking() && !thisAgent->isExecutingManipAction()) {
+                            if (!thisAgent->isExecutingMotionAction()
+                                && !thisAgent->isExecutingManipAction())
+                            {
                                 // get the target object
                                 ShapeRoot targetObject =
                                     static_cast<Kodu::KoduActionGrab*>(act)->getTargetObject();
@@ -1121,22 +1326,26 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         case Kodu::KoduAction::AT_MOTION:
                         {
                             std::cout << "motion; ";
-                            // get the current motion command
-                            Kodu::MotionCommand cmd =
-                                static_cast<Kodu::KoduActionMotion*>(act)->getMotionCommand();
-                            
-                            // TODO
-                            // should the interpreter check if the robot is executing a manip action here
-                            // or in the action runner node?
-                            if (!thisAgent->isWalking() && !thisAgent->hasMotionCommand()
-                                && cmd.isValid())
+
+                            if (!thisAgent->isExecutingMotionAction() && !thisAgent->hasMotionCommand())
                             {
-                                thisAgent->currMotionCmd = cmd;
-                                if (cmd.targetObjectIsValid()) {
-                                    thisAgent->ptasks.push(
-                                        new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
+                                // get the current motion command
+                                Kodu::MotionCommand cmd =
+                                    static_cast<Kodu::KoduActionMotion*>(act)->getMotionCommand();
+                                
+                                // TODO
+                                // should the interpreter check if the robot is executing a 
+                                // manip action here or in the action runner node?
+                                if (cmd.isValid())
+                                {
+                                    //thisAgent->currMotionCmd = cmd;
+                                    thisAgent->setMotionCommand(cmd);
+                                    //if (cmd.targetObjectIsValid()) {
+                                    //    thisAgent->ptasks.push(
+                                    //        new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
+                                    //}
+                                    std::cout << "Added a motion command.\n";
                                 }
-                                std::cout << "Added a motion command.\n";
                             }
                             break;
                         }
@@ -1609,46 +1818,189 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 graspreq.allowBodyMotion = false;
             }
 
-            $nodeclass RepositionBody : PilotNode(PilotTypes::walk) : doStart {
-                $reference KoduInterp::theWorld;
-                $reference GrabActionRunner::objectTagId;
-                std::cout << "[" << getName() << "]: reversing by ";
+            $nodeclass VerifyObjectWasGrabbed : StateNode {
 
-                // get a particular april tag
-                ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(objectTagId));
-
-                // get the gripper location
-                fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
-                Point gripperPoint(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric);
-                // if the tag is nearer to the body than the gripper, reverse by the
-                // difference between the tag's and gripper's centroids
-                if (tag->getCentroid().coordX() < gripperPoint.coordX()) {
-                    pilotreq.dx = -1.0f * (gripperPoint.coordX() - tag->getCentroid().coordX());
+                $nodeclass LookAtTheGripper : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                    std::cout << "[" << getName() << "]: looking at tag\n";
+                    mapreq.clearLocal = true;
+                    // search for an april tag
+                    mapreq.setAprilTagFamily();
+                    // look at the gripper
+                    fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
+                    NEW_SHAPE(gazePoint, PointData, new PointData(localShS,
+                        Point(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric)));
+                    mapreq.searchArea = gazePoint;
                 }
-                // reverse by 1.5x the radius of the cylinder
-                float radius = ShapeRootTypeConst(theWorld->thisAgent.gripperObject,
-                    CylinderData)->getRadius();
-                pilotreq.dx = pilotreq.dx - (1.5f * radius);
-                std::cout << std::fabs(pilotreq.dx) << "mm)\n";
-                
-                // reposition the gripper target object
-                const Point& kTagCen = tag->getCentroid();
-                Point objFutureEgoPos(std::fabs(pilotreq.dx) + kTagCen.coordX(), kTagCen.coordY(),
-                                      kTagCen.coordZ() / 2.0f, egocentric);
-                objFutureEgoPos.applyTransform(VRmixin::mapBuilder->localToWorldMatrix, allocentric);
-                std::cout << "Repositioning the object to from "
-                    << theWorld->thisAgent.gripperObject->getCentroid() << " to " << objFutureEgoPos
-                    << std::endl;
-                theWorld->thisAgent.gripperObject->setPosition(objFutureEgoPos);
-                postStateCompletion();
+
+                $nodeclass VerifyObjectInGripper : StateNode : doStart {
+                    $reference KoduInterp::theWorld;
+                    $reference KoduInterp::thisAgent;
+                    std::cout << "[" << getName() << "]: verifying object was grabbed.\n";
+                    
+                    // check if a particular tag was seen
+                    NEW_SHAPE(tag, AprilTagData, find_if<AprilTagData>(localShS,
+                        Kodu::HasAprilTagID(theWorld->getTagIdForShape(
+                            thisAgent->gripperObject.getId()))));
+                    
+                    // if the reference is not valid, post a failure
+                    if (!tag.isValid()) {
+                        std::cout << "THE TAG WAS NOT SEEN (FAILURE)!!!\n";
+                        postStateFailure();
+                        return;
+                    }
+
+                    //********** temp fix
+                    // 
+                    // get the gripper location
+                    fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
+                    Point gripperPoint(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric);
+                    
+                    // check if the object is in the gripper
+                    if (tag->getCentroid().xyDistanceFrom(gripperPoint)
+                        < (Kodu::objectRadius(thisAgent->gripperObject) * 1.25f))
+                    {
+                        std::cout << "successfully grabbed object\n";
+                        postStateSuccess();
+                    } else {
+                        std::cout << "failed to grab object... dist = "
+                            << tag->getCentroid().xyDistanceFrom(gripperPoint)
+                            << "mm; reattempting.\n";
+                        postStateFailure();
+                    }
+                    //***********
+                }
+
+                $setupmachine {
+                    lookAtGripper:      LookAtTheGripper
+                    verifyObjGrabbed:   VerifyObjectInGripper
+
+                    lookAtGripper =C=> verifyObjGrabbed
+
+                    verifyObjGrabbed =S=> PostMachineSuccess
+                    verifyObjGrabbed =F=> PostMachineFailure
+                }
+            }
+
+            $nodeclass PrepareForAnotherAttempt : StateNode {
+                $provide Point objFutureEgoPos;
+
+                $nodeclass NeedToLookAround : StateNode : doStart {
+                    $reference GrabActionRunner::objectTagId;
+                    
+                    std::cout << "[" << getName() << "]: checking if robot needs to look around\n";
+                    // get a particular april tag
+                    ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(objectTagId));
+                    postStateSignal<bool>(!tag.isValid());
+                }
+
+                 $nodeclass LookAroundForObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                    std::cout << "[" << getName() << "]: attempting to locate object (again)\n";
+                    // generate points to look at (near the robot's body)
+                    // these points could also be generated by looking at the gripper's y-pos
+                    std::vector<Point> pts;
+                    pts.push_back(Point(  300,    0,    0, egocentric));
+                    pts.push_back(Point(  500,    0,    0, egocentric));
+                    pts.push_back(Point(  500, -200,    0, egocentric));
+                    pts.push_back(Point(  300, -200,    0, egocentric));
+                    NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, pts, false));
+                    
+                    // construct the mapbuilder request
+                    mapreq.searchArea = gazePoints;
+                    mapreq.setAprilTagFamily();
+                    mapreq.clearLocal = true;
+                }
+
+                $nodeclass RepositionBody : PilotNode(PilotTypes::walk) : doStart {
+                    $reference KoduInterp::thisAgent;
+                    $reference GrabActionRunner::objectTagId;
+                    $reference PrepareForAnotherAttempt::objFutureEgoPos;
+
+                    std::cout << "[" << getName() << "]: walking distance = ";
+                    // get a particular april tag
+                    ShapeRoot tag = find_if(localShS, Kodu::HasAprilTagID(objectTagId));
+
+                    // get the gripper location
+                    fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
+                    // where I would really want the objetc to be is the radial reach of the robot
+                    // plus 50 (or 60) mm
+                    float objDesiredXPos = gripperLoc[0] + 150.0f;
+                    
+                    const Point& kTagPt = tag->getCentroid();
+                    float objRadius = Kodu::objectRadius(thisAgent->gripperObject);
+                    
+                    pilotreq.dx = kTagPt.coordX() - objRadius - objDesiredXPos;
+                    std::cout << pilotreq.dx << "mm)\n";
+                    
+                    // reposition the gripper target object
+                    objFutureEgoPos = Point(objDesiredXPos, kTagPt.coordY(), (kTagPt.coordZ() / 2.0f),
+                                            egocentric);
+                    pilotreq.collisionAction = collisionIgnore;
+                }
+
+                $nodeclass FindObjectAgain : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                    $reference KoduInterp::thisAgent;
+                    $reference PrepareForAnotherAttempt::objFutureEgoPos;
+
+                    std::cout << "[" << getName() << "]: looking for gripper object (again)\n";
+                    // search for the object again using the point calculated previously
+                    NEW_SHAPE(gazePoint, PointData, new PointData(localShS, objFutureEgoPos));
+                    mapreq.searchArea = gazePoint;
+                    const ShapeRoot& targetShape = thisAgent->gripperObject;
+                    mapreq.addAttributes(targetShape);
+                    mapreq.maxDist = objFutureEgoPos.xyNorm() + (Kodu::objectRadius(targetShape) * 2.5f);
+                    mapreq.pursueShapes = true;
+                }
+
+                $nodeclass RepositionGripperObject : StateNode : doStart {
+                    $reference KoduInterp::thisAgent;
+                    $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                    
+                    std::cout << "[" << getName() << "]: attempting to reposition gripper object.\n";
+                    NEW_SHAPEROOTVEC(objs, subset(localShS,
+                        Kodu::IsShapeOfType(thisAgent->gripperObject->getType())));
+                    ShapeRoot targetShape = Kodu::getClosestObjectToPoint(objs, objFutureEgoPos);
+                    // check if the target shape is valid
+                    if (targetShape.isValid()) {
+                        std::cout << "target shape is valid. setting its allocentric position.\n";
+                        Point objAllocentricPt = targetShape->getCentroid();
+                        objAllocentricPt.applyTransform(VRmixin::mapBuilder->localToWorldMatrix,
+                                                       allocentric);
+                        std::cout << "Repositioning the object to from "
+                        << thisAgent->gripperObject->getCentroid() << " to "
+                        << objAllocentricPt << std::endl;
+                        thisAgent->gripperObject->setPosition(objAllocentricPt);
+                        postStateSuccess();
+                    }
+                    // should only fail if the robot did not see any cylinders
+                    else {
+                        std::cout << "target shape is NOT VALID!!!! Don't know what to do!\n";
+                        postStateFailure();
+                    }
+                }
+
+                $setupmachine {
+                    needToLook:     NeedToLookAround
+                    lookAround:     LookAroundForObject
+                    reposBody:      RepositionBody
+                    findObjAgain:   FindObjectAgain
+                    reposGripObj:   RepositionGripperObject
+
+                    needToLook =S<bool>(true)=> lookAround =C=> reposBody
+                    needToLook =S<bool>(false)=> reposBody
+
+                    reposBody =C=> findObjAgain =C=> reposGripObj
+
+                    reposGripObj =S=> PostMachineSuccess
+                    reposGripObj =F=> SpeechNode("error shape was not valid") =C=> PostMachineFailure
+                }
             }
 
             $nodeclass CreateGripMonTask : StateNode : doStart {
                 $reference KoduInterp::thisAgent;
                 $reference GrabActionRunner::objectTagId;
+                std::cout << "[" << getName() << "]: creating perceptual task; ";
                 Shape<AprilTagData> tag = find_if<AprilTagData>(localShS,
                     Kodu::HasAprilTagID(objectTagId));
-                std::cout << "creating perceptual task; ";
                 thisAgent->ptasks.push(
                     new Kodu::VisualGripperMonitorTask(thisAgent->gripperObject, tag));
                 std::cout << "centroid = " << tag->getCentroid() << "; id = "
@@ -1658,16 +2010,18 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             }
 
             $setupmachine {
-                grab:           GrabObject
-                verify:         VerifyObjectGrabbed
-                posBody:        RepositionBody
+                grabObj:        GrabObject
+                verifyObjGrab:  VerifyObjectWasGrabbed
+                prepForRetry:   PrepareForAnotherAttempt
                 createTask:     CreateGripMonTask
 
-                grab =GRASP=> verify
+                grabObj =GRASP=> verifyObjGrab
 
-                verify =S=> createTask =C=> PostMachineSuccess
-                verify =C=> posBody =C=> grab
-                verify =F=> SpeechNode("failure could not find a match") =C=> PostMachineFailure
+                verifyObjGrab =S=> createTask =C=> PostMachineSuccess
+                verifyObjGrab =F=> prepForRetry
+
+                prepForRetry =S=> grabObj
+                prepForRetry =F=> SpeechNode("unhandled error using grab action") =C=> PostMachineFailure
             }
             
         } // end of ExecuteGrabAction
@@ -1698,6 +2052,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             gStart =F=> SpeechNode("failure during start node in grab action") =C=> gEnd
 
             prep =C=> exec
+            
             exec =S=> gEnd =C=> PostMachineCompletion
             exec =F=> SpeechNode("failure during execution node in grab action") =C=> gEnd
         }
@@ -1708,29 +2063,15 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 // MotionActionRunner
     
     $nodeclass MotionActionRunner : StateNode {
-        
-        enum MotionTransType {
-            MTT_SIMPLE_MOTION = 0,
-            MTT_GO_TO_SHAPE
-        };
-
-        enum MotionApproachSegment_t {
-            MAS_NO_SEGMENTS = 0,
-            MAS_INITIAL,
-            MAS_FINAL,
-            MAS_NUMB_SEG_TYPES
-        };
-
         $provide Kodu::MotionCommand cmd;
-        $provide MotionApproachSegment_t segment;
-        $provide const float kInitAppOffset(Kodu::KoduConditionBump::kMaxDistanceAwayToSenseBump + 30);
-
+        
         virtual void stop() {
             $reference KoduInterp::thisAgent;
             // set is walking flag to false
-            thisAgent->agentIsWalking = false;
+            //thisAgent->agentIsWalking = false;
             // invalidate the current motion command
-            thisAgent->currMotionCmd.invalidate();
+            //thisAgent->currMotionCmd.invalidate();
+            thisAgent->motionComplete();
             cmd = Kodu::MotionCommand();
             // abort the pilot
             VRmixin::pilot->pilotAbort();
@@ -1738,273 +2079,260 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             StateNode::stop();
         }
 
-        $nodeclass MotionStart : StateNode {
-            /**
-             * If the agent is walking towards a shape, it should first check if it can "simply" turn
-             * towards the object and walk straight to it. This function tests that by drawing a
-             * rectangle from the robot to the target shape. If any shape is in the rectangle
-             * (except for the target and the agent itself), then the agent must revert to the goToShape
-             * Pilot request. Otherwise, it can use simple motion.
-             *
-             * ASSUMPTIONS:
-             * 1) The only shapes in the environment are cylinders/canisters. This function does not
-             *    assume that there are other things such as walls or other agents (robots) in the
-             *    environment.
-             *
-             * 2) The environment is static. That is, there is only one robot in the environment and
-             *    it is the only mobile thing in the environment.
-            **/
-            Kodu::MotionCommand canUseSimpleMotion(const ShapeRoot& kTarget) {
-                $reference MotionActionRunner::kInitAppOffset;
-                // gather all the shapes in the world shape space
-                std::cout << "checking if agent can do simple motion...\n";
-                std::vector<ShapeRoot> worldShapes(worldShS);
+        $nodeclass MotionStart : StateNode : doStart {
+            $reference KoduInterp::thisAgent;
+            $reference MotionActionRunner::cmd;
 
-                // import them to the local shape space (if it is a cylinder) and get the target object
-                ShapeRoot lclTarget;
-                std::vector<ShapeRoot> lclShapes;
-                std::cout << "importing shapes from world to local...\n";
-                for (std::size_t i = 0; i < worldShapes.size(); i++) {
-                    if (worldShapes[i]->getType() == cylinderDataType) {
-                        lclShapes.push_back(VRmixin::mapBuilder->importWorldToLocal(worldShapes[i]));
-                        if (worldShapes[i] == kTarget) {
-                            lclTarget = lclShapes.back();
-                        }
-                    }
-                }
+            std::cout << "[" << getName() << "]: starting up motion action runner\n";
+            //thisAgent->agentIsWalking = true;
+            thisAgent->signalMotionActionStart();
+            cmd = thisAgent->currMotionCmd;
+            thisAgent->currMotionCmd.invalidate();
+            postStateCompletion();
+        }
 
-                // make sure the target shape is valid (should never be invalid)
-                if (!(lclTarget.isValid())) {
-                    std::cout << "local target shape was not found... cannot do simple motion\n";
-                    return Kodu::MotionCommand();
-                }
+        $nodeclass ExecuteMotionAction : StateNode {
+            $provide const float kMinDistForGoToShape(250.0f);
+            $provide int targetShapeTagId(-1);
 
-                // get the centroid of the target and the agent's base offset
-                const Point& kTargetPt = lclTarget->getCentroid();
-                const float agentBaseOffset = VRmixin::theAgent->getBoundingBoxOffset()[0];
+            enum MotionTransType {
+                MTT_SIMPLE_MOTION = 0,
+                MTT_GO_TO_SHAPE
+            };
 
-                // calculate points for the pre-image polygon (rectangle/box)
-                // length (of box) = the distance from the robot's centroid to the target's centroid
-                //const float kLength = kTargetPt.xyDistanceFrom(Point(0, 0, 0, egocentric));
-                const float kLength = Kodu::distanceFromAgentToPoint(kTargetPt);
-                // halfWidth (of box) = the inflated diameter of the robot
-                const float kHalfWidth = agentBaseOffset * 0.85f;
-                std::vector<Point> preImagePoly;
-                preImagePoly.push_back(Point(kLength,  kHalfWidth, 0, egocentric)); // top left
-                preImagePoly.push_back(Point(kLength, -kHalfWidth, 0, egocentric)); // top right
-                preImagePoly.push_back(Point(      0, -kHalfWidth, 0, egocentric)); // bottom right
-                preImagePoly.push_back(Point(      0,  kHalfWidth, 0, egocentric)); // bottom left
-
-                // create the transformed polygon
-                float dtheta = AngSignPi(kTargetPt.atanYX());
-                //float dtheta = Kodu::bearingFromAgentToObject(lclTarget);
-                std::vector<Point> transPoly;
-                for (std::size_t i = 0; i < preImagePoly.size(); i++) {
-                    // calculate the transformed x coordinate => x' = (x * cos(theta)) - (y * sin(theta))
-                    float xPrime = (preImagePoly[i].coordX() * cos(dtheta))
-                                    - (preImagePoly[i].coordY() * sin(dtheta));
-                    
-                    // calculate the transformed y coordinate => y' = (y * cos(theta)) + (x * sin(theta))
-                    float yPrime = (preImagePoly[i].coordY() * cos(dtheta))
-                                    + (preImagePoly[i].coordX() * sin(dtheta));
-
-                    // add the xy pair to the point vector
-                    transPoly.push_back(Point(xPrime, yPrime, 0, egocentric));
-                }
-                // close the polygon
-                transPoly.push_back(transPoly[0]);
-
-                // put the polygon in the local shape space
-                NEW_SHAPE(simpleMotionBox, PolygonData, new PolygonData(localShS, transPoly, true));
-                //simpleMotionBox->setObstacle(false);
-                simpleMotionBox->setViewable(true);
-
-                // iterate over all shapes in the local shape vector
-                const std::size_t kNumbOfCorners = 4;
-                for (std::size_t i = 0; i < lclShapes.size(); i++) {
-                    // if the current shape is the target, skip it
-                    if (lclShapes[i]->getId() == lclTarget->getId())
-                        continue;
-                    // create the four corners of the shape
-                    BoundingBox2D box = lclShapes[i]->getBoundingBox();
-
-                    Point shapeCorners[kNumbOfCorners] = {
-                        Point(box.max[0], box.max[1], 0, egocentric),   // top left
-                        Point(box.max[0], box.min[1], 0, egocentric),   // top right
-                        Point(box.min[0], box.min[1], 0, egocentric),   // bottom right
-                        Point(box.min[0], box.max[1], 0, egocentric)    // bottom left
-                    };
-                    // check if any of them are inside or "on" the simple motion box
-                    for (std::size_t j = 0; j < kNumbOfCorners; j++) {
-                        if (simpleMotionBox->isInside(shapeCorners[j])) {
-                            std::cout << "shape " << lclShapes[i] << " is inside the motion box... ";
-                            std::cout << "reverting to goToShape Pilot request.\n";
-                            return Kodu::MotionCommand();
-                        }
-                    }
-                }
-                std::cout << "agent can use simple motion to walk to shape \"" << lclTarget << "\"\n";
-                return Kodu::MotionCommand(ShapeRootTypeConst(kTarget, CylinderData),
-                    Kodu::distanceInBetweenAgentAndObject(lclTarget) - kInitAppOffset, dtheta, 0, 0);
-            }
-
-            virtual void doStart() {
+            $nodeclass CheckMotionType : StateNode : doStart {
+                $reference KoduInterp::theWorld;
                 $reference KoduInterp::thisAgent;
                 $reference MotionActionRunner::cmd;
-                $reference MotionActionRunner::segment;
-                std::cout << "[" << getName() << "]: starting up motion action runner\n";
-                thisAgent->agentIsWalking = true;
-                // check if the agent needs to go to an object
-                if (thisAgent->currMotionCmd.targetObjectIsValid()) {
-                    // get a constant reference to the target shape
-                    const ShapeRoot& target = thisAgent->currMotionCmd.getTargetObject();
-                    // check if the agent can perform simple motion
-                    
-                    //************* temp fix
-                    if (!thisAgent->isHoldingAnObject()
-                        && (cmd = canUseSimpleMotion(target)).isValid())
+                $reference ExecuteMotionAction::targetShapeTagId;
+
+                //*********** temp fix
+                std::cout << "[" << getName() << "]: checking motion type\n";
+                // check the type of motion the robot wants to perform
+                // if the motion command's target shape is valid, then it is a move towards action
+                if (cmd.targetObjectIsValid()) {
+                    std::cout << "looks like a move towards action.\n";
+                    $reference ExecuteMotionAction::kMinDistForGoToShape;
+                    if (Kodu::distanceInBetweenAgentAndObject(cmd.getTargetObject())
+                        > kMinDistForGoToShape)
                     {
+                        std::cout << "agent is more than " << kMinDistForGoToShape
+                            << "mm away from shape.\n";
+                        std::cout << "shape was bumped before? ";
+                        int shapeId = cmd.getTargetObject().getId();
+                        if (theWorld->shapeTagPairExists(shapeId)) {
+                            targetShapeTagId = theWorld->getTagIdForShape(shapeId);
+                            std::cout << "yes! id = " << targetShapeTagId << std::endl;
+                        } else {
+                            std::cout << "no.\n";
+                        }
+                        postStateSignal<MotionTransType>(MTT_GO_TO_SHAPE);
+                    } else {
+                        std::cout << "agent is too close to execute a goToShape request.\n";
                         postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                     }
-                    //*************
-                    //if ((cmd = canUseSimpleMotion(target)).isValid()) {
-                    //    postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
-                    //}
-                    // if not, revert to the goToShape Pilot request
-                    else {
-                        cmd = thisAgent->currMotionCmd;
-                        postStateSignal<MotionTransType>(MTT_GO_TO_SHAPE);
-                    }
-                    segment = MAS_INITIAL;
+                    //*********** temp fix
+                    // this task should be created anytime the robot is executing a motion action
+                    // execpt when doing stationary turns...
+                    std::cout << "creating walk progress perceptual task\n";
+                    thisAgent->ptasks.push(new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
+                    //***********
                 }
-                // else, do simple motion
+                // else it might be something else
                 else {
-                    cmd = thisAgent->currMotionCmd;
-                    segment = MAS_NO_SEGMENTS;
+                    std::cout << "looks like something that needs simple motion.\n";
                     postStateSignal<MotionTransType>(MTT_SIMPLE_MOTION);
                 }
-                // invalidate the motion command
-                thisAgent->currMotionCmd.invalidate();
+                //***********
             }
-        }
 
-        /**
-         * ASSUMPTIONS:
-         * By adding a Motion Command to do simple motion after this nodeclass (without checking if
-         * the agent can do simple motion), I am assuming that the environment is:
-         *   1) Static. There is one agent pure environment, and objects cannot move unless the one agent
-         *      causes the objects to move (intentionally or unintentionally).
-         *   2) The environment is rectangular with all objects, including the agent, are inside it.
-         *   3) There will be nothing in between the agent and the target object when this nodeclass,
-         *      GoToShape, transitions to SimpleMotion.
-        **/
-        $nodeclass GoToShape : PilotNode(PilotTypes::goToShape) : doStart {
-            $reference MotionActionRunner::cmd;
-            $reference MotionActionRunner::segment;
-            $reference MotionActionRunner::kInitAppOffset;
-            $reference KoduInterp::thisAgent;
-            std::cout << "[" << getName() << "]: executing goToShape motion command\n";
-            pilotreq = PilotRequest(PilotTypes::goToShape);
-            ShapeRoot target = cmd.getTargetObject();
-            target->setObstacle(false);
-            pilotreq.targetShape = target;
-            // prevent the agent from moving backwards if there is something in the gripper
-            if (thisAgent->isHoldingAnObject()) {
-                std::cout << "agent is holding an object... (explicitly) disallowing backward motion\n";
-                pilotreq.allowBackwardMotion = false;
-            }
-            float centroidDist = Kodu::distanceFromAgentToObject(target);
-            float spatialDist = Kodu::distanceInBetweenAgentAndObject(target);
-            float offset = centroidDist - spatialDist + kInitAppOffset;
-            pilotreq.baseOffset = fmat::pack(offset, 0, 0);
-            float distLeft = kInitAppOffset - 15.0f;
-            cmd = Kodu::MotionCommand(distLeft, 0, 0, 0);
-            pilotreq.collisionAction = collisionIgnore;
-            segment = MAS_FINAL;
-            std::cout << "base offset = " << offset << "mm; distance left = " << distLeft << "mm\n";
-        }
-
-        $nodeclass ReportMotionFailure : SpeechNode : doStart {
-            std::cout << "[" << getName() << "]\n";
-            textstream << "Failed motion command";
-        }
-
-        $nodeclass SimpleMotion : StateNode {
-
-            $nodeclass SimpleTurn : PilotNode : doStart {
+            $nodeclass ExecuteGoToShapeRequest : PilotNode(PilotTypes::goToShape) : doStart {
+                $reference KoduInterp::thisAgent;
                 $reference MotionActionRunner::cmd;
-                $reference MotionActionRunner::segment;
-                std::cout << "[" << getName() << "]: ";
-                pilotreq = PilotRequest(PilotTypes::walk);
-                if (segment == MAS_FINAL && cmd.targetObjectIsValid()) {
-                    pilotreq.da = Kodu::bearingFromAgentToObject(cmd.getTargetObject());
-                } else {
+                $reference ExecuteMotionAction::kMinDistForGoToShape;
+                // construct the pilot request
+                std::cout << "[" << getName() << "]: executing goToShape motion command\n";
+                pilotreq = PilotRequest(PilotTypes::goToShape);
+                ShapeRoot target = cmd.getTargetObject();
+                target->setObstacle(false);
+                pilotreq.targetShape = target;
+                // prevent the agent from moving backwards if there is something in the gripper
+                if (thisAgent->isHoldingAnObject()) {
+                    std::cout << "agent is holding an object... disallowing backward motion\n";
+                    pilotreq.allowBackwardMotion = false;
+                }
+                // calculate the offset
+                float centroidDist = Kodu::distanceFromAgentToObject(target);
+                float spatialDist = Kodu::distanceInBetweenAgentAndObject(target);
+                float xOffset = centroidDist - spatialDist + kMinDistForGoToShape;
+                pilotreq.baseOffset = fmat::pack(xOffset, 0, 0);
+                // ignore any collisions
+                pilotreq.collisionAction = collisionIgnore;
+            }
+
+            $nodeclass ExecuteSimpleMotion : StateNode {
+
+                $nodeclass CheckForValidTarget : StateNode : doStart {
+                    $reference MotionActionRunner::cmd;
+                    
+                    std::cout << "[" << getName() << "]: robot needs to do final approach? ";
+                    // check if the robot needs to do a final approach
+                    if (cmd.targetObjectIsValid())
+                        std::cout << "yes!\n";
+                    else
+                        std::cout << "no!\n";
+                    postStateSignal<bool>(cmd.targetObjectIsValid());
+                }
+
+                $nodeclass FindMotionTarget : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
+                    $reference MotionActionRunner::cmd;
+                    $reference ExecuteMotionAction::targetShapeTagId;
+                    
+                    std::cout << "[" << getName() << "]: searching for target object\n";
+                    // construct the mapbuilder request to search for the target
+                    mapreq.clearLocal = true;
+                    const ShapeRoot& kTarget = cmd.getTargetObject();
+                    // search for a shape with:
+                    // --- the same color and type
+                    mapreq.addObjectColor(kTarget->getType(), kTarget->getColor());
+                    // --- the approx. coordinates
+                    mapreq.searchArea = kTarget->getCentroidPtShape();
+                    // --- no centroid beyond this distance
+                    float centroidDist = Kodu::distanceFromAgentToObject(kTarget);
+                    float fudgeFactor = Kodu::objectRadius(kTarget) * 1.5f;
+                    mapreq.maxDist = centroidDist + fudgeFactor;
+                    // if the target was bumped before look for april tags as well
+                    if (targetShapeTagId > 0) {
+                        std::cout << "searching for april tags too (shape was bumped before).\n";
+                        mapreq.setAprilTagFamily();
+                    }
+                    mapreq.pursueShapes = false;
+                }
+
+                $nodeclass CreateFinalApproachCommand : StateNode : doStart {
+                    $reference MotionActionRunner::cmd;
+                    $reference ExecuteMotionAction::targetShapeTagId;
+
+                    std::cout << "[" << getName() << "]: creating final approach motion command.\n";
+                    // check if the object was bumped before, and if that tag was seen in the 
+                    // recently performed mapbuilder request
+                    ShapeRoot targetShape = find_if(localShS, Kodu::HasAprilTagID(targetShapeTagId));
+                    // if the shaperoot reference is valid, then the tag was seen
+                    if (targetShape.isValid()) {
+                        std::cout << "this object was bumped before! using the april tag as target\n";
+                    }
+                    // else, the object was either not bumped before or the tag was not seen
+                    else {
+                        std::cout << "either the tag was not seen, or the object was never bumped; ";
+                        const ShapeRoot& kTarget = cmd.getTargetObject();
+                        ShapeRoot lclTarget = VRmixin::mapBuilder->importWorldToLocal(kTarget);
+                        targetShape = find_if(localShS, Kodu::IsMatchForTargetObject(lclTarget));
+                        if (!targetShape.isValid()) {
+                            std::cout << "could not find a match! THIS IS A SERIOUS ERROR!!!\n";
+                            postStateFailure();
+                        }
+                    }
+                    // get the bearing to the tag
+                    float angleToTurn = Kodu::bearingFromAgentToObject(targetShape);
+                    // get the distance to travel:
+                    // --- get the radius of the object
+                    float shapeRadius = Kodu::objectRadius(cmd.getTargetObject());
+                    // --- create a fake cylinder in the world (the shape will be enclosed in this
+                    //     cylinder)
+                    NEW_SHAPE(fakeCyl, CylinderData, new CylinderData(localShS,
+                        targetShape->getCentroid(), 0.0f, shapeRadius));
+                    // --- calculate the distance in between the agent and this enclosed shape
+                    float distanceToTravel = Kodu::distanceInBetweenAgentAndObject(fakeCyl);
+                    // create a new motion command
+                    cmd = Kodu::MotionCommand(distanceToTravel, angleToTurn, 0.0f, 0.0f);
+                    std::cout << "angle = " << angleToTurn << "rads (= "
+                        << rad2deg(angleToTurn) << "degs); distance = "
+                        << distanceToTravel << "mm\n";
+                    // signal process was successful!
+                    postStateSuccess();
+                }
+
+                $nodeclass ExecuteSimpleTurn : PilotNode(PilotTypes::walk) : doStart {
+                    $reference MotionActionRunner::cmd;
+                    // construct the pilot request
+                    std::cout << "[" << getName() << "]: executing simple turn command; da = ";
+                    pilotreq = PilotRequest(PilotTypes::walk);
                     pilotreq.da = cmd.getTurningAngle();
+                    std::cout << pilotreq.da << "rads (= " << rad2deg(pilotreq.da) << "degs)\n";
+                    pilotreq.collisionAction = collisionIgnore;
                 }
-                pilotreq.collisionAction = collisionIgnore;
-                std::cout << "simple turn = " << pilotreq.da << " rad (= " 
-                          << rad2deg(pilotreq.da) << " deg)\n";
-            }
 
-            $nodeclass SimpleWalk : PilotNode : doStart {
-                $reference MotionActionRunner::cmd;
-                $reference MotionActionRunner::segment;
-                std::cout << "[" << getName() << "]: ";
-                pilotreq = PilotRequest(PilotTypes::walk);
-                if (segment == MAS_FINAL && cmd.targetObjectIsValid()) {
-                    pilotreq.dx = Kodu::distanceInBetweenAgentAndObject(cmd.getTargetObject());
-                } else {
+                $nodeclass ExecuteSimpleWalk : PilotNode(PilotTypes::walk) : doStart {
+                    $reference MotionActionRunner::cmd;
+                    // construct the pilot request
+                    std::cout << "[" << getName() << "]: executing simple forward walk command; dx = ";
+                    pilotreq = PilotRequest(PilotTypes::walk);
                     pilotreq.dx = cmd.getDistanceToTravel();
+                    std::cout << pilotreq.dx << "mm\n";
+                    pilotreq.collisionAction = collisionIgnore;
                 }
-                pilotreq.collisionAction = collisionIgnore;
-                std::cout << "simple dist = " << pilotreq.dx << "mm\n";
-            }
 
-            $nodeclass SimpleDone : StateNode : doStart {
-                $reference MotionActionRunner::segment;
-                std::cout << "[" << getName() << "]: incrementing to next segment\n";
-                postStateSignal<MotionApproachSegment_t>(segment);
-                segment = (MotionApproachSegment_t)(((int)segment + 1) % (int)MAS_NUMB_SEG_TYPES);
+                $setupmachine {
+                    checkForValidTarget:    CheckForValidTarget
+                    findMotionTarget:       FindMotionTarget
+                    createFnlApprCmd:       CreateFinalApproachCommand
+                    execTurn:               ExecuteSimpleTurn
+                    execWalk:               ExecuteSimpleWalk
+                    finalApprFail:          SpeechNode("error nothing available for final approach")
+
+                    checkForValidTarget =S<bool>(true)=> findMotionTarget =C=> createFnlApprCmd
+                    checkForValidTarget =S<bool>(false)=> execTurn
+
+                    createFnlApprCmd =S=> execTurn
+                    createFnlApprCmd =F=> finalApprFail =C=> PostMachineFailure
+
+                    execTurn =C=> execWalk =C=> PostMachineCompletion
+                }
             }
 
             $setupmachine {
-                simpleTurn:     SimpleTurn
-                simpleWalk:     SimpleWalk
-                simpleDone:     SimpleDone
+                checkMotionType:        CheckMotionType
+                execGoToShape:          ExecuteGoToShapeRequest
+                execSimpleMotion:       ExecuteSimpleMotion
 
-                // find a better way to implement loops in this state machine (w/o MAS_*)
-                simpleTurn =C=> simpleWalk =C=> simpleDone
-                simpleDone =S<MotionApproachSegment_t>(MAS_INITIAL)=> simpleTurn
-                simpleDone =S<MotionApproachSegment_t>(MAS_FINAL)=> PostMachineCompletion
-                simpleDone =S<MotionApproachSegment_t>(MAS_NO_SEGMENTS)=> PostMachineCompletion
+                checkMotionType =S<MotionTransType>(MTT_GO_TO_SHAPE)=> execGoToShape
+                checkMotionType =S<MotionTransType>(MTT_SIMPLE_MOTION)=> execSimpleMotion
+
+                execGoToShape =C=> execSimpleMotion
+                execGoToShape =F=> SpeechNode("error at go to shape") =C=> PostMachineFailure
+
+                execSimpleMotion =C=> PostMachineCompletion
+                execSimpleMotion =F=> SpeechNode("error at simple motion") =C=> PostMachineFailure
             }
         }
 
         $nodeclass MotionEnd : StateNode : doStart {
             $reference KoduInterp::thisAgent;
             $reference MotionActionRunner::cmd;
-            std::cout << "[" << getName() << "]: simple motion complete.\n";
-            // if (cmd.targetObjectIsValid()) {
-            //     cmd.getTargetObject()->setObstacle();
-            // }
+            
+            std::cout << "[" << getName() << "]: Motion Action Runner complete.\n";
+            if (thisAgent->currMotionCmd.targetObjectIsValid()) {
+                std::cout << "making target shape an obstacle (again).\n";
+                ShapeRoot targetShape = thisAgent->currMotionCmd.getTargetObject();
+                targetShape->setObstacle();
+            }
             cmd = Kodu::MotionCommand();
-            thisAgent->agentIsWalking = false;
-            postParentCompletion();
+            //thisAgent->agentIsWalking = false;
+            thisAgent->motionComplete();
+            postStateCompletion();
         }
 
         $setupmachine {
             mStart:     MotionStart
-            go2Shape:   GoToShape
-            reportFail: ReportMotionFailure
-            simMotion:  SimpleMotion
+            execMotion: ExecuteMotionAction
             mEnd:       MotionEnd
 
-            mStart =S<MotionTransType>(MTT_GO_TO_SHAPE)=> go2Shape
-            mStart =S<MotionTransType>(MTT_SIMPLE_MOTION)=> simMotion
+            mStart =C=> execMotion
+            
+            execMotion =C=> mEnd
+            execMotion =F=> SpeechNode("error during motion") =C=> mEnd
 
-            go2Shape =PILOT(noError)=> simMotion
-            go2Shape =C=> reportFail =C=> mEnd
-            simMotion =C=> mEnd
+            mEnd =C=> PostMachineCompletion
         }
     }
 
@@ -2047,8 +2375,9 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             if (VRmixin::isWalkingFlag == true && !thisAgent->isExecutingManipAction()) {
                 std::cout << "aborting the current motion command.\n";
-                thisAgent->agentIsWalking = false;
-                thisAgent->currMotionCmd.invalidate();
+                //thisAgent->agentIsWalking = false;
+                //thisAgent->currMotionCmd.invalidate();
+                thisAgent->motionComplete();
                 VRmixin::pilot->pilotAbort();
                 motionActRef->stop();
             }
@@ -2227,7 +2556,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             evaluator:  KoduConditionEvaluator  // evaluates all the rules for the current page
             runner:     KoduActionRunner        // initiates execution of runnable actions
             
-            endState:   StateNode
+            endState:   StateNode               // prevents a node from becoming stuck, non-executable
             
             initAgent =C=> { evaluator, walkMon }
             walkMon =T(500)=> walkMon
@@ -2271,7 +2600,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             pageSwitchAct =C=> endState
 
             //************ temp fix
-            pageSwitchAct =F=> SpeechNode("unhandled switch to null page") =C=> endState
+            pageSwitchAct =F=> SpeechNode("unhandled switch to a null page") =C=> endState
             //************
         }
         // 
