@@ -21,7 +21,10 @@ namespace Kodu {
     unsigned int VisualWalkProgressTask::idCount = 30000;
 
     bool VisualWalkProgressTask::canExecute(const KoduWorld& kWorldState) {
-        return kWorldState.thisAgent.isWalking();
+        // return kWorldState.thisAgent.isWalking();
+        return (kWorldState.thisAgent.bodyIsInMotion()
+            && kWorldState.thisAgent.isExecutingMotionAction()
+            && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f));
     }
 
     void VisualWalkProgressTask::examineTaskResults() {
@@ -100,7 +103,7 @@ namespace Kodu {
         switch (taskStatus) {
             case PerceptualTaskBase::TS_IN_PROGRESS:
             {
-                if (!kWorldState.thisAgent.isWalking()) {
+                if (!kWorldState.thisAgent.isExecutingMotionAction()) {
                     taskStatus = TS_SUCCESSFUL;
                     return true;
                 }
