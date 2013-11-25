@@ -24,7 +24,7 @@ namespace Kodu {
             std::cout << "!!! ERROR! There is not enough shapes to localize!\n";
             return false;
         }
-        return (!kWorldState.thisAgent.isWalking() && !localizationPoints.empty());
+        return (!kWorldState.thisAgent.isExecutingMotionAction() && !localizationPoints.empty());
     }
     
     const DualCoding::PilotRequest& VisualLocalizationTask::getPilotRequest() {
