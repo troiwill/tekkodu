@@ -5,9 +5,8 @@
 
 namespace Kodu {
 
-    const float KoduConditionBump::kMaxDistanceAwayToSenseBump = 40.0f; // millimeters
-    //const float KoduConditionBump::kMaxDistInBtwToSenseBump = 100.0f;
-
+    const float KoduConditionBump::kMaxDistanceAwayToSenseBump = 70.0f; // millimeters
+    
     bool KoduConditionBump::evaluate(const KoduWorld& kWorldState) {
         // check the following:
         // 1) the agent visually detected the bump,
