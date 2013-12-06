@@ -136,42 +136,39 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             getMC()->lookAtPoint(1400.0f, 0, 0);
         }
 
-        $nodeclass OrganizeWorld : StateNode {
-
-            virtual void doStart() {
-                $reference KoduInterp::theWorld;
-                std::cout << "[" << getName() << "]: organizing the world.\n";
-                // get all the shapes that are probably false positives, or not considered as a
-                // world shape, and remove them from the worldShS
-                std::cout << "deleting some shapes.\n";
-                NEW_SHAPEROOTVEC(shapesToDelete, subset(worldShS, Kodu::IsNotWorldShape()));
-                worldShS.deleteShapes(shapesToDelete);
-                // search for the north star
-                std::cout << "searching for north star... ";
-                NEW_SHAPEROOTVEC(constellation, subset(worldShS, Kodu::IsStar()));
-                // check if the robot observed the constellation
-                if (!constellation.empty()) {
-                    std::cout << "found the North Star!\n";
-                    // add the constellation (points) to the world state
-                    theWorld->setStarConstellation(constellation);
-                    // generate the world bounds
-                    theWorld->generateWorldBoundsPolygon();
-                    // remove the constellation from the world shape space (prevents the pilot from
-                    // periodically stopping the robot---I want the interpreter to controll that)
-                    worldShS.deleteShapes(constellation);
-                } else {
-                    std::cout << "could not find North Star (creating an artificial point)\n";
-                    // nothing in the constellation was seen (generate the world bounds)
-                    theWorld->generateWorldBoundsPolygon();
-                }
-                // set the world bounds in the pilot
-                std::cout << "setting world bounds\n";
-                VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
-                // clear the landmark vector in the pilot
-                std::cout << "clearing default landmarks\n";
-                VRmixin::pilot->setDefaultLandmarks(std::vector<ShapeRoot>());
-                postStateCompletion();
+        $nodeclass OrganizeWorld : StateNode : doStart {
+            $reference KoduInterp::theWorld;
+            std::cout << "[" << getName() << "]: organizing the world.\n";
+            // get all the shapes that are probably false positives, or not considered as a
+            // world shape, and remove them from the worldShS
+            std::cout << "deleting some shapes.\n";
+            NEW_SHAPEROOTVEC(shapesToDelete, subset(worldShS, Kodu::IsNotWorldShape()));
+            worldShS.deleteShapes(shapesToDelete);
+            // search for the north star
+            std::cout << "searching for north star... ";
+            NEW_SHAPEROOTVEC(constellation, subset(worldShS, Kodu::IsStar()));
+            // check if the robot observed the constellation
+            if (!constellation.empty()) {
+                std::cout << "found the North Star!\n";
+                // add the constellation (points) to the world state
+                theWorld->setStarConstellation(constellation);
+                // generate the world bounds
+                theWorld->generateWorldBoundsPolygon();
+                // remove the constellation from the world shape space (prevents the pilot from
+                // periodically stopping the robot---I want the interpreter to controll that)
+                worldShS.deleteShapes(constellation);
+            } else {
+                std::cout << "could not find North Star (creating an artificial point)\n";
+                // nothing in the constellation was seen (generate the world bounds)
+                theWorld->generateWorldBoundsPolygon();
             }
+            // set the world bounds in the pilot
+            std::cout << "setting world bounds\n";
+            VRmixin::pilot->setWorldBounds(theWorld->getWorldBoundsPolygon());
+            // clear the landmark vector in the pilot
+            std::cout << "clearing default landmarks\n";
+            VRmixin::pilot->setDefaultLandmarks(std::vector<ShapeRoot>());
+            postStateCompletion();
         }
 
         $setupmachine {
@@ -214,86 +211,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 std::cout << "[" << getName() << "]: accumulated dist. = " 
                     << thisAgent->distanceTravelled << "mm\n";
             }
-        }
-    }
-
-    $nodeclass VerifyObjectGrabbed : StateNode {
-
-        $nodeclass LookAtTheGripper : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
-            std::cout << "[" << getName() << "]: looking at tag\n";
-            mapreq.clearLocal = true;
-            // search for an april tag
-            mapreq.setAprilTagFamily();
-            // look at the gripper
-            fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
-            NEW_SHAPE(gazePoint, PointData, new PointData(localShS,
-                Point(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric)));
-            mapreq.searchArea = gazePoint;
-        }
-
-        $nodeclass VerifyObjectInGripper : StateNode : doStart {
-            $reference KoduInterp::theWorld;
-            $reference KoduInterp::thisAgent;
-            std::cout << "[" << getName() << "]: verifying object was grabbed.\n";
-            
-            // check if a particular tag was seen
-            NEW_SHAPE(tag, AprilTagData, find_if<AprilTagData>(localShS,
-                Kodu::HasAprilTagID(theWorld->getTagIdForShape(thisAgent->gripperObject.getId()))));
-            
-            // if the reference is not valid, post a failure
-            if (!tag.isValid()) {
-                std::cout << "NO TAGS WERE SEEN AT ALL!!!\n";
-                postStateFailure();
-                return;
-            }
-
-            //********** temp fix
-            // 
-            // get the gripper location
-            fmat::Column<3> gripperLoc = kine->linkToBase(GripperFrameOffset).translation();
-            Point gripperPoint(gripperLoc[0], gripperLoc[1], gripperLoc[2], egocentric);
-            
-            // check if the object is in the gripper
-            if ((tag->getCentroid().xyDistanceFrom(gripperPoint) - 10.0f)
-                < ShapeRootTypeConst(thisAgent->gripperObject, CylinderData)->getRadius())
-            {
-                std::cout << "successfully grabbed object\n";
-                postStateSuccess();
-            } else {
-                std::cout << "failed to grab object... reattempting.\n";
-                postStateFailure();
-            }
-            //***********
-        }
-
-        $nodeclass FindMissedObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
-            std::cout << "[" << getName() << "]: attempting to locate object (again)\n";
-            // generate points to look at (near the robot's body)
-            std::vector<Point> pts;
-            pts.push_back(Point(  300,    0,    0, egocentric));
-            pts.push_back(Point(  500,    0,    0, egocentric));
-            pts.push_back(Point(  500, -200,    0, egocentric));
-            pts.push_back(Point(  300, -200,    0, egocentric));
-            NEW_SHAPE(gazePoints, PolygonData, new PolygonData(localShS, pts, false));
-            
-            // construct the mapbuilder request
-            mapreq.searchArea = gazePoints;
-            mapreq.setAprilTagFamily();
-            mapreq.clearLocal = true;
-        }
-
-        $setupmachine {
-            lookAtGripper:  LookAtTheGripper
-            checkGripper:   VerifyObjectInGripper
-            findObj:        FindMissedObject
-            
-            lookAtGripper =C=> checkGripper
-
-            checkGripper =S=> PostMachineSuccess
-            checkGripper =F=> findObj
-
-            findObj =C=> PostMachineCompletion
-            findObj =F=> SpeechNode("failure could not find a match") =C=> PostMachineFailure
         }
     }
 
@@ -792,15 +709,28 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         }
                     }
 
+                    $nodeclass FaceTarget : PilotNode(PilotTypes::walk) : doStart {
+                        $reference ObjectManipRecovery::grasperTarget;
+                        std::cout << "[" << getName() << "]: turning by ";
+                        float bearingToTarget = Kodu::bearingFromAgentToObject(grasperTarget);
+                        std::cout << bearingToTarget << " rads (= " << rad2deg(bearingToTarget)
+                            << " degs)\n";
+                        pilotreq.da = bearingToTarget;
+                    }
+
                     $setupmachine {
                         rvrs:       Reverse
                         find:       LocateLostObject
                         setTarget:  SetGrasperTarget
+                        faceTarget: FaceTarget
 
                         rvrs =C=> find =C=> setTarget
 
-                        setTarget =S=> PostMachineSuccess
+                        //setTarget =S=> PostMachineSuccess
+                        setTarget =S=> faceTarget
                         setTarget =F=> PostMachineFailure   // should not happen
+
+                        faceTarget =C=> PostMachineSuccess
                     }
                 }
 
@@ -959,13 +889,19 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         // check if the target shape is valid
                         if (targetShape.isValid()) {
                             std::cout << "target shape is valid. setting its allocentric position.\n";
-                            Point objAllocentricPt = targetShape->getCentroid();
-                            objAllocentricPt.applyTransform(VRmixin::mapBuilder->localToWorldMatrix,
-                                                           allocentric);
-                            std::cout << "Repositioning the object to from "
-                            << grasperTarget->getCentroid() << " to "
-                            << objAllocentricPt << std::endl;
-                            grasperTarget->setPosition(objAllocentricPt);
+                            if (grasperTarget.isValid()) {
+                                Point objAllocentricPt = targetShape->getCentroid();
+                                objAllocentricPt.applyTransform(VRmixin::mapBuilder->localToWorldMatrix,
+                                                                allocentric);
+                                std::cout << "Repositioning the object to from "
+                                << grasperTarget->getCentroid() << " to "
+                                << objAllocentricPt << std::endl;
+                                grasperTarget->setPosition(objAllocentricPt);
+                            } else {
+                                std::cout << "importing shape " << targetShape << " to the worldShS.\n";
+                                grasperTarget =VRmixin::mapBuilder->importLocalShapeToWorld(targetShape);
+                                std::cout << "target @ " << grasperTarget->getCentroid() << std::endl;
+                            }
                             postStateSuccess();
                         }
                         // should only fail if the robot did not see any cylinders
@@ -1093,7 +1029,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     pause:      PauseEvaluator
                     createTask: CreateLocalizeTask
                     
-                    pause =C=> SpeechNode("localizing") =C=> createTask
+                    pause =C=> createTask
                     pause =T(300)=> pause
                 }
             }
@@ -1109,7 +1045,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 startRec:   StartRecovery
                 locAgent:   LocalizeAgent
                 manipRec:   ObjectManipRecovery
-                //walkRec:  WalkRecovery
                 endRec:     EndRecovery
 
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locAgent
@@ -1338,12 +1273,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                                 // manip action here or in the action runner node?
                                 if (cmd.isValid())
                                 {
-                                    //thisAgent->currMotionCmd = cmd;
                                     thisAgent->setMotionCommand(cmd);
-                                    //if (cmd.targetObjectIsValid()) {
-                                    //    thisAgent->ptasks.push(
-                                    //        new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
-                                    //}
                                     std::cout << "Added a motion command.\n";
                                 }
                             }
@@ -1535,8 +1465,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
             $nodeclass DropItem : ArmNode : doStart {
                 std::cout << "[" << getName() << "]: releasing the item.\n";
-                // open the gripper
-                getMC()->openGripper(1.0f);
+                // open the gripper --- this value is assuming the cylinder's diameter < 120mm
+                getMC()->openGripper(0.45f);
             }
 
             $nodeclass LookAtObjectAprilTag : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
@@ -2067,10 +1997,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
         
         virtual void stop() {
             $reference KoduInterp::thisAgent;
-            // set is walking flag to false
-            //thisAgent->agentIsWalking = false;
-            // invalidate the current motion command
-            //thisAgent->currMotionCmd.invalidate();
+            // set is walking flag to false, and invalidate the current motion command
             thisAgent->motionComplete();
             cmd = Kodu::MotionCommand();
             // abort the pilot
@@ -2165,6 +2092,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 float centroidDist = Kodu::distanceFromAgentToObject(target);
                 float spatialDist = Kodu::distanceInBetweenAgentAndObject(target);
                 float xOffset = centroidDist - spatialDist + kMinDistForGoToShape;
+                //float xOffset = centroidDist - spatialDist;// + kMinDistForGoToShape;
                 pilotreq.baseOffset = fmat::pack(xOffset, 0, 0);
                 // ignore any collisions
                 pilotreq.collisionAction = collisionIgnore;
@@ -2210,6 +2138,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
 
                 $nodeclass CreateFinalApproachCommand : StateNode : doStart {
+                    $reference KoduInterp::thisAgent;
                     $reference MotionActionRunner::cmd;
                     $reference ExecuteMotionAction::targetShapeTagId;
 
@@ -2243,6 +2172,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         targetShape->getCentroid(), 0.0f, shapeRadius));
                     // --- calculate the distance in between the agent and this enclosed shape
                     float distanceToTravel = Kodu::distanceInBetweenAgentAndObject(fakeCyl);
+                    //******* temp fix
+                    if (thisAgent->isHoldingAnObject())
+                        distanceToTravel += 45.0f;
+                    //*******
                     // create a new motion command
                     cmd = Kodu::MotionCommand(distanceToTravel, angleToTurn, 0.0f, 0.0f);
                     std::cout << "angle = " << angleToTurn << "rads (= "
@@ -2299,6 +2232,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 checkMotionType =S<MotionTransType>(MTT_SIMPLE_MOTION)=> execSimpleMotion
 
                 execGoToShape =C=> execSimpleMotion
+                //execGoToShape =C=> PostMachineCompletion
                 execGoToShape =F=> SpeechNode("error at go to shape") =C=> PostMachineFailure
 
                 execSimpleMotion =C=> PostMachineCompletion
@@ -2317,7 +2251,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 targetShape->setObstacle();
             }
             cmd = Kodu::MotionCommand();
-            //thisAgent->agentIsWalking = false;
             thisAgent->motionComplete();
             postStateCompletion();
         }
@@ -2373,12 +2306,11 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 evaluatorRef->stop();
             }
 
-            if (VRmixin::isWalkingFlag == true && !thisAgent->isExecutingManipAction()) {
+            //if (VRmixin::isWalkingFlag == true && !thisAgent->isExecutingManipAction()) {
+            if (thisAgent->isExecutingMotionAction()) {
                 std::cout << "aborting the current motion command.\n";
-                //thisAgent->agentIsWalking = false;
-                //thisAgent->currMotionCmd.invalidate();
-                thisAgent->motionComplete();
-                VRmixin::pilot->pilotAbort();
+                //thisAgent->motionComplete();
+                //VRmixin::pilot->pilotAbort();
                 motionActRef->stop();
             }
 
