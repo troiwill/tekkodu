@@ -188,6 +188,7 @@ namespace Kodu {
     }
 
     const MotionCommand& KoduActionMotion::getMotionCommand() {
+        bool cmdIsValid = true;
         switch (motionType) {
             // random walk
             case MT_MOVE_WANDER:
@@ -212,12 +213,11 @@ namespace Kodu {
                         > KoduConditionBump::kMaxDistanceAwayToSenseBump)
                     {
                         motionCmd.targetObject = ObjectKeeper::tempObject;
-                        motionCmd.cmdValid = true;
                         break;
                     }
                 }
                 motionCmd.targetObject = ObjectKeeper::invalidObject;
-                motionCmd.cmdValid = false;
+                cmdIsValid = false;
                 break;
             }
 
@@ -250,7 +250,14 @@ namespace Kodu {
                     float angleDiff = std::fabs(minTurnAngle) - M_PI;
                     minTurnAngle = (minTurnAngle > 0.0f ? (-1.0f * angleDiff) : angleDiff);
                 }
-                motionCmd.da = minTurnAngle;
+
+                // prevents the robot from executing the turning action repeatedly due to inaccuracy
+                static const float kFiveDegrees = 5.0f * M_PI / 180.0f;
+
+                if (std::fabs(minTurnAngle) < kFiveDegrees)
+                    cmdIsValid = false;
+                else
+                    motionCmd.da = minTurnAngle;
                 break;
             }
 
@@ -268,6 +275,7 @@ namespace Kodu {
                 break;
             }
         }
+        motionCmd.cmdValid = cmdIsValid;
         return motionCmd;
     }
 
