@@ -168,6 +168,7 @@ namespace Kodu {
     }
 
     float distanceInBetweenAgentAndObject(const ShapeRoot& kShape) {
+        // approx. measurements based on the iRobot CREATE (measured on/before Dec. 5, 2013)
         static float const kRobotInflatedRadius = 205.0f;
         float distBtwObjects = 0.0f;
         switch(kShape->getType()) {
