@@ -7,7 +7,13 @@
 
 namespace Kodu {
     
+    /**
+     * ASSUMPTION:
+     * - grabbed object's radius is greater than or equal to 1/2 the distance from the inside of
+     *   the gripper to the gripper's fingers.
+    **/
     float const MatchesObjectTagInGripper::kMaxAprTagCentroidVariance = 30.0f;
+
     unsigned int VisualGripperMonitorTask::idCount = 70000;
     
     bool MatchesObjectTagInGripper::operator()(const DualCoding::ShapeRoot& kShape) const {
