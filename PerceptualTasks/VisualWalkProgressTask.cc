@@ -22,14 +22,18 @@ namespace Kodu {
 
     bool VisualWalkProgressTask::canExecute(const KoduWorld& kWorldState) {
         // return kWorldState.thisAgent.isWalking();
+        // return (kWorldState.thisAgent.bodyIsInMotion()
+        //     && kWorldState.thisAgent.isExecutingMotionAction()
+        //     && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f));
         return (kWorldState.thisAgent.bodyIsInMotion()
             && kWorldState.thisAgent.isExecutingMotionAction()
-            && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f));
+            && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f)
+            && !IsBehindAgent()(targets[0]));
     }
 
     void VisualWalkProgressTask::examineTaskResults() {
-        if (IsBehindAgent()(targets[0]))
-            return;
+        //if (IsBehindAgent()(targets[0]))
+        //    return;
         // get all the objects in the local shape space
         std::vector<DualCoding::ShapeRoot> lclShapes(DualCoding::VRmixin::localShS);
         // import the target shape into the local shape space
