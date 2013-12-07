@@ -21,7 +21,6 @@ namespace Kodu {
         agentWantsToDropObject(false),
         agentWantsToGrabObject(false),
         targetObjectIsInGripper(false),
-        //agentIsWalking(false),
         agentIsExecutingMotionAction(false),
         currMotionCmd(),
         distanceTravelled(0.0f),
@@ -51,7 +50,6 @@ namespace Kodu {
             agentWantsToDropObject = kAgent.agentWantsToDropObject;
             agentWantsToGrabObject = kAgent.agentWantsToGrabObject;
             targetObjectIsInGripper = kAgent.targetObjectIsInGripper;
-            //agentIsWalking = kAgent.agentIsWalking;
             agentIsExecutingMotionAction = kAgent.agentIsExecutingMotionAction;
             currMotionCmd = kAgent.currMotionCmd;
             distanceTravelled = kAgent.distanceTravelled;
@@ -162,9 +160,6 @@ namespace Kodu {
         return currMotionCmd.isValid();
     }
 
-    //bool KoduAgent::isWalking() const {
-    //    return agentIsWalking;
-    //}
     bool KoduAgent::isExecutingMotionAction() const {
         return agentIsExecutingMotionAction;
     }
