@@ -487,7 +487,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             }
 
             $nodeclass ObjectManipRecovery : StateNode {
-                $provide float const kReverseDist(75.0f);
                 $provide Kodu::VisualGripperMonitorTask* gTask(NULL);
                 $provide ShapeRoot grasperTarget;
                 $provide int objectTagId(-1);
@@ -514,7 +513,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         std::cout << "[" << getName() << "]: opening the gripper\n";
                         // opens the gripper in case it detected a false positive (the object is
                         // still in the gripper, but the robot detected a failure)
-                        getMC()->openGripper(1.0f);
+                        getMC()->openGripper(0.8f);
                     }
 
                     $setupmachine {
@@ -528,20 +527,28 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
 
                 $nodeclass PrepareForFirstAttempt : StateNode {
+                    $provide float reverseDist(0.0f);
 
                     $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
                         std::cout << "[" << getName() << "]: ";
+                        //$reference KoduInterp::thisAgent;
                         $reference ObjectManipRecovery::gTask;
-                        $reference ObjectManipRecovery::kReverseDist;
+                        $reference PrepareForFirstAttempt::reverseDist;
                         // get the current and last positions
                         Point lastPos = gTask->getLastSuccessfulState().position;
                         Point currPos = VRmixin::theAgent->getCentroid();
-                        float additionalDist = (currPos - lastPos).xyNorm();
-                        // if the robot travelled forward between the last and current points,
-                        // include that distance
-                        pilotreq.dx = (-1.0f * kReverseDist) - additionalDist;
-                        std::cout << "reversing by " << std::fabs(pilotreq.dx) << "mm (" << kReverseDist
-                            << " + " << additionalDist << ")\n";
+                        // get the gripper object's radius
+                        //float gripperObjectRadius = Kodu::objectRadius(thisAgent->gripperObject);
+                        // get the distance the robot travelled between position states
+                        float positionMag = (currPos - lastPos).xyNorm();
+                        // calculate how far the robot should reverse
+                        //reverseDist = (gripperObjectRadius * 1.25f) + positionMag;
+                        reverseDist = 75.0f + positionMag;
+                        // set the distance the robot should reverse
+                        pilotreq.dx = -1.0f * reverseDist;
+                        std::cout << "reversing by " << reverseDist << "mm ("
+                            << 75.0f << " + " << positionMag << ")\n";
+                            //<< gripperObjectRadius << " + " << positionMag << ")\n";
                     }
 
                     $nodeclass LocateLostObject : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
@@ -575,16 +582,13 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         float const kCylHeight = kLostCyl->getHeight();
                         // the cylinder's radius
                         float const kCylRadius = kLostCyl->getRadius();
-                        // a fudge factor for the max search radius in case the calculation
-                        // is a little off
-                        float const kFudgeFactor = kCylRadius;
                         // the distance the robot reversed
-                        $reference ObjectManipRecovery::kReverseDist;
+                        $reference PrepareForFirstAttempt::reverseDist;
                         // the max distance the robot should be away from the robot's centroid
-                        float const kDropRadius = kMaxGripperReach + kCylRadius + kReverseDist;
+                        float dropRadius = kMaxGripperReach + kCylRadius + reverseDist;
                         // the max distance an object can be for the robot to consider
                         // it as the lost object
-                        float const kMaxSearchRadius = kDropRadius + kCylRadius + kFudgeFactor;
+                        float maxSearchRadius = dropRadius + (kCylRadius * 2.0f);
                         
                         // find out what the robot was doing when the object fell out of the gripper
                         float const kInitAngle = gTask->getTagCentroid().atanYX();
@@ -631,7 +635,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             << " degs) ";
                         
                         // approx. position of the object if it was still in the gripper
-                        pts.push_back(Point(cos(currAngle) * kDropRadius, sin(currAngle) * kDropRadius,
+                        pts.push_back(Point(cos(currAngle) * dropRadius, sin(currAngle) * dropRadius,
                             kCylHeight, egocentric));
                         std::cout << "begin pt = " << pts[0] << std::endl;
 
@@ -640,8 +644,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             currAngle += thetaIncrement;
                             std::cout << "currAngle = " << currAngle << " rads (= "
                                 << (rad2deg(currAngle)) << " degs) ";
-                            pts.push_back(Point(cos(currAngle) * kDropRadius,
-                                                sin(currAngle) * kDropRadius,
+                            pts.push_back(Point(cos(currAngle) * dropRadius,
+                                                sin(currAngle) * dropRadius,
                                                 kCylHeight, egocentric));
                             std::cout << "added pt #" << pts.size() << " = " << pts[pts.size() - 1]
                                 << std::endl;
@@ -655,7 +659,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         // create the mapbuilder request
                         mapreq.searchArea = objSearchPoints;
                         mapreq.clearLocal = true;
-                        mapreq.maxDist = kMaxSearchRadius;
+                        mapreq.maxDist = maxSearchRadius;
                         //mapreq.pursueShapes = true;
                         mapreq.removePts = false;
                         mapreq.setAprilTagFamily();
@@ -726,11 +730,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                         rvrs =C=> find =C=> setTarget
 
-                        //setTarget =S=> PostMachineSuccess
-                        setTarget =S=> faceTarget
+                        setTarget =S=> faceTarget =C=> PostMachineSuccess
                         setTarget =F=> PostMachineFailure   // should not happen
-
-                        faceTarget =C=> PostMachineSuccess
                     }
                 }
 
@@ -854,11 +855,11 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         float objRadius = Kodu::objectRadius(thisAgent->gripperObject);
                         
                         pilotreq.dx = kTagPt.coordX() - objRadius - objDesiredXPos;
-                        std::cout << pilotreq.dx << "mm)\n";
+                        std::cout << pilotreq.dx << "mm\n";
                         
                         // reposition the gripper target object
                         objFutureEgoPos = Point(objDesiredXPos, kTagPt.coordY(),
-                                                (kTagPt.coordZ() / 2.0f), egocentric);
+                                            (kTagPt.coordZ() / 2.0f), egocentric);
                         pilotreq.collisionAction = collisionIgnore;
                     }
 
