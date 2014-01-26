@@ -45,8 +45,7 @@ namespace Kodu {
     }
 
     void KoduConditionSee::reinitialize() {
-        // TODO (9/Aug/2013)
-        // do I need to clear the Shape object?
+        // do nothing
     }
     
     void KoduConditionSee::printAttrs() const {
