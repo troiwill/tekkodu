@@ -45,7 +45,7 @@ namespace Kodu {
     }
 
     void KoduConditionSee::reinitialize() {
-        // do nothing
+        KoduCondition::reinitialize();
     }
     
     void KoduConditionSee::printAttrs() const {
