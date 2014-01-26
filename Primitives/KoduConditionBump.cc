@@ -73,8 +73,7 @@ namespace Kodu {
     }
 
     void KoduConditionBump::reinitialize() {
-        // TODO (9/Aug/2013)
-        // do I need to clear the Shape object?
+        KoduCondition::reinitialize();
     }
     
     void KoduConditionBump::printAttrs() const {
