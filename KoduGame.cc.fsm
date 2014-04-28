@@ -420,15 +420,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
         $nodeclass FailureRecovery : StateNode {
             
-            $nodeclass StartRecovery : StateNode : doStart {
-                $reference PerceptualMultiplexor::currentTask;
-                std::cout << "[" << getName() << "]\n";
-                std::cout << "Perceptual Recovery starting...\n";
-                // the signal type decides which recovery is started
-                postStateSignal<Kodu::PerceptualTaskType_t>(currentTask->getType());
-            }
-
-            $nodeclass PauseEvaluator : StateNode : doStart {
+            $nodeclass PauseInterpretation : StateNode : doStart {
                 $reference KoduInterp::thisAgent;
                 $reference KoduInterp::evaluatorRef;
                 $reference KoduInterp::runnerRef;
@@ -486,6 +478,14 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
             }
 
+            $nodeclass StartRecovery : StateNode : doStart {
+                $reference PerceptualMultiplexor::currentTask;
+                std::cout << "[" << getName() << "]\n";
+                std::cout << "Perceptual Recovery starting...\n";
+                // the signal type decides which recovery is started
+                postStateSignal<Kodu::PerceptualTaskType_t>(currentTask->getType());
+            }
+
             $nodeclass ObjectManipRecovery : StateNode {
                 $provide Kodu::VisualGripperMonitorTask* gTask(NULL);
                 $provide ShapeRoot grasperTarget;
@@ -517,12 +517,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     }
 
                     $setupmachine {
-                        pause:      PauseEvaluator
                         getInfo:    GetObjectInfo
                         openGrip:   OpenGripper
 
-                        pause =T(300)=> pause
-                        pause =C=> getInfo =C=> openGrip =C=> PostMachineCompletion
+                        getInfo =C=> openGrip =C=> PostMachineCompletion
                     }
                 }
 
@@ -1027,11 +1025,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
 
                 $setupmachine {
-                    pause:      PauseEvaluator
                     createTask: CreateLocalizeTask
-                    
-                    pause =C=> createTask
-                    pause =T(300)=> pause
                 }
             }
 
@@ -1043,11 +1037,15 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             }
 
             $setupmachine {
+                pause:      PauseInterpretation
                 startRec:   StartRecovery
                 locAgent:   LocalizeAgent
                 manipRec:   ObjectManipRecovery
                 endRec:     EndRecovery
 
+                pause =T(300)=> pause
+                pause =C=> startRec
+                
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locAgent
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_GRIPPER_MONITOR)=> manipRec
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> locAgent
