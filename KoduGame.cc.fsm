@@ -582,7 +582,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         float const kCylRadius = kLostCyl->getRadius();
                         // the distance the robot reversed
                         $reference PrepareForFirstAttempt::reverseDist;
-                        // the max distance the robot should be away from the robot's centroid
+                        // the max distance the object should be away from the robot's centroid
                         float dropRadius = kMaxGripperReach + kCylRadius + reverseDist;
                         // the max distance an object can be for the robot to consider
                         // it as the lost object
