@@ -524,14 +524,14 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     }
                 }
 
-                $nodeclass PrepareForFirstAttempt : StateNode {
+                $nodeclass PrepareForItemRecovery : StateNode {
                     $provide float reverseDist(0.0f);
 
                     $nodeclass Reverse : PilotNode(PilotTypes::walk) : doStart {
                         std::cout << "[" << getName() << "]: ";
                         //$reference KoduInterp::thisAgent;
                         $reference ObjectManipRecovery::gTask;
-                        $reference PrepareForFirstAttempt::reverseDist;
+                        $reference PrepareForItemRecovery::reverseDist;
                         // get the current and last positions
                         Point lastPos = gTask->getLastSuccessfulState().position;
                         Point currPos = VRmixin::theAgent->getCentroid();
@@ -805,7 +805,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     }
                 }
 
-                $nodeclass PrepareForAnotherAttempt : StateNode {
+                $nodeclass PrepareForAnotherGrasp : StateNode {
                     $provide Point objFutureEgoPos;
 
                     $nodeclass NeedToLookAround : StateNode : doStart {
@@ -837,7 +837,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     $nodeclass RepositionBody : PilotNode(PilotTypes::walk) : doStart {
                         $reference KoduInterp::thisAgent;
                         $reference ObjectManipRecovery::objectTagId;
-                        $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                        $reference PrepareForAnotherGrasp::objFutureEgoPos;
                         
                         std::cout << "[" << getName() << "]: walking distance = ";
                         // get a particular april tag
@@ -863,7 +863,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                     $nodeclass FindObjectAgain : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
                         $reference KoduInterp::thisAgent;
-                        $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                        $reference PrepareForAnotherGrasp::objFutureEgoPos;
 
                         std::cout << "[" << getName() << "]: looking for gripper object (again)\n";
                         // search for the object again using the point calculated previously
@@ -879,7 +879,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     $nodeclass RepositionGripperObject : StateNode : doStart {
                         $reference KoduInterp::thisAgent;
                         $reference ObjectManipRecovery::grasperTarget;
-                        $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                        $reference PrepareForAnotherGrasp::objFutureEgoPos;
                         
                         std::cout << "[" << getName() << "]: attempting to reposition gripper object.\n";
                         NEW_SHAPEROOTVEC(objs, subset(localShS,
@@ -972,24 +972,24 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                 $setupmachine {
                     initMRec:       InitiateManipRecovery
-                    prepAttempt1:   PrepareForFirstAttempt
+                    prep4ItemRcvry: PrepareForItemRecovery
                     retrvObj:       RetrieveLostObject
                     verifyRetrv:    VerifyObjectWasGrabbed
-                    prepAttempt2:   PrepareForAnotherAttempt
+                    prep4Grasp:     PrepareForAnotherGrasp
                     getLoc:         GetTagLocation
 
-                    initMRec =C=> prepAttempt1
+                    initMRec =C=> prep4ItemRcvry
 
-                    prepAttempt1 =S=> retrvObj
-                    prepAttempt1 =F=> prepAttempt2
+                    prep4ItemRcvry =S=> retrvObj
+                    prep4ItemRcvry =F=> prep4Grasp
 
-                    prepAttempt2 =S=> retrvObj
-                    prepAttempt2 =F=> SpeechNode("could not find the object") =C=> PostMachineFailure
+                    prep4Grasp =S=> retrvObj
+                    prep4Grasp =F=> SpeechNode("could not find the object") =C=> PostMachineFailure
 
                     retrvObj =GRASP=> verifyRetrv
 
                     verifyRetrv =S=> getLoc =S=> PostMachineSuccess
-                    verifyRetrv =F=> prepAttempt2 =C=> retrvObj
+                    verifyRetrv =F=> prep4Grasp =C=> retrvObj
                 }
 
             private:
