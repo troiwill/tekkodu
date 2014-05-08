@@ -1810,7 +1810,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 }
             }
 
-            $nodeclass PrepareForAnotherAttempt : StateNode {
+            $nodeclass PrepareForAnotherGrasp : StateNode {
                 $provide Point objFutureEgoPos;
 
                 $nodeclass NeedToLookAround : StateNode : doStart {
@@ -1842,7 +1842,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 $nodeclass RepositionBody : PilotNode(PilotTypes::walk) : doStart {
                     $reference KoduInterp::thisAgent;
                     $reference GrabActionRunner::objectTagId;
-                    $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                    $reference PrepareForAnotherGrasp::objFutureEgoPos;
 
                     std::cout << "[" << getName() << "]: walking distance = ";
                     // get a particular april tag
@@ -1868,7 +1868,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                 $nodeclass FindObjectAgain : MapBuilderNode(MapBuilderRequest::localMap) : doStart {
                     $reference KoduInterp::thisAgent;
-                    $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                    $reference PrepareForAnotherGrasp::objFutureEgoPos;
 
                     std::cout << "[" << getName() << "]: looking for gripper object (again)\n";
                     // search for the object again using the point calculated previously
@@ -1882,7 +1882,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
 
                 $nodeclass RepositionGripperObject : StateNode : doStart {
                     $reference KoduInterp::thisAgent;
-                    $reference PrepareForAnotherAttempt::objFutureEgoPos;
+                    $reference PrepareForAnotherGrasp::objFutureEgoPos;
                     
                     std::cout << "[" << getName() << "]: attempting to reposition gripper object.\n";
                     NEW_SHAPEROOTVEC(objs, subset(localShS,
@@ -1941,7 +1941,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             $setupmachine {
                 grabObj:        GrabObject
                 verifyObjGrab:  VerifyObjectWasGrabbed
-                prepForRetry:   PrepareForAnotherAttempt
+                prepForRetry:   PrepareForAnotherGrasp
                 createTask:     CreateGripMonTask
 
                 grabObj =GRASP=> verifyObjGrab
