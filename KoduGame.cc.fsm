@@ -696,10 +696,10 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         }
 
                         // the tag was not visible
-                        if (!cyls.empty()) {
-                            std::cout << "tag is NOT valid. getting the closest match.\n";
-                            grasperTarget = find_if(localShS, Kodu::IsShapeOfType(cylinderDataType));
-                        }
+                        // if (!cyls.empty()) {
+                        //     std::cout << "tag is NOT valid. getting the closest match.\n";
+                        //     grasperTarget = find_if(localShS, Kodu::IsShapeOfType(cylinderDataType));
+                        // }
 
                         if (grasperTarget.isValid()) {
                             std::cout << "grasper target was valid!\n";
