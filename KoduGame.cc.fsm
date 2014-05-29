@@ -2305,11 +2305,8 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 evaluatorRef->stop();
             }
 
-            //if (VRmixin::isWalkingFlag == true && !thisAgent->isExecutingManipAction()) {
             if (thisAgent->isExecutingMotionAction()) {
                 std::cout << "aborting the current motion command.\n";
-                //thisAgent->motionComplete();
-                //VRmixin::pilot->pilotAbort();
                 motionActRef->stop();
             }
 
