@@ -285,7 +285,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         postStateSignal<MultiPlexorTransType_t>(MPT_MAP_BUILDER);
                         return;
 
-                    case Kodu::PT_VIS_GRIPPER_MONITOR:
+                    case Kodu::PT_GRIPPER_VIS_MONITOR:
                         std::cout << "(Gripper Monitor).\n";
                         postStateSignal<MultiPlexorTransType_t>(MPT_MAP_BUILDER);
                         return;
@@ -1047,7 +1047,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 pause =C=> startRec
                 
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locAgent
-                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_GRIPPER_MONITOR)=> manipRec
+                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_GRIPPER_VIS_MONITOR)=> manipRec
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> locAgent
                 
                 //************* temp fix
@@ -1438,7 +1438,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
             gTask = NULL;
             unsigned int tasksToExecute = thisAgent->ptasks.size();
             while (tasksToExecute > 0) {
-                if (thisAgent->ptasks.front()->getType() == Kodu::PT_VIS_GRIPPER_MONITOR) {
+                if (thisAgent->ptasks.front()->getType() == Kodu::PT_GRIPPER_VIS_MONITOR) {
                     gTask = static_cast<Kodu::VisualGripperMonitorTask*>(thisAgent->ptasks.front());
                     thisAgent->ptasks.pop();
                 } else {
@@ -2354,7 +2354,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 Kodu::PerceptualTaskType_t type;
                 while (numbOfTasks > 0) {
                     type = thisAgent->ptasks.front()->getType();
-                    if (type == Kodu::PT_VIS_GRIPPER_MONITOR || type == Kodu::PT_VIS_LOCALIZATION) {
+                    if (type == Kodu::PT_GRIPPER_VIS_MONITOR || type == Kodu::PT_VIS_LOCALIZATION) {
                         std::cout << "\tadding task #" << thisAgent->ptasks.front()->getTaskId()
                             << " to back of queue.\n";
                         thisAgent->ptasks.push(thisAgent->ptasks.front());
