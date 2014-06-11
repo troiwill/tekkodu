@@ -70,7 +70,7 @@ namespace Kodu {
         //! Constructor
         VisualGripperMonitorTask(const DualCoding::ShapeRoot& kObjInGripper,
             const DualCoding::Shape<DualCoding::AprilTagData>& kObjAprilTag)
-          : PerceptualTaskBase(PT_VIS_GRIPPER_MONITOR, ++idCount),
+          : PerceptualTaskBase(PT_GRIPPER_VIS_MONITOR, ++idCount),
             taskPred(),
             objInGripper(kObjInGripper),
             lastSuccessfulState()
