@@ -24,7 +24,7 @@
 
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
 #include "Kodu/PerceptualTasks/VisualBumpDetectionTask.h"
-#include "Kodu/PerceptualTasks/VisualGripperMonitorTask.h"
+#include "Kodu/PerceptualTasks/GripperVisualMonitorTask.h"
 #include "Kodu/PerceptualTasks/VisualLocalizationTask.h"
 #include "Kodu/PerceptualTasks/VisualWalkProgressTask.h"
 
