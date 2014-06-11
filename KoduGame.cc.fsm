@@ -295,7 +295,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         postStateSignal<MultiPlexorTransType_t>(MPT_PILOT);
                         return;
 
-                    case Kodu::PT_VIS_WALK_PROGRESS:
+                    case Kodu::PT_VIS_NAV_ERR_MON:
                         std::cout << "(Walk Progress).\n";
                         postStateSignal<MultiPlexorTransType_t>(MPT_MAP_BUILDER);
                         return;
@@ -1048,7 +1048,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_LOCALIZATION)=> locAgent
                 startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_GRIPPER_VIS_MONITOR)=> manipRec
-                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_WALK_PROGRESS)=> locAgent
+                startRec =S<Kodu::PerceptualTaskType_t>(Kodu::PT_VIS_NAV_ERR_MON)=> locAgent
                 
                 //************* temp fix
                 bumpRec: SpeechNode("unhandled recovery for bump detection")
@@ -2061,7 +2061,7 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                     // this task should be created anytime the robot is executing a motion action
                     // execpt when doing stationary turns...
                     std::cout << "creating walk progress perceptual task\n";
-                    thisAgent->ptasks.push(new Kodu::VisualWalkProgressTask(cmd.getTargetObject()));
+                    thisAgent->ptasks.push(new Kodu::VisualNavErrMonTask(cmd.getTargetObject()));
                     //***********
                 }
                 // else it might be something else
