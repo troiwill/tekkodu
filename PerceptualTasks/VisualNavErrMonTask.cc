@@ -71,7 +71,7 @@ namespace Kodu {
         std::cout << stream.str() << std::endl;
     }
 
-    const DualCoding::MapBuilderRequest& VisualWalkProgressTask::getMapBuilderRequest() {
+    const DualCoding::MapBuilderRequest& VisualNavErrMonTask::getMapBuilderRequest() {
 
         // save the agent's current orientation
         agentLastOrientation = DualCoding::VRmixin::theAgent->getOrientation();
