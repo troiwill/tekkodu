@@ -3,7 +3,7 @@
 #include "Kodu/KoduWorld.h"
 //#include "Kodu/PosOrientState.h"
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
-#include "Kodu/PerceptualTasks/VisualGripperMonitorTask.h"
+#include "Kodu/PerceptualTasks/GripperVisualMonitorTask.h"
 
 namespace Kodu {
     
