@@ -6,7 +6,7 @@
 // tekkodu
 #include "Kodu/KoduWorld.h"
 #include "Kodu/PerceptualTasks/PerceptualTaskBase.h"
-#include "Kodu/PerceptualTasks/VisualWalkProgressTask.h"
+#include "Kodu/PerceptualTasks/VisualNavErrMonTask.h"
 #include "Kodu/Primitives/PerceptionSearch.h"
 
 //******** temp fix until base object is done
@@ -17,10 +17,10 @@
 
 namespace Kodu {
 
-    unsigned int const VisualWalkProgressTask::kMaxErrorOccurences = 1;
-    unsigned int VisualWalkProgressTask::idCount = 30000;
+    unsigned int const VisualNavErrMonTask::kMaxErrorOccurences = 1;
+    unsigned int VisualNavErrMonTask::idCount = 30000;
 
-    bool VisualWalkProgressTask::canExecute(const KoduWorld& kWorldState) {
+    bool VisualNavErrMonTask::canExecute(const KoduWorld& kWorldState) {
         // return kWorldState.thisAgent.isWalking();
         // return (kWorldState.thisAgent.bodyIsInMotion()
         //     && kWorldState.thisAgent.isExecutingMotionAction()
@@ -31,7 +31,7 @@ namespace Kodu {
             && !IsBehindAgent()(targets[0]));
     }
 
-    void VisualWalkProgressTask::examineTaskResults() {
+    void VisualNavErrMonTask::examineTaskResults() {
         //if (IsBehindAgent()(targets[0]))
         //    return;
         // get all the objects in the local shape space
@@ -103,7 +103,7 @@ namespace Kodu {
         return mapreq;
     }
 
-    bool VisualWalkProgressTask::taskIsComplete(const KoduWorld& kWorldState) {
+    bool VisualNavErrMonTask::taskIsComplete(const KoduWorld& kWorldState) {
         switch (taskStatus) {
             case PerceptualTaskBase::TS_IN_PROGRESS:
             {
