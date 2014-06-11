@@ -1,5 +1,5 @@
-#ifndef VISUAL_WALK_PROGRESS_TASK_H_
-#define VISUAL_WALK_PROGRESS_TASK_H_
+#ifndef VISUAL_NAV_ERR_MON_TASK_H_
+#define VISUAL_NAV_ERR_MON_TASK_H_
 
 // INCLUDES
 // c++
@@ -18,11 +18,11 @@ namespace Kodu {
      * - The target shape passed to the constructor is in the world shape space.
      *
     **/
-    class VisualWalkProgressTask : public PerceptualTaskBase {
+    class VisualNavErrMonTask : public PerceptualTaskBase {
     public:
         //! Constructor #1
-        VisualWalkProgressTask(const DualCoding::ShapeRoot& kTargetShape)
-          : PerceptualTaskBase(PT_VIS_WALK_PROGRESS, ++idCount),
+        VisualNavErrMonTask(const DualCoding::ShapeRoot& kTargetShape)
+          : PerceptualTaskBase(PT_VIS_NAV_ERR_MON, ++idCount),
             errorCount(0),
             targets(),
             agentLastOrientation(0.0f)
@@ -32,7 +32,7 @@ namespace Kodu {
         }
 
         //! Constructor #2
-        VisualWalkProgressTask(const std::vector<DualCoding::ShapeRoot>& kTargetShapes)
+        VisualNavErrMonTask(const std::vector<DualCoding::ShapeRoot>& kTargetShapes)
           : PerceptualTaskBase(PT_VIS_WALK_PROGRESS, ++idCount),
             errorCount(0),
             targets(kTargetShapes),
@@ -40,7 +40,7 @@ namespace Kodu {
         { }
 
         //! Copy constructor
-        VisualWalkProgressTask(const VisualWalkProgressTask& kTask)
+        VisualNavErrMonTask(const VisualNavErrMonTask& kTask)
           : PerceptualTaskBase(kTask),
             errorCount(kTask.errorCount),
             targets(kTask.targets),
@@ -48,12 +48,12 @@ namespace Kodu {
         { }
 
         //! Destructor
-        ~VisualWalkProgressTask() {
+        ~VisualNavErrMonTask() {
             // no explicit implementation
         }
 
         //! Assignment operator
-        VisualWalkProgressTask& operator=(const VisualWalkProgressTask& kTask) {
+        VisualNavErrMonTask& operator=(const VisualNavErrMonTask& kTask) {
             if (this != &kTask) {
                 PerceptualTaskBase::operator=(kTask);
                 errorCount = kTask.errorCount;
@@ -87,4 +87,4 @@ namespace Kodu {
 
 }
 
-#endif // VISUAL_WALK_PROGRESS_TASK_H_
+#endif // VISUAL_NAV_ERR_MON_TASK_H_
