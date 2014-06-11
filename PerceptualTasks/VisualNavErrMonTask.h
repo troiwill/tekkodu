@@ -33,7 +33,7 @@ namespace Kodu {
 
         //! Constructor #2
         VisualNavErrMonTask(const std::vector<DualCoding::ShapeRoot>& kTargetShapes)
-          : PerceptualTaskBase(PT_VIS_WALK_PROGRESS, ++idCount),
+          : PerceptualTaskBase(PT_VIS_NAV_ERR_MON, ++idCount),
             errorCount(0),
             targets(kTargetShapes),
             agentLastOrientation(0.0f)
