@@ -20,7 +20,7 @@ namespace Kodu {
         PT_VIS_BUMP_DETECTION = 0,
         PT_GRIPPER_VIS_MONITOR,
         PT_VIS_LOCALIZATION,
-        PT_VIS_WALK_PROGRESS
+        PT_VIS_NAV_ERR_MON
     };
 
     class PerceptualTaskBase {
