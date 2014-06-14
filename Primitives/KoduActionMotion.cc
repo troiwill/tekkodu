@@ -75,9 +75,7 @@ namespace Kodu {
     }
 
     bool MotionCommand::operator==(const MotionCommand& kCommand) {
-        return (//forwardSpeed == kCommand.forwardSpeed
-                //&& turnSpeed == kCommand.turnSpeed
-                targetObject == kCommand.targetObject || (dx == kCommand.dx && da == kCommand.da));
+        return (targetObject == kCommand.targetObject || (dx == kCommand.dx && da == kCommand.da));
     }
 
     bool MotionCommand::operator!=(const MotionCommand& kCommand) {
