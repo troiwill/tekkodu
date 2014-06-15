@@ -2091,7 +2091,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                 float centroidDist = Kodu::distanceFromAgentToObject(target);
                 float spatialDist = Kodu::distanceInBetweenAgentAndObject(target);
                 float xOffset = centroidDist - spatialDist + kMinDistForGoToShape;
-                //float xOffset = centroidDist - spatialDist;// + kMinDistForGoToShape;
                 pilotreq.baseOffset = fmat::pack(xOffset, 0, 0);
                 // ignore any collisions
                 pilotreq.collisionAction = collisionIgnore;
