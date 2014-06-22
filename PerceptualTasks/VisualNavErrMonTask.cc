@@ -21,10 +21,6 @@ namespace Kodu {
     unsigned int VisualNavErrMonTask::idCount = 30000;
 
     bool VisualNavErrMonTask::canExecute(const KoduWorld& kWorldState) {
-        // return kWorldState.thisAgent.isWalking();
-        // return (kWorldState.thisAgent.bodyIsInMotion()
-        //     && kWorldState.thisAgent.isExecutingMotionAction()
-        //     && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f));
         return (kWorldState.thisAgent.bodyIsInMotion()
             && kWorldState.thisAgent.isExecutingMotionAction()
             && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f)
@@ -46,7 +42,7 @@ namespace Kodu {
                 std::cout << "found a match! xy-dist between centroids = ";
                 float dist = lclShapes[i]->getCentroid().xyDistanceFrom(lclTarget->getCentroid());
                 std::cout << dist << "mm\n";
-                errorCount = 0;
+                //errorCount = 0;
                 return;
             }
         }
@@ -61,14 +57,16 @@ namespace Kodu {
         }
 
         // increment the error count since the robot did not correctly identify the object
-        errorCount++;
-        std::stringstream stream;
-        stream << "task #" << id << ": recording (error) strike #" << errorCount << ". ";
-        if (errorCount == kMaxErrorOccurences) {
-            taskStatus = TS_FAILURE;
-            stream << " Task failed!";
-        }
-        std::cout << stream.str() << std::endl;
+        //errorCount++;
+        //std::stringstream stream;
+        //stream << "task #" << id << ": recording (error) strike #" << errorCount << ". ";
+        //if (errorCount == kMaxErrorOccurences) {
+        //    taskStatus = TS_FAILURE;
+        //    stream << " Task failed!";
+        //}
+        //std::cout << stream.str() << std::endl;
+        std::cout << "task #" << id << ": navigation task failed.\n";
+        taskStatus = TS_FAILURE;
     }
 
     const DualCoding::MapBuilderRequest& VisualNavErrMonTask::getMapBuilderRequest() {
