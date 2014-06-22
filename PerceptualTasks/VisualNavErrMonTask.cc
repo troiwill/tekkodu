@@ -28,8 +28,6 @@ namespace Kodu {
     }
 
     void VisualNavErrMonTask::examineTaskResults() {
-        //if (IsBehindAgent()(targets[0]))
-        //    return;
         // get all the objects in the local shape space
         std::vector<DualCoding::ShapeRoot> lclShapes(DualCoding::VRmixin::localShS);
         // import the target shape into the local shape space
