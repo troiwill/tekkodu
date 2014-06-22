@@ -76,11 +76,11 @@ namespace Kodu {
         virtual bool taskIsComplete(const KoduWorld&);
 
         //! The max number of cumulative errors (error: when the agent did not find a match)
-        static unsigned int const kMaxErrorOccurences;
+        //static unsigned int const kMaxErrorOccurences;
 
     private:
         static unsigned int idCount;                //!< Used to generate id numbers
-        unsigned int errorCount;                    //!< Cumulative error count
+        //unsigned int errorCount;                    //!< Cumulative error count
         std::vector<DualCoding::ShapeRoot> targets; //!< The shapes the agent needs to look at
         float agentLastOrientation;
     };
