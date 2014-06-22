@@ -17,7 +17,7 @@
 
 namespace Kodu {
 
-    unsigned int const VisualNavErrMonTask::kMaxErrorOccurences = 1;
+    //unsigned int const VisualNavErrMonTask::kMaxErrorOccurences = 1;
     unsigned int VisualNavErrMonTask::idCount = 30000;
 
     bool VisualNavErrMonTask::canExecute(const KoduWorld& kWorldState) {
