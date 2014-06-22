@@ -23,7 +23,7 @@ namespace Kodu {
     bool VisualNavErrMonTask::canExecute(const KoduWorld& kWorldState) {
         return (kWorldState.thisAgent.bodyIsInMotion()
             && kWorldState.thisAgent.isExecutingMotionAction()
-            && (distanceInBetweenAgentAndObject(targets[0]) > 80.0f)
+            && (distanceInBetweenAgentAndObject(targets[0]) > KoduConditionBump::kMaxDistanceAwayToSenseBump)
             && !IsBehindAgent()(targets[0]));
     }
 
