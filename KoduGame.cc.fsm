@@ -784,12 +784,12 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                             < (Kodu::objectRadius(thisAgent->gripperObject) * 1.25f))
                         {
                             std::cout << "successfully grabbed object\n";
-                            postStateSuccess();
+                            postParentSuccess();
                         } else {
                             std::cout << "failed to grab object... dist = "
                                 << tag->getCentroid().xyDistanceFrom(gripperPoint)
                                 << "mm; reattempting.\n";
-                            postStateFailure();
+                            postParentFailure();
                         }
                         //***********
                     }
@@ -799,9 +799,6 @@ $nodeclass KoduInterp : VisualRoutinesStateNode {
                         verifyObjGrabbed:   VerifyObjectInGripper
 
                         lookAtGripper =C=> verifyObjGrabbed
-
-                        verifyObjGrabbed =S=> PostMachineSuccess
-                        verifyObjGrabbed =F=> PostMachineFailure
                     }
                 }
 
