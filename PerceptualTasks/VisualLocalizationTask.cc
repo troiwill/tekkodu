@@ -20,11 +20,7 @@ namespace Kodu {
     const int VisualLocalizationTask::kMinStarsRequiredToLocalize = 2;
 
     bool VisualLocalizationTask::canExecute(const KoduWorld& kWorldState) {
-        if (localizationPoints.size() < 2) {
-            std::cout << "!!! ERROR! There is not enough shapes to localize!\n";
-            return false;
-        }
-        return (!kWorldState.thisAgent.isExecutingMotionAction() && !localizationPoints.empty());
+        return (!kWorldState.thisAgent.isExecutingMotionAction() && (localizationPoints.size() >= 2));
     }
     
     const DualCoding::PilotRequest& VisualLocalizationTask::getPilotRequest() {
