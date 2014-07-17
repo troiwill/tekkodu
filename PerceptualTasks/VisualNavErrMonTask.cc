@@ -104,7 +104,7 @@ namespace Kodu {
             case PerceptualTaskBase::TS_IN_PROGRESS:
             {
                 if (!kWorldState.thisAgent.isExecutingMotionAction()) {
-                    taskStatus = TS_SUCCESSFUL;
+                    taskStatus = TS_COMPLETE;
                     return true;
                 }
 
