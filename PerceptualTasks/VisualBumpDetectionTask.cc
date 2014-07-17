@@ -56,8 +56,8 @@ namespace Kodu {
                 std::cout << "added pair { " << shapeId << ", " << tagId << " } to the shape-tag map\n";
             }
 
-            // state the task is successful
-            taskStatus = TS_SUCCESSFUL;
+            // state the task is complete
+            taskStatus = TS_COMPLETE;
         }
         // else the task was not successful
         else {
